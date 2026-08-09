@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class IdempotencyKey extends Model
 {
@@ -26,4 +28,18 @@ class IdempotencyKey extends Model
         'response_body' => 'encrypted:array',
         'completed_at' => 'datetime',
     ];
+
+    public function scopePrunableCompleted(Builder $query, Carbon $cutoff): Builder
+    {
+        return $query
+            ->where('status', self::STATUS_COMPLETED)
+            ->where('created_at', '<=', $cutoff);
+    }
+
+    public function scopePrunableProcessing(Builder $query, Carbon $cutoff): Builder
+    {
+        return $query
+            ->where('status', self::STATUS_PROCESSING)
+            ->where('created_at', '<=', $cutoff);
+    }
 }

@@ -130,6 +130,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Tự động kiểm tra và cập nhật phiên bản mới hệ thống mỗi 30 phút
         $schedule->command('system:auto-update')->everyThirtyMinutes()->name('system-auto-update');
 
+        // Prune expired financial retry records in bounded batches during off-peak hours.
+        $schedule->command('idempotency:prune')
+            ->dailyAt('03:20')
+            ->name('idempotency-prune')
+            ->withoutOverlapping();
+
         // Xử lý hàng đợi gửi tin nhắn Telegram hàng loạt (Chạy mỗi 1 phút)
         $schedule->call(function () {
             app(\App\Http\Controllers\CronController::class)->processTelegramQueue(request());
@@ -159,4 +165,3 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
-
