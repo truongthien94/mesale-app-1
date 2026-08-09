@@ -1,0 +1,198 @@
+/* ==========================================================================
+   DARK MODE OVERRIDES - CASHBACK SHOPEE PLATFORM
+   ========================================================================== */
+
+/* Trạng thái Dark Mode cơ bản */
+html.dark {
+    color-scheme: dark;
+    background-color: #0f172a !important;
+}
+
+html.dark body {
+    background-color: #0f172a !important; /* slate-900 */
+    color: #cbd5e1 !important;
+}
+
+/* Backgrounds */
+html.dark header, 
+html.dark footer,
+html.dark .bg-white,
+html.dark .bg-white\/80 {
+    background-color: #1e293b !important; /* slate-800 */
+}
+
+html.dark .bg-gray-50, 
+html.dark .bg-gray-100,
+html.dark .bg-gray-50\/30,
+html.dark .bg-gray-50\/50 {
+    background-color: #0f172a !important; /* slate-900 */
+}
+
+/* Typography */
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-slate-900 {
+    color: #f1f5f9 !important; /* slate-100 */
+}
+
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+html.dark .text-slate-700 {
+    color: #cbd5e1 !important; /* slate-300 */
+}
+
+html.dark .text-gray-500,
+html.dark .text-gray-400 {
+    color: #94a3b8 !important; /* slate-400 */
+}
+
+/* Borders */
+html.dark .border-gray-100,
+html.dark .border-gray-200,
+html.dark .border-gray-300\/50 {
+    border-color: #334155 !important; /* slate-700 */
+}
+
+/* Form Elements */
+html.dark input, 
+html.dark select, 
+html.dark textarea {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+
+html.dark input::placeholder, 
+html.dark select::placeholder, 
+html.dark textarea::placeholder {
+    color: #475569 !important;
+}
+
+/* Shadows */
+html.dark .shadow-sm, 
+html.dark .shadow-md, 
+html.dark .shadow-lg, 
+html.dark .shadow-xl,
+html.dark .shadow-2xl {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Shopee & Brand Colors */
+html.dark .bg-shopee\/5 {
+    background-color: rgba(238, 77, 45, 0.15) !important;
+}
+
+html.dark .bg-shopee\/10 {
+    background-color: rgba(238, 77, 45, 0.2) !important;
+}
+
+html.dark .text-shopee {
+    color: #ff7337 !important;
+}
+
+html.dark .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+html.dark .text-emerald-700 {
+    color: #34d399 !important;
+}
+
+html.dark .bg-red-50 {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+html.dark .text-red-600, 
+html.dark .text-red-700 {
+    color: #f87171 !important;
+}
+
+html.dark .bg-blue-50 {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+html.dark .text-blue-600, 
+html.dark .text-blue-700 {
+    color: #60a5fa !important;
+}
+
+/* Authentication pages fix */
+html.dark .bg-slate-50 {
+    background-color: #0f172a !important;
+}
+
+/* Mobile Navigation Menu */
+html.dark header div[x-show="mobileMenuOpen"] {
+    background-color: #1e293b !important;
+}
+
+/* Jumbotron Gradient & Layout elements */
+html.dark .from-shopee-bg {
+    --tw-gradient-from: rgba(238, 77, 45, 0.08) !important;
+    --tw-gradient-to: rgba(238, 77, 45, 0) !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+
+html.dark .border-white {
+    border-color: #334155 !important;
+}
+
+html.dark .bg-orange-50 {
+    background-color: rgba(238, 77, 45, 0.1) !important;
+}
+
+html.dark .border-orange-100 {
+    border-color: rgba(238, 77, 45, 0.2) !important;
+}
+
+/* Interactive Elements (Hover States) */
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-50\/80:hover,
+html.dark .hover\:bg-gray-100:hover {
+    background-color: #334155 !important;
+}
+
+html.dark .hover\:bg-red-50:hover {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Table overrides (Admin Panel) */
+html.dark .admin-page table {
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .admin-page th {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .admin-page td {
+    background-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .admin-page tr:hover td {
+    background-color: #334155 !important;
+}
+
+/* Ép toàn bộ viền container bảng, viền header và đường chia dòng trong bảng thành màu đen mờ */
+html.dark .admin-page table,
+html.dark .admin-page tr,
+html.dark .admin-page th,
+html.dark .admin-page td,
+html.dark .admin-page .divide-y > * + *,
+html.dark .admin-page .border-gray-200,
+html.dark .admin-page .border-gray-100 {
+    border-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Utilities */
+.scrollbar-none::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-none {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}

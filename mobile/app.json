@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "Mesale",
+    "slug": "mesale-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "mesale",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.mesale.app"
+    },
+    "android": {
+      "package": "vn.mesale.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      }
+    }
+  }
+}
