@@ -12,7 +12,7 @@ API target: `https://mesale.vn/api/v1/openapi`
 - The Open API is routed below `/api/v1/openapi` and is protected by the global `api.enabled`, `throttle:120,1`, and `api.log:openapi` middleware. Authenticated routes additionally use `api.auth`.
 - The live `GET /api/v1/openapi/config` endpoint currently returns HTTP `503` with code `API_DISABLED`. This is an M0 release blocker; do not bypass the middleware or enable it directly in production.
 - Password login, registration, email verification, password reset, 2FA and device/session token revocation exist. Native Google and Apple OAuth exchange endpoints do not exist in the current route/controller set.
-- `AuthController::respondWithToken()` returns `data.token`, not the migration canonical field `data.access_token`. M0 must normalize to `access_token`; a short-lived `token` alias may be retained only for explicitly approved web/API compatibility.
+- At audit time, `AuthController::respondWithToken()` returned only `data.token`. The local M0 implementation now adds canonical `data.access_token`, keeps a temporary equal `data.token` alias, and exposes `expires_at`; this is not deployed while production Open API remains disabled.
 - Session tokens are random plaintext values returned once and SHA-256 hashes are stored in `api_tokens`. Personal `users.api_token` lookup is only available under Bot API `api.auth:allow_key`; it must never be used by the mobile client.
 - Most money fields are serialized as JSON floating-point numbers. The mobile contract requires integer VND fields (or an explicitly versioned decimal policy) before financial screens are released.
 - List endpoints use page/per-page pagination inconsistently and no shared pagination/error schema or idempotency key is enforced for retryable mutations.
@@ -169,7 +169,7 @@ Current password/register/2FA/verification success response is equivalent to:
 }
 ```
 
-M0 mobile contract decision: canonicalize the field to `access_token`. If a compatibility alias is retained, it must be documented as deprecated and must never be interpreted as a personal API key. Mobile stores only this session token in Keychain/Keystore-backed storage.
+M0 mobile contract decision: `access_token` is canonical. The local implementation retains `token` as a documented temporary alias and never interprets it as a personal API key. Mobile stores only this session token in Keychain/Keystore-backed storage.
 
 ## Error and retry behavior
 
@@ -180,7 +180,7 @@ No shared `request_id`/correlation ID or `Idempotency-Key` contract is currently
 ## M0 required API work (not yet implemented)
 
 1. Provide isolated staging and a documented health/config contract; keep production `openapi_status` disabled until security review and smoke tests pass.
-2. Normalize auth success to `access_token`, `token_type`, `user`, with an explicit deprecation window for any `token` alias.
+2. Deploy and verify the local auth normalization (`access_token`, temporary `token` alias, `token_type`, `expires_at`, `user`) through staging before production activation.
 3. Add server-side Google credential exchange and Apple Sign in with Apple exchange. Verify issuer, audience, expiry, signature/JWKS, nonce and Apple `sub`; link existing users only through verified account-linking flow.
 4. Standardize pagination (`items` + `pagination` with stable page/per-page metadata) and validation/error envelopes, including framework exceptions.
 5. Convert all VND monetary fields to integer minor units (`*_vnd`) or publish a versioned exact-decimal policy; do not allow binary floating point for financial calculations in the mobile contract.

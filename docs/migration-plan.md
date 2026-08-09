@@ -30,7 +30,7 @@ Before repository changes, verify the local repository, remote, default branch, 
 
 - Live home and manifest respond successfully.
 - `https://mesale.vn/api/v1/openapi/config` currently responds with `503 API_DISABLED`; Open API staging and production readiness are mandatory M0 work.
-- Existing auth response uses `token`; the mobile contract will canonicalize `access_token` and may retain a temporary `token` alias for compatibility.
+- Audited auth responses used only `token`; local M0 code now adds canonical `access_token`, a temporary equal `token` alias, and `expires_at`, pending staging/deployment verification.
 - Native Apple OAuth exchange, native Google OAuth exchange, idempotency for retryable financial mutations, complete home/dashboard data, blog JSON, language/currency preference APIs, bot unlink, integer-money normalization, account-deletion web resource, support URL, AASA, and Asset Links remain API or release gaps.
 - Public legal/privacy/support and account-deletion resources must be verified before store submission.
 
