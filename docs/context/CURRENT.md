@@ -1,6 +1,6 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-007`
+- Latest checkpoint: `CKP-20260809-008`
 - Session: `SES-20260809-002`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 auth contract implementation + M1 Expo foundation verification
@@ -14,7 +14,7 @@
 - GitHub Issues: migration labels and Issues #1-#5 created
 - GitHub branch: `codex/migration-20260809` pushed to origin
 - GitHub PR: blocked because the previously empty repository has no distinct base branch
-- README: full redacted project, development, security, API, milestone, and release guide added
+- README: full redacted project, development, security, API, milestone, and release guide added and checked
 - GitHub Project: blocked because CLI token lacks `read:project` scope
 - Current blocker: production Open API returns `503 API_DISABLED`
 - Verification blocker: PHP CLI is unavailable in PATH (`BLK-TOOL-001`)

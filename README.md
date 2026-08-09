@@ -170,4 +170,3 @@ Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods
 - `BLK-TOOL-001`: PHP CLI is unavailable for Laravel runtime tests.
 
 See [docs/blockers/OPEN.md](docs/blockers/OPEN.md) for the maintained register.
-
