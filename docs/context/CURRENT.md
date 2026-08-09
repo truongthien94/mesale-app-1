@@ -25,7 +25,7 @@
 - SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
 - `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate); no blind forced fix is authorized.
 - No physical-device screenshots, signed IPA/AAB, remote CI evidence for this branch, push configuration, public deletion/support resources, AASA/Asset Links, or performance baseline exists.
-- External operational logs and remote CI are not evidence for this local-only checkpoint; no remote result is claimed.
+- Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 
 ## Open Blockers
 
