@@ -1,0 +1,30 @@
+name: Context and Secret Checks
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  context-log-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required context files
+        shell: bash
+        run: |
+          test -f docs/migration-plan.md
+          test -f docs/context/CURRENT.md
+          test -f docs/context/index.md
+          test -f docs/blockers/OPEN.md
+          test -f docs/release/RELEASE-GATES.md
+      - name: Reject committed credential filenames
+        shell: bash
+        run: |
+          ! git ls-files | grep -E '(^|/)(key\.json|\.env|.*\.p8|.*\.jks|.*\.keystore)$'
+      - name: Reject obvious secret patterns in tracked text
+        shell: bash
+        run: |
+          if git grep -n -I -E 'sk_live_[A-Za-z0-9_-]+|BEGIN (RSA|OPENSSH|EC|PRIVATE) KEY|AIza[0-9A-Za-z_-]{20,}' -- ':!docs/migration-plan.md'; then
+            echo 'Potential credential detected in tracked files'
+            exit 1
+          fi
