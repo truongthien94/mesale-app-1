@@ -72,6 +72,11 @@ jobs:
           key: ${{ runner.os }}-php-8.4-composer-${{ hashFiles('composer.lock') }}
           restore-keys: |
             ${{ runner.os }}-php-8.4-composer-
+      - name: Prepare Laravel writable directories
+        shell: bash
+        run: |
+          mkdir -p bootstrap/cache
+          mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs
       - name: Install locked PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Run Laravel tests
