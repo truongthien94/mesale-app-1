@@ -4,14 +4,15 @@ Native React Native/Expo migration of the Mesale Cashback member experience for 
 
 Repository: `https://github.com/thichmmo/mesale-app`
 
-Status: migration in progress. The current branch contains the Laravel baseline, migration context, and the first Expo foundation. It is not a production release and it does not activate the production Open API.
+Status: migration in progress. The repository contains the Laravel product and the Expo client foundation. It is not a production release, M1 is not complete, and the production Open API remains disabled.
 
 ## Repository State
 
-- Default branch: `main`, intentionally initialized as an empty review baseline.
+- Default branch: `main`, restored to the reviewed migration baseline at commit `6854dec`; it is not an empty/orphan branch.
 - Migration branch: `codex/migration-20260809`.
 - Review: draft Pull Request `#6` from the migration branch to `main`.
 - Merge policy: no merge, force-push, history rewrite, production activation, or credential change without explicit approval.
+- Current repository shape: a de facto Laravel + Expo monorepo. Long-term ownership as a monorepo versus a mobile-only repository is still a product-owner decision; no restructure is authorized until that decision is explicit.
 
 ## Product Architecture
 
@@ -54,8 +55,10 @@ public/assets/               reviewed source assets only
 mobile/                      Expo/React Native app
 docs/migration-plan.md       migration architecture and delivery plan
 docs/api/                    redacted API audit and contract notes
+docs/assessment/             current migration-scope and readiness assessment
 docs/inventory/              web-to-native feature matrix
 docs/context/                sessions, checkpoints, and current handoff
+docs/decisions/              redacted architecture/operations decisions
 docs/blockers/               open blocker register
 docs/release/                store and release gates
 .github/                     issue templates, PR template, context checks
@@ -72,7 +75,7 @@ Runtime and sensitive areas are intentionally excluded from Git:
 Requirements:
 
 - Node.js and npm compatible with Expo SDK 53;
-- an isolated Laravel/PHP environment for backend work;
+- PHP 8.3+ or an equivalent portable PHP runtime for isolated Laravel tests;
 - Xcode for iOS device/simulator verification;
 - Android Studio/emulator for Android verification;
 - staging API access before any production business-data test.
@@ -96,9 +99,18 @@ Useful verification commands:
 npm run typecheck
 npx expo-doctor
 npx expo export --platform all --output-dir dist
+php artisan test
 ```
 
-The current foundation includes Expo Router, a typed API client, SecureStore session persistence, login/logout bootstrap, 401 session invalidation, theme tokens, and Vietnamese/English placeholders. It does not yet represent the full member feature inventory.
+The current foundation includes Expo Router, a compatible Expo development client, named EAS environments, a typed API client, SecureStore session persistence with expiry validation, authenticated `/account` session restoration, login/logout bootstrap, stale-token-safe 401 invalidation, theme tokens, and Vietnamese/English placeholders. It does not yet represent the full member feature inventory, and no representative iOS/Android device evidence exists yet.
+
+Current measured foundation evidence:
+
+- TypeScript check passes.
+- Expo Doctor passes 18/18 checks.
+- Expo export passes for iOS and Android; both JavaScript bundles are approximately 2.69 MB.
+- Laravel Open API auth contract tests pass with 7 tests and 66 assertions using the portable PHP runtime.
+- `npm audit --omit=dev` still reports 22 advisories: 7 high and 15 moderate. Do not apply `npm audit fix --force`; remediation must follow an Expo-compatible upgrade path with regression testing.
 
 ## Laravel API Readiness
 
@@ -116,6 +128,8 @@ M0 API work includes:
 - integer VND money fields;
 - idempotency for retryable reward and financial mutations;
 - rate limits, audit logging, and rollback verification.
+
+The current HTTP-level auth tests cover login, registration, 2FA token deferral/exchange, the API feature flag, Bearer middleware, logout revocation, invalid credentials, hashed token persistence, and password redaction in API logs. These tests use an isolated in-memory SQLite schema and do not activate or mutate production.
 
 ## Feature Scope
 
@@ -176,7 +190,9 @@ The detailed Sheet retains session/task/change/test rows. GitHub keeps only reda
 
 ## Store Compliance
 
-Before release, complete the App Store and Google Play audits. Required gates include Sign in with Apple, account deletion, privacy/support URLs, Privacy Manifest, Required Reason APIs, Data Safety, minimal permissions, current Android target API, AAB/Play App Signing, 16 KB page-size compatibility, UGC moderation, accurate cashback claims, and no WebView-only wrapper or dynamic native code loading.
+Current source audits are recorded in [docs/release/APP-STORE-CURRENT-AUDIT.md](docs/release/APP-STORE-CURRENT-AUDIT.md) and [docs/release/PLAY-STORE-CURRENT-AUDIT.md](docs/release/PLAY-STORE-CURRENT-AUDIT.md). Both verdicts are `NOT READY`; these are evidence-backed current-state audits, not submission certifications.
+
+Before release, required gates include Sign in with Apple, account deletion, privacy/support URLs, an app Privacy Manifest and Required Reason API inventory, Data Safety, minimal permissions, current Android target API, AAB/Play App Signing, 16 KB page-size compatibility, UGC moderation, accurate cashback claims, and no WebView-only wrapper or dynamic native code loading. ATS and broad Android storage/overlay permissions are remediated in source config, but the generated release artifacts still require inspection.
 
 Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods and is not an in-app digital purchase. Digital features, subscriptions, vouchers, or content would require a separate StoreKit/Play Billing policy review.
 
@@ -186,6 +202,9 @@ Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods
 - `BLK-AUTH-001`: Apple/Google OAuth server credentials and exchange contracts are pending.
 - `BLK-STORE-001`: deletion/support/legal/deep-link store resources are incomplete.
 - `BLK-GH-001`: GitHub Project scope is unavailable to the current CLI token.
-- `BLK-TOOL-001`: PHP CLI is unavailable for Laravel runtime tests.
+- `BLK-DEP-001`: 22 npm production-tree advisories require an Expo-compatible remediation decision and regression evidence.
+- `BLK-SCOPE-001`: product owner must confirm whether this repository remains a Laravel + Expo monorepo or becomes mobile-only.
+
+`BLK-TOOL-001` is resolved: portable PHP exists and the Laravel test suite now runs. M1 remains open because device verification, remote config/maintenance behavior, complete navigation/theme/i18n, accessibility, screenshots, and mobile tests are still missing.
 
 See [docs/blockers/OPEN.md](docs/blockers/OPEN.md) for the maintained register.
