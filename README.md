@@ -102,15 +102,20 @@ npx expo export --platform all --output-dir dist
 php artisan test
 ```
 
-The current foundation includes Expo Router, a compatible Expo development client, named EAS environments, a typed API client, SecureStore session persistence with expiry validation, authenticated `/account` session restoration, login/logout bootstrap, stale-token-safe 401 invalidation, theme tokens, and Vietnamese/English placeholders. It does not yet represent the full member feature inventory, and no representative iOS/Android device evidence exists yet.
+The current foundation includes Expo Router, a compatible Expo development client, named EAS environments, a typed API client, SecureStore session persistence with expiry validation, authenticated `/account` session restoration, login/logout bootstrap, stale-token-safe 401 invalidation, theme tokens, and Vietnamese/English placeholders. Login now models authenticated, email-verification-required, and 2FA-required outcomes; only a valid Bearer outcome is persisted, while the short-lived 2FA challenge remains in memory. The auth screens include safe-area padding, keyboard avoidance, explicit labels, submit behavior, loading/disabled states, and accessibility metadata. This still does not represent the full member feature inventory, and no representative iOS/Android device evidence exists yet.
 
 Current measured foundation evidence:
 
-- TypeScript check passes.
-- Expo Doctor passes 18/18 checks.
-- Expo export passes for iOS and Android; both JavaScript bundles are approximately 2.69 MB.
-- Laravel Open API auth contract tests pass with 7 tests and 66 assertions using the portable PHP runtime.
+- Mobile auth contract parser tests pass 5/5.
+- TypeScript check passes after the auth continuation changes.
+- Expo Doctor passes 18/18 checks after the auth continuation changes.
+- The final integrated Expo export passes for iOS and Android with JavaScript bundles of approximately 2.72 MB each.
+- The local portable Laravel runner reports 22 passed tests and 235 assertions; the focused financial suite reports 9 passed tests and 116 assertions.
+- PHP syntax passes for every changed PHP file, the reviewed PHP set passes Pint, the CI workflow parses as YAML, and `git diff --check` passes.
+- A tracked-file secret scan finds no credential filenames or private-key/service-account patterns. No production mutation was performed.
 - `npm audit --omit=dev` still reports 22 advisories: 7 high and 15 moderate. Do not apply `npm audit fix --force`; remediation must follow an Expo-compatible upgrade path with regression testing.
+
+GitHub Actions now enforces context/secret checks, Laravel tests, mobile parser tests, TypeScript, Expo Doctor, and iOS/Android exports. Both the push run and the Pull Request run for code commit `8b81b53` pass all three jobs. The Linux PHPUnit summary nevertheless classifies the 22 tests as warnings while retaining 235 successful assertions; this environment-specific warning state is tracked by `BLK-TEST-001`, while the non-failing Node 20 action deprecations are noted for workflow maintenance.
 
 ## Laravel API Readiness
 
@@ -118,18 +123,26 @@ The Open API is protected by its feature flag, throttling, request logging, and 
 
 At the latest audit, `GET /api/v1/openapi/config` returned HTTP `503` with code `API_DISABLED`. This is a P0 readiness blocker. Production activation requires staging contract tests, security review, logging/request IDs, rollback, and explicit operational approval.
 
-M0 API work includes:
+Implemented P0 API contract corrections include:
 
-- canonical auth response and OAuth exchange contracts;
+- recursive redaction of nested password, token, challenge, OTP, secret and payment-account fields;
+- typed login continuation contracts that do not issue or persist a session before verification/2FA succeeds;
+- required replay-safe `Idempotency-Key` handling for withdrawal creation and gift redemption;
+- integer VND response fields across audited member money endpoints while rates and percentages remain decimals;
+- account-deletion logging that avoids raw email/balance data and does not turn an already committed deletion into HTTP 500 when its audit sink fails.
+
+Remaining M0 API work includes:
+
+- OAuth exchange, provider reauthentication, and safe account-linking contracts, while preserving the canonical password-login response through staging;
 - Apple `sub`/JWKS/issuer/audience/expiry/nonce verification;
 - native Google credential verification and account linking;
 - stable error envelopes and request IDs;
 - consistent pagination;
-- integer VND money fields;
-- idempotency for retryable reward and financial mutations;
+- retention/pruning for stored idempotency records;
+- a database-backed normalized payment-account uniqueness/concurrency contract across users;
 - rate limits, audit logging, and rollback verification.
 
-The current HTTP-level auth tests cover login, registration, 2FA token deferral/exchange, the API feature flag, Bearer middleware, logout revocation, invalid credentials, hashed token persistence, and password redaction in API logs. These tests use an isolated in-memory SQLite schema and do not activate or mutate production.
+The current HTTP-level tests cover login, registration, 2FA token deferral/exchange, the API feature flag, Bearer middleware, logout revocation, invalid credentials, hashed token persistence, recursive sensitive-field redaction, account-deletion safety, integer VND contracts, and withdrawal/gift idempotency replay/conflict behavior. These tests use an isolated in-memory SQLite schema and do not activate or mutate production. Real MariaDB concurrency and cross-user normalized payment-account uniqueness remain unverified.
 
 ## Feature Scope
 
@@ -192,7 +205,7 @@ The detailed Sheet retains session/task/change/test rows. GitHub keeps only reda
 
 Current source audits are recorded in [docs/release/APP-STORE-CURRENT-AUDIT.md](docs/release/APP-STORE-CURRENT-AUDIT.md) and [docs/release/PLAY-STORE-CURRENT-AUDIT.md](docs/release/PLAY-STORE-CURRENT-AUDIT.md). Both verdicts are `NOT READY`; these are evidence-backed current-state audits, not submission certifications.
 
-Before release, required gates include Sign in with Apple, account deletion, privacy/support URLs, an app Privacy Manifest and Required Reason API inventory, Data Safety, minimal permissions, current Android target API, AAB/Play App Signing, 16 KB page-size compatibility, UGC moderation, accurate cashback claims, and no WebView-only wrapper or dynamic native code loading. ATS and broad Android storage/overlay permissions are remediated in source config, but the generated release artifacts still require inspection.
+Before release, required gates include a reviewer-reachable backend, Sign in with Apple, native Google login, server-verified OAuth reauthentication for deletion, account deletion in-app and on the web, privacy/support URLs, an app Privacy Manifest and Required Reason API inventory, Data Safety, minimal permissions, current Android target API, AAB/Play App Signing, 16 KB page-size compatibility, UGC moderation, accurate cashback claims, and no WebView-only wrapper or dynamic native code loading. ATS and broad Android storage/overlay permissions are remediated in source config, but the generated release artifacts still require inspection. The current orange-on-white primary action contrast is approximately 2.80:1 and remains an approval-dependent visual-parity risk; the palette has not been changed unilaterally.
 
 Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods and is not an in-app digital purchase. Digital features, subscriptions, vouchers, or content would require a separate StoreKit/Play Billing policy review.
 
@@ -204,7 +217,11 @@ Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods
 - `BLK-GH-001`: GitHub Project scope is unavailable to the current CLI token.
 - `BLK-DEP-001`: 22 npm production-tree advisories require an Expo-compatible remediation decision and regression evidence.
 - `BLK-SCOPE-001`: product owner must confirm whether this repository remains a Laravel + Expo monorepo or becomes mobile-only.
+- `BLK-DATA-001`: encrypted idempotency replay records need a retention and pruning policy.
+- `BLK-FIN-001`: normalized cross-user payment-account uniqueness needs a database-backed MariaDB concurrency contract.
+- `BLK-UI-001`: the approved orange/white primary action palette is about `2.80:1` and needs a product decision backed by screenshots.
+- `BLK-TEST-001`: Linux CI passes but PHPUnit reports 22 warnings for 235 assertions; the warning source must be isolated and removed before release-quality sign-off.
 
-`BLK-TOOL-001` is resolved: portable PHP exists and the Laravel test suite now runs. M1 remains open because device verification, remote config/maintenance behavior, complete navigation/theme/i18n, accessibility, screenshots, and mobile tests are still missing.
+Residual P0 risks tracked for follow-up include idempotency-record retention/pruning, cross-user normalized payment-account uniqueness under real database concurrency, and the approval-dependent 2.80:1 primary-action contrast. `BLK-TOOL-001` is resolved: portable PHP exists and the Laravel test suite now runs. M1 remains open because device verification, remote config/maintenance behavior, complete navigation/theme/i18n, screenshots, screen/integration tests, and signed-artifact evidence are still missing.
 
 See [docs/blockers/OPEN.md](docs/blockers/OPEN.md) for the maintained register.

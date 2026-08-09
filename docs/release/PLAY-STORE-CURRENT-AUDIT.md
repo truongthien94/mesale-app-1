@@ -15,11 +15,11 @@ Milestone status: **M1 is not complete**
 
 ## Project summary
 
-- **Observed:** Expo SDK 53 / React Native 0.79.6 managed app with application ID `vn.mesale.app` (`mobile/package.json:15`, `mobile/package.json:24`, `mobile/app.json:33`).
-- **Observed:** only bootstrap, email/password login and a placeholder authenticated home/logout flow exist (`mobile/app/index.tsx:6`, `mobile/app/(auth)/login.tsx:8`, `mobile/app/home.tsx:7`).
-- **Measured:** TypeScript check passes.
+- **Observed:** Expo SDK 53 / React Native 0.79.6 managed app with application ID `vn.mesale.app` (`mobile/package.json:17`, `mobile/package.json:26`, `mobile/app.json:34`).
+- **Observed:** bootstrap, email/password login, email verification, two-factor verification and a placeholder authenticated home/logout flow exist (`mobile/app/index.tsx:6`, `mobile/app/(auth)/login.tsx:9`, `mobile/app/(auth)/verify-email.tsx:9`, `mobile/app/(auth)/two-factor.tsx:9`, `mobile/app/home.tsx:7`).
+- **Measured:** mobile auth parser tests pass 5/5 and TypeScript check passes.
 - **Measured:** production dependency audit reports 7 high and 15 moderate advisories, with no critical advisories.
-- **Measured:** production-mode Expo export produces approximately 2.69 MB JavaScript bundles for both iOS and Android. These are bundle-size baselines only; they do not establish startup TTI, FPS, render cost, memory behavior, final APK/AAB size or 16 KB page-size compatibility.
+- **Measured:** production-mode Expo export produces approximately 2.72 MB JavaScript bundles for both iOS and Android. These are bundle-size baselines only; they do not establish startup TTI, FPS, render cost, memory behavior, final APK/AAB size or 16 KB page-size compatibility.
 
 ## Critical blockers
 
@@ -27,6 +27,11 @@ Milestone status: **M1 is not complete**
 
 - **Observed:** the current mobile surface does not yet include registration, account deletion, cashback, orders, wallet, withdrawal, tasks, gifts, notifications, legal/support, app links or store-review utility.
 - **Required:** M1 and the representative native vertical slices must be completed and verified before an AAB can be considered for testing or review.
+
+### [CRITICAL] Broken Functionality - Reviewer backend is unavailable
+
+- **Measured:** `https://mesale.vn/api/v1/openapi/config` returns HTTP 503 with code `API_DISABLED`; the public site and manifest remain HTTP 200.
+- **Required:** provide a stable reviewer-reachable backend and review credentials for the full review window. Staging/API readiness must be proven without bypassing feature flags, authentication, throttling or logging.
 
 ### [CRITICAL] Target API requirement is not verified
 
@@ -37,7 +42,7 @@ Milestone status: **M1 is not complete**
 
 ### [SOURCE CONFIG REMEDIATED; PRODUCTION MANIFEST VERIFICATION PENDING] Permissions policy
 
-- **Observed:** `mobile/app.json` blocks `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` (`mobile/app.json:33`).
+- **Observed:** `mobile/app.json` blocks `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` (`mobile/app.json:35`).
 - **Measured after remediation:** fresh Expo introspection resolves `INTERNET` and `VIBRATE` as the effective permissions; the three blocked entries are retained only as manifest removals with `tools:node=remove`.
 - **Remaining gate:** inspect the production release merged manifest/AAB before closing this finding. Use the Android photo picker for future avatar/manual-submission media.
 - **Unknown:** production merged-manifest sources and any max-SDK constraints are not available until prebuild/AAB generation.
@@ -45,32 +50,34 @@ Milestone status: **M1 is not complete**
 ### [CRITICAL] User Data and Account Deletion requirements are not implemented
 
 - **Observed:** no in-app Privacy Policy or account-deletion flow exists in `mobile/app/`.
-- **Reported:** final app includes account creation and member data; it therefore needs both readily discoverable in-app deletion and a public web deletion resource.
-- **Required:** implement deletion, verify server-side associated-data handling, publish the web resource, and reconcile the behavior with the Data safety form.
+- **Observed:** the backend deletion path now avoids raw email/balance audit content and preserves a successful deletion when post-commit audit logging fails. Provider-only deletion remains blocked until server-verifiable OAuth reauthentication proof exists.
+- **Required:** implement the native deletion path and provider reauthentication, verify server-side associated-data handling, publish the web resource, and reconcile retained security data with the Data safety form.
 
 ### [CRITICAL] Data safety and financial declarations are unknown
 
-- **Observed:** current dependencies do not include ad, analytics or crash-reporting SDKs, reducing the current SDK declaration surface (`mobile/package.json:13`).
+- **Observed:** current dependencies do not include ad, analytics or crash-reporting SDKs, reducing the current SDK declaration surface (`mobile/package.json:15`).
 - **Reported:** the product handles account identifiers, cashback, wallet balances, orders, referrals and withdrawals through Laravel.
 - **Required:** complete the Data safety inventory from actual network payloads and SDK behavior. Review the Financial Features Declaration because wallet/withdrawal functionality may be in scope; do not guess the Console answers.
 
 ## Warnings and release gaps
 
-- **AAB and signing:** no production AAB, Play App Signing evidence, version code or release merged manifest has been inspected. EAS production `autoIncrement` is configured, but the resolved version code is **unknown** (`mobile/eas.json:15`).
+- **AAB and signing:** no production AAB, Play App Signing evidence, version code or release merged manifest has been inspected. EAS production `autoIncrement` is configured, but the resolved version code is **unknown** (`mobile/eas.json:16`).
 - **16 KB page size:** RN 0.79+ provides aligned React Native core binaries, but every third-party native `.so` still requires release APK/AAB verification. No artifact exists, so compatibility is **unknown**, not passed.
 - **App Links:** only a custom scheme exists; no Android `intentFilters` or verified `assetlinks.json` configuration is present (`mobile/app.json:7`, `mobile/app.json:33`).
 - **Cleartext:** the TypeScript environment gate requires HTTPS outside development (`mobile/src/config/env.ts:14`). The release manifest/network-security behavior remains **unknown** until the generated project is checked.
 - **Metadata/assets:** no source launcher icon or store screenshot assets were found. Target audience, IARC content rating, support contact and store listing are **unknown/manual**.
 - **Supply chain:** npm reports 22 production-tree advisories. Upgrade only through an Expo-compatible resolution, then rerun audit, typecheck, build and device tests.
+- **Test quality:** local Laravel tests report 22 passed/235 assertions, but Linux CI reports 22 warnings/235 assertions. Resolve the environment-specific warning source before release-quality sign-off.
 - **UGC:** planned comments require terms acceptance, moderation, in-app reporting and blocking before exposure.
+- **Accessibility/contrast:** auth screens now handle safe areas, keyboard avoidance and accessibility metadata, but device evidence is absent. The orange/white primary action contrast is approximately `2.80:1` and awaits design approval rather than an unreviewed palette change.
 
 ## Positive current evidence
 
 - **Observed:** no SMS/Call Log, background location, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`, accessibility-service, exact-alarm or install-package functionality is declared in source app configuration (`mobile/app.json:33`). Production merged-manifest verification is still required.
 - **Observed:** OTP is server/email based in the target architecture; no restricted SMS permission package is installed.
 - **Observed:** no Play Billing or external digital-unlock payment SDK is installed. Planned Shopee/TikTok/Lazada purchases are physical-goods handoffs and should not use Play Billing.
-- **Observed:** no keystore, service-account file or hardcoded credential exists under `mobile/`; root ignore rules cover common signing and secret formats (`.gitignore:1`, `.gitignore:43`).
-- **Observed:** the app uses SecureStore for session credentials and no WebView wrapper is present (`mobile/src/auth/session.ts:1`).
+- **Observed:** no keystore, service-account file or hardcoded credential exists under `mobile/`; root ignore rules cover common signing and secret formats (`.gitignore:1`, `.gitignore:12`).
+- **Observed:** the app uses SecureStore for session credentials and no WebView wrapper is present (`mobile/src/auth/session.ts:1`, `mobile/src/auth/session.ts:47`).
 
 ## Unknown/manual checks
 

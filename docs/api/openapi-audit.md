@@ -1,10 +1,10 @@
 # Laravel Open API v1 Audit
 
-Status: M0 audit (read-only evidence; no runtime or production changes)
+Status: M0 audit plus local correction evidence; no production runtime change
 
 Date: 2026-08-09
 Timezone: Asia/Bangkok
-Repository scope: `C:\Users\ThichMMO\Desktop\cashback`
+Repository scope: `<workspace>`
 API target: `https://mesale.vn/api/v1/openapi`
 
 ## Executive findings
@@ -14,8 +14,8 @@ API target: `https://mesale.vn/api/v1/openapi`
 - Password login, registration, email verification, password reset, 2FA and device/session token revocation exist. Native Google and Apple OAuth exchange endpoints do not exist in the current route/controller set.
 - At audit time, `AuthController::respondWithToken()` returned only `data.token`. The local M0 implementation now adds canonical `data.access_token`, keeps a temporary equal `data.token` alias, and exposes `expires_at`; this is not deployed while production Open API remains disabled.
 - Session tokens are random plaintext values returned once and SHA-256 hashes are stored in `api_tokens`. Personal `users.api_token` lookup is only available under Bot API `api.auth:allow_key`; it must never be used by the mobile client.
-- Most money fields are serialized as JSON floating-point numbers. The mobile contract requires integer VND fields (or an explicitly versioned decimal policy) before financial screens are released.
-- List endpoints use page/per-page pagination inconsistently and no shared pagination/error schema or idempotency key is enforced for retryable mutations.
+- The local P0 correction serializes audited member VND amounts as integers while keeping percentages/rates decimal; staging and deployment verification are still required before financial screens are released.
+- List endpoints still paginate inconsistently. Withdrawal creation and gift redemption now require replay-safe `Idempotency-Key` handling locally, while other retryable mutations and the shared error/request-ID contract remain open.
 
 ## Middleware and credential boundary
 
@@ -96,11 +96,11 @@ All paths below are relative to `/api/v1/openapi` unless marked Bot API. Auth co
 | Check-in | `GET /checkin` | Bearer | Today's status, configured reward and paginated history (fixed 10 per page). |
 | Check-in | `POST /checkin` | Bearer | Daily check-in mutation; server-calculates reward and balance. |
 | Referrals | `GET /referrals` | Bearer | Summary plus commission list; filters `level`, `status`; page/per_page max 50. |
-| Wallet logs | `GET /balance-logs` | Bearer | Filters `type`, `search`; page/per_page max 50; money currently floats. |
+| Wallet logs | `GET /balance-logs` | Bearer | Filters `type`, `search`; page/per_page max 50; audited VND response fields are integers in the local correction. |
 | Activity logs | `GET /logs` | Bearer | Filters `search`; page/per_page max 50. |
 | Gifts | `GET /gifts` | Bearer | Filters `search`, `tag`, `type`, `sort`; page/per_page max 50. |
 | Gifts | `GET /gifts/redemptions` | Bearer | Filters `search`, `status`; page/per_page max 50. |
-| Gifts | `POST /gifts/redeem` | Bearer | Gift redemption mutation, throttle 20/min; no idempotency key. |
+| Gifts | `POST /gifts/redeem` | Bearer | Gift redemption mutation, throttle 20/min; local route requires `Idempotency-Key` and supports replay/conflict responses. |
 | Gift code | `POST /giftcode/redeem` | Bearer | Gift-code mutation, throttle 10/min; no idempotency key. |
 | Saved products | `GET /saved-products` | Bearer | page/per_page max 50. |
 | Saved products | `POST /saved-products` | Bearer | Product payload validation; throttle 30/min. |
@@ -122,7 +122,7 @@ All paths below are relative to `/api/v1/openapi` unless marked Bot API. Auth co
 | Sessions | `POST /sessions/{id}/revoke` | Bearer | Revokes another numeric session; rejects current session. |
 | Withdrawals | `GET /withdrawals` | Bearer | `status` filter and page/per_page max 50; returns amount, fee, net amount and payment details. |
 | Withdrawals | `POST /withdrawals/otp` | Bearer | Sends email OTP when configured; throttle 3/min. |
-| Withdrawals | `POST /withdrawals` | Bearer | Creates financial withdrawal; validates amount/payment account/optional OTP; transactional balance lock; no idempotency key. |
+| Withdrawals | `POST /withdrawals` | Bearer | Creates financial withdrawal; validates amount/payment account/optional OTP; local route requires `Idempotency-Key` and stores replay-safe results around the transactional balance lock. |
 | Payment accounts | `GET /payment-accounts` | Bearer | Lists saved bank/wallet accounts. |
 | Payment accounts | `POST /payment-accounts` | Bearer | Creates account; throttle 20/min. |
 | Payment accounts | `POST /payment-accounts/{id}/default` | Bearer | Sets member-owned account default. |
@@ -175,16 +175,16 @@ M0 mobile contract decision: `access_token` is canonical. The local implementati
 
 Observed/implemented codes include `API_DISABLED`, `ENDPOINT_DISABLED`, `UNAUTHENTICATED`, `INVALID_TOKEN`, `ACCOUNT_INACTIVE`, `VALIDATION_ERROR`, `TOO_MANY_REQUESTS`, `INVALID_CREDENTIALS`, `OTP_INVALID`, `INVALID_CHALLENGE`, `WITHDRAW_FAILED`, `WITHDRAW_DISABLED`, and feature/platform-specific codes. The mobile client must treat HTTP `401` as session expiry, `503 API_DISABLED` as a server readiness/maintenance state, and `429` as retry-after/backoff.
 
-No shared `request_id`/correlation ID or `Idempotency-Key` contract is currently required by routes/controllers. Before enabling financial mobile mutations, add server-generated request IDs to responses/logs and idempotency storage keyed by user + route + client key, with replay-safe response semantics.
+No shared `request_id`/correlation ID contract exists. The local P0 implementation scopes hashed idempotency keys by user and operation, hashes canonical request payloads, encrypts stored replay responses, and covers withdrawal creation plus gift redemption. Retention/pruning and coverage for gift codes, task claims, check-in, payment-account writes, and other retryable mutations remain required.
 
-## M0 required API work (not yet implemented)
+## M0 remaining deployment and contract work
 
 1. Provide isolated staging and a documented health/config contract; keep production `openapi_status` disabled until security review and smoke tests pass.
 2. Deploy and verify the local auth normalization (`access_token`, temporary `token` alias, `token_type`, `expires_at`, `user`) through staging before production activation.
 3. Add server-side Google credential exchange and Apple Sign in with Apple exchange. Verify issuer, audience, expiry, signature/JWKS, nonce and Apple `sub`; link existing users only through verified account-linking flow.
 4. Standardize pagination (`items` + `pagination` with stable page/per-page metadata) and validation/error envelopes, including framework exceptions.
-5. Convert all VND monetary fields to integer minor units (`*_vnd`) or publish a versioned exact-decimal policy; do not allow binary floating point for financial calculations in the mobile contract.
-6. Add idempotency for withdrawal, gift/gift-code redemption, task claim, check-in and other retryable mutations; test duplicate/concurrent requests.
+5. Deploy and verify the local integer-VND normalization across audited member endpoints; extend the same versioned policy to any remaining or newly added money fields while keeping percentages/rates decimal.
+6. Deploy and verify withdrawal/gift idempotency, define retention/pruning, then extend replay-safe contracts to gift-code redemption, task claim, check-in and other retryable mutations with duplicate/concurrent tests.
 7. Expose missing member data needed for parity: home/page-builder blocks, dashboard savings chart and created links, blog/feed/search/comments/likes/shares, language/currency preferences, bot unlink, and any missing marketplace-specific filters including Lazada.
 8. Add privacy/support/account-deletion public resources and universal-link files (`apple-app-site-association`, `assetlinks.json`) before store gates.
 

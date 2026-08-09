@@ -24,14 +24,14 @@ Target repository: `https://github.com/thichmmo/mesale-app`
 4. GitHub Issues/Project tracks tasks, blockers, milestones, and release risk.
 5. If logs conflict with source or tests, source/test evidence wins and the discrepancy becomes a recorded decision.
 
-Before repository changes, verify the local repository, remote, default branch, status, and recent history. Do not force-push, delete/overwrite existing history, blindly stage files, or alter a different remote without explicit confirmation. The confirmed working directory is `C:\Users\ThichMMO\Desktop\cashback`; the intended GitHub remote is `https://github.com/thichmmo/mesale-app`.
+Before repository changes, verify the local repository, remote, default branch, status, and recent history. Do not force-push, delete/overwrite existing history, blindly stage files, or alter a different remote without explicit confirmation. The confirmed working directory is the approved local cashback workspace; the intended GitHub remote is `https://github.com/thichmmo/mesale-app`.
 
 ## Current Evidence and Blockers
 
 - Live home and manifest respond successfully.
 - `https://mesale.vn/api/v1/openapi/config` currently responds with `503 API_DISABLED`; Open API staging and production readiness are mandatory M0 work.
 - Audited auth responses used only `token`; local M0 code now adds canonical `access_token`, a temporary equal `token` alias, and `expires_at`, pending staging/deployment verification.
-- Native Apple OAuth exchange, native Google OAuth exchange, idempotency for retryable financial mutations, complete home/dashboard data, blog JSON, language/currency preference APIs, bot unlink, integer-money normalization, account-deletion web resource, support URL, AASA, and Asset Links remain API or release gaps.
+- Native Apple OAuth exchange, native Google OAuth exchange, complete home/dashboard data, blog JSON, language/currency preference APIs, bot unlink, account-deletion web resource, support URL, AASA, and Asset Links remain API or release gaps. Local P0 code now covers integer VND responses plus withdrawal/gift idempotency; deployment, retention/pruning, remaining retryable mutations, and MariaDB concurrency evidence remain open.
 - Public legal/privacy/support and account-deletion resources must be verified before store submission.
 
 ## Architecture
