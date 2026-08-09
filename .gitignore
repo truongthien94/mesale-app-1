@@ -32,6 +32,7 @@ bootstrap/cache/
 storage/
 __pycache__/
 *.pyc
+.phpunit.result.cache
 **/*.pre-*
 **/*.seo-backup-*
 

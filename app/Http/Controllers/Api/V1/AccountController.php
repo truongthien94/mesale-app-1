@@ -46,10 +46,10 @@ class AccountController extends ApiController
             'email_verified' => !is_null($user->email_verified_at),
             'wallet' => [
                 // Số dư khả dụng có thể rút
-                'balance' => (float) $user->balance,
-                'total_cashback' => (float) $user->total_cashback,
-                'total_referral_earned' => (float) $user->total_referral_earned,
-                'total_withdrawn' => (float) $user->total_withdrawn,
+                'balance' => (int) $user->balance,
+                'total_cashback' => (int) $user->total_cashback,
+                'total_referral_earned' => (int) $user->total_referral_earned,
+                'total_withdrawn' => (int) $user->total_withdrawn,
                 'currency' => 'VND',
             ],
             'stats' => [
