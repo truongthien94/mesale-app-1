@@ -5,13 +5,13 @@ Mesale is a Laravel + Expo monorepo for the native member app migration. Laravel
 ## Current Status
 
 - Branch under review: `codex/mvp-p0-20260809`.
-- Round 3 source is published on `main` at commit `62e6678`; GitHub Actions run `31325626880` passed.
+- Remote `main` is `bd1b802`; Round 4 implementation is committed locally as `e130991` and is not pushed without the separate owner gate.
 - Scope decision: this repository intentionally remains a Laravel + Expo monorepo. `BLK-SCOPE-001` is resolved.
 - M0 (API readiness/security) and M1 (foundation) are still open. The implementation is not a release candidate.
 - Production Open API is intentionally disabled: `GET https://mesale.vn/api/v1/openapi/config` currently returns HTTP `503` / `API_DISABLED`.
-- Previous local baseline: Laravel `65` tests / `625` assertions, mobile contract tests `30/30`, TypeScript, Expo Doctor `18/18`, and iOS/Android exports passed. Round 3 verification results are recorded in the latest checkpoint after the final run.
+- Current local baseline: Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile contract tests `34/34`, TypeScript, Expo Doctor `18/18`, dependency compatibility, and iOS/Android exports passed.
 - Round 3 adds native Google and Sign in with Apple client flows, server exchange contracts, Apple deletion reauthentication, app privacy declarations, public legal/support/deletion resources, AASA/Asset Links groundwork, and Android App Links intent filters.
-- `npm audit --omit=dev` advisories remain tracked as a release blocker; do not use `npm audit fix --force` without an Expo-compatible upgrade plan.
+- `npm audit --omit=dev` remains at 22 findings (`7 high`, `15 moderate`). No safe SDK 53 fix exists; follow [the incremental Expo SDK 54-to-57 plan](docs/release/MOBILE-DEPENDENCY-UPGRADE-PLAN.md) and never use a blind forced fix.
 
 The current verdict for both stores is **NOT READY**. Production API activation, signed AAB/IPA, physical-device screenshot regression, push configuration, provider credentials, owner-approved legal/support content, and store-console evidence remain incomplete.
 
@@ -23,7 +23,7 @@ The current verdict for both stores is **NOT READY**. Production API activation,
 - A member API key such as `sk_live_...` is a separate Bot API/server-to-server credential. It must never be embedded in the app, repository, issue, log, screenshot, or bundle.
 - `openapi_status` is an API enable/disable flag, not an API key. A `503 API_DISABLED` response is a readiness blocker and must not be bypassed.
 - Apple login is **Sign in with Apple**, not iCloud login. Apple/Google credentials are verified by Laravel; provider secrets remain server-only.
-- Financial mutations are server-authoritative and use replay-safe idempotency where implemented. Currency amounts are represented as integer VND in audited API responses.
+- Financial mutations are server-authoritative and use replay-safe idempotency where implemented. Completed replay records retain 24 hours; abandoned processing markers retain seven days and are pruned daily in bounded batches. Currency amounts are represented as integer VND in audited API responses.
 - Admin CMS, cron, scheduler, imports, bot webhooks, synchronization services, and system updates remain Laravel web/server responsibilities.
 
 ## Repository Layout
