@@ -9,8 +9,10 @@
 - Push gate: received for the current migration branch; merge is not authorized
 - Repository: `thichmmo/mesale-app`, currently a Laravel + Expo monorepo pending explicit scope confirmation (`BLK-SCOPE-001`)
 - GitHub default branch: `main` restored to the reviewed migration baseline at `6854dec`
-- GitHub branch: `codex/migration-20260809`
-- GitHub PR: draft PR #6 remains open; do not merge automatically
+- GitHub branch: `codex/migration-20260809` is pushed and synchronized with restored `main` through merge commit `3d809e5`
+- GitHub PR: draft PR #6 is mergeable with a bounded 33-file diff; checks pass; do not merge automatically
+- GitHub Issues: PHP blocker #4 is closed; dependency, scope, OAuth, store, and M1 tracking are Issues #7-#11
+- Operational log: Google Sheet is synchronized through `CKP-20260809-010`, `DEC-20260809-006`, `CHG-20260809-009`, and `TST-20260809-010`
 - Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`
 - PHP verification: portable PHP is available; isolated HTTP auth tests pass
 - Dependency status: 22 npm advisories remain (7 high, 15 moderate); no forced audit fix is authorized
