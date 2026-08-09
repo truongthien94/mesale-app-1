@@ -31,12 +31,18 @@ const accountApiPath = path.resolve(__dirname, "../src/features/account/api.ts")
 const sessionsScreenPath = path.resolve(__dirname, "../app/(tabs)/account/sessions.tsx");
 const deletionScreenPath = path.resolve(__dirname, "../app/(tabs)/account/delete.tsx");
 const authProviderPath = path.resolve(__dirname, "../src/auth/AuthProvider.tsx");
+const authRoutingPath = path.resolve(__dirname, "../src/auth/routing.ts");
+const indexScreenPath = path.resolve(__dirname, "../app/index.tsx");
+const tabsLayoutPath = path.resolve(__dirname, "../app/(tabs)/_layout.tsx");
+const registerScreenPath = path.resolve(__dirname, "../app/(auth)/register.tsx");
+const referralScreenPath = path.resolve(__dirname, "../app/(auth)/referral-code.tsx");
 const queryClientPath = path.resolve(__dirname, "../src/api/queryClient.ts");
 const sessionPath = path.resolve(__dirname, "../src/auth/session.ts");
 const clientPath = path.resolve(__dirname, "../src/api/client.ts");
 
 const { accountPaths, normalizePreferences, sessionRevokePath } = loadTypeScriptModule(accountContractsPath);
 const { validatePasswordReset, validateRegistration } = loadTypeScriptModule(authValidationPath);
+const { resolveAuthGate } = loadTypeScriptModule(authRoutingPath);
 
 test("uses only the existing auth and account endpoints", () => {
   const authSource = fs.readFileSync(authApiPath, "utf8");
@@ -44,6 +50,7 @@ test("uses only the existing auth and account endpoints", () => {
   assert.match(authSource, /"auth\/register"/);
   assert.match(authSource, /"auth\/forgot-password"/);
   assert.match(authSource, /"auth\/reset-password"/);
+  assert.match(authSource, /"account\/referral-code"/);
   assert.match(accountSource, /accountPaths\.profile/);
   assert.match(accountSource, /accountPaths\.password/);
   assert.match(accountSource, /accountPaths\.preferences/);
@@ -56,10 +63,47 @@ test("uses only the existing auth and account endpoints", () => {
 
 test("maps Laravel confirmation fields and the mobile device name", () => {
   const source = fs.readFileSync(authApiPath, "utf8");
+  const registerSource = fs.readFileSync(registerScreenPath, "utf8");
   assert.match(source, /password_confirmation: payload\.passwordConfirmation/);
-  assert.match(source, /referral_code: payload\.referralCode/);
+  assert.doesNotMatch(source, /referral_code: payload\.referralCode/);
+  assert.doesNotMatch(registerSource, /referralCode|Mã giới thiệu \(tùy chọn\)/);
   assert.match(source, /device_name: mobileDeviceName/);
   assert.match(source, /authenticated: false/);
+});
+
+test("gates continuations before the one-time referral prompt and authenticated home", () => {
+  assert.equal(resolveAuthGate({ kind: "email-verification", email: "member@example.test" }, true, true), "/verify-email");
+  assert.equal(resolveAuthGate({ kind: "two-factor", challengeToken: "challenge", methods: ["email_otp"] }, true, true), "/two-factor");
+  assert.equal(resolveAuthGate(null, true, true), "/referral-code");
+  assert.equal(resolveAuthGate(null, true, false), "/home");
+  assert.equal(resolveAuthGate(null, false, true), null);
+
+  const indexSource = fs.readFileSync(indexScreenPath, "utf8");
+  const tabsSource = fs.readFileSync(tabsLayoutPath, "utf8");
+  assert.match(indexSource, /resolveAuthGate/);
+  assert.match(tabsSource, /authGate !== "\/home"/);
+  assert.match(tabsSource, /user\?\.referralPromptPending \?\? false/);
+
+  for (const screen of ["login.tsx", "register.tsx", "verify-email.tsx", "two-factor.tsx", "referral-code.tsx"]) {
+    const source = fs.readFileSync(path.resolve(__dirname, `../app/(auth)/${screen}`), "utf8");
+    assert.match(source, /resolveAuthGate/, `${screen} must use the shared continuation-first auth gate`);
+    assert.doesNotMatch(source, /Redirect href="\/home"/, `${screen} must not bypass the referral gate`);
+  }
+});
+
+test("keeps invalid referral errors on the dedicated screen and refreshes after explicit apply or skip", () => {
+  const authSource = fs.readFileSync(authApiPath, "utf8");
+  const screenSource = fs.readFileSync(referralScreenPath, "utf8");
+  assert.match(authSource, /body: \{ referral_code: referralCode\.trim\(\) \}/);
+  assert.match(authSource, /body: \{ skip: true \}/);
+  assert.match(authSource, /return parseUser\(await request<unknown>\("account"\)\)/);
+  assert.match(screenSource, /<FormErrorSummary/);
+  assert.equal((screenSource.match(/await settleReferralPrompt\(\)/g) ?? []).length, 4);
+  assert.match(screenSource, /REFERRAL_PROMPT_ALREADY_DECIDED/);
+  assert.doesNotMatch(screenSource, /already decided|already skipped|đã quyết định|đã bỏ qua/i);
+  const applyFlow = screenSource.slice(screenSource.indexOf("async function applyCode"), screenSource.indexOf("async function skip"));
+  assert.match(applyFlow, /catch \(reason\)[\s\S]*setRequestError/);
+  assert.doesNotMatch(applyFlow, /skipReferralPrompt/);
 });
 
 test("normalizes partial locale and currency preferences without inventing wallet conversion", () => {
@@ -99,6 +143,7 @@ test("clears TanStack Query data at every authenticated-session boundary", () =>
   assert.ok((providerSource.match(/clearAppQueryCache\(queryClient\)/g) ?? []).length >= 4);
   assert.match(providerSource, /onSessionInvalidated/);
   assert.match(providerSource, /completeAccountDeletion/);
+  assert.match(providerSource, /const settleReferralPrompt = useCallback\([\s\S]*referralPromptPending: false[\s\S]*await refreshUser\(\)/);
   assert.match(providerSource, /const logout = useCallback/);
 });
 

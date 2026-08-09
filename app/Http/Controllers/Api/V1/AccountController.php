@@ -9,6 +9,8 @@ use App\Models\ApiToken;
 use App\Models\CashbackHistory;
 use App\Models\Currency;
 use App\Models\Language;
+use App\Models\Notification;
+use App\Models\Referral;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Withdrawal;
@@ -49,6 +51,8 @@ class AccountController extends ApiController
             'phone' => $user->phone,
             'avatar' => $user->avatar,
             'referral_code' => $user->referral_code,
+            'referral_prompt_pending' => is_null($user->referral_prompt_decided_at)
+                && Setting::getVal('referral_enabled', '1') === '1',
             'status' => $user->status,
             'email_verified' => ! is_null($user->email_verified_at),
             'preferences' => $this->preferencesFor($user),
@@ -70,6 +74,106 @@ class AccountController extends ApiController
             ],
             'created_at' => optional($user->created_at)->toIso8601String(),
         ]);
+    }
+
+    /**
+     * POST /api/v1/openapi/account/referral-code
+     * Apply one referral code or permanently skip the post-registration prompt.
+     */
+    public function decideReferralPrompt(Request $request): JsonResponse
+    {
+        if ($request->exists('referral_code') && is_string($request->input('referral_code'))) {
+            $request->merge(['referral_code' => trim($request->input('referral_code'))]);
+        }
+
+        try {
+            $validated = $request->validate([
+                'referral_code' => 'required_without:skip|string|max:50|prohibits:skip',
+                'skip' => 'sometimes|boolean|accepted|prohibits:referral_code',
+            ]);
+        } catch (ValidationException $e) {
+            return $this->fail(
+                __('Dữ liệu mã giới thiệu không hợp lệ.'),
+                422,
+                'VALIDATION_ERROR',
+                $e->errors()
+            );
+        }
+
+        $outcome = DB::transaction(function () use ($request, $validated): array {
+            $user = User::query()
+                ->whereKey($this->apiUser($request)->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! is_null($user->referral_prompt_decided_at)) {
+                return ['state' => 'already_decided'];
+            }
+
+            if (($validated['skip'] ?? false) === true) {
+                $user->referral_prompt_decided_at = now();
+                $user->save();
+
+                return ['state' => 'skipped'];
+            }
+
+            if (Setting::getVal('referral_enabled', '1') !== '1') {
+                return ['state' => 'invalid'];
+            }
+
+            $referrer = User::query()
+                ->where('referral_code', $validated['referral_code'])
+                ->first();
+
+            $sameUser = $referrer && $referrer->getKey() === $user->getKey();
+            $sameIpBlocked = $referrer
+                && Setting::getVal('block_same_ip_referral', '1') === '1'
+                && ! empty($referrer->ip_address)
+                && $referrer->ip_address === $request->ip();
+
+            if (! $referrer || $sameUser || $sameIpBlocked) {
+                return ['state' => 'invalid'];
+            }
+
+            $user->referred_by = $referrer->getKey();
+            $user->referral_prompt_decided_at = now();
+            $user->save();
+
+            Referral::create([
+                'referrer_id' => $referrer->getKey(),
+                'referred_id' => $user->getKey(),
+            ]);
+            Notification::create([
+                'user_id' => $referrer->getKey(),
+                'title' => __('Bạn có thành viên mới đăng ký'),
+                'content' => __('Thành viên :name đã đăng ký tài khoản qua liên kết giới thiệu của bạn.', ['name' => $user->name]),
+            ]);
+
+            return ['state' => 'applied'];
+        });
+
+        if ($outcome['state'] === 'already_decided') {
+            return $this->fail(
+                __('Không thể cập nhật mã giới thiệu.'),
+                409,
+                'REFERRAL_PROMPT_ALREADY_DECIDED'
+            );
+        }
+
+        if ($outcome['state'] === 'invalid') {
+            $message = __('Mã giới thiệu không hợp lệ hoặc không thể sử dụng.');
+
+            return $this->fail($message, 422, 'REFERRAL_CODE_INVALID', [
+                'referral_code' => [$message],
+            ]);
+        }
+
+        return $this->ok(
+            ['referral_prompt_pending' => false],
+            $outcome['state'] === 'applied'
+                ? __('Áp dụng mã giới thiệu thành công!')
+                : __('Đã bỏ qua mã giới thiệu.')
+        );
     }
 
     /**

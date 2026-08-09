@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Redirect } from "expo-router";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
+import { resolveAuthGate } from "@/auth/routing";
+import { LoadingState } from "@/components/AsyncState";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { AuthButton, AuthField, AuthForm, AuthLink } from "@/features/auth/components";
 import { LegalLinks } from "@/features/legal/LegalLinks";
@@ -10,11 +12,10 @@ import { validateRegistration } from "@/features/auth/validation";
 import { colors, spacing } from "@/theme/tokens";
 
 export default function RegisterScreen() {
-  const { pendingAuth, register, session } = useAuth();
+  const { isLoading, pendingAuth, register, session, user } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [referralCode, setReferralCode] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -22,9 +23,9 @@ export default function RegisterScreen() {
   const [requestError, setRequestError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (session) return <Redirect href="/home" />;
-  if (pendingAuth?.kind === "email-verification") return <Redirect href="/verify-email" />;
-  if (pendingAuth?.kind === "two-factor") return <Redirect href="/two-factor" />;
+  if (isLoading) return <LoadingState />;
+  const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
+  if (authGate) return <Redirect href={authGate} />;
 
   async function submit() {
     const nextErrors = validateRegistration({ email, password, passwordConfirmation, acceptedTerms });
@@ -34,7 +35,7 @@ export default function RegisterScreen() {
 
     setSubmitting(true);
     try {
-      await register({ name, email, phone, password, passwordConfirmation, referralCode });
+      await register({ name, email, phone, password, passwordConfirmation });
     } catch (reason) {
       setRequestError(reason instanceof ApiError ? reason : new ApiError(reason instanceof Error ? reason.message : "Không thể đăng ký.", 0));
     } finally {
@@ -47,7 +48,6 @@ export default function RegisterScreen() {
       <AuthField label="Họ và tên (tùy chọn)" onChangeText={setName} placeholder="Nguyễn Văn A" value={name} />
       <AuthField autoCapitalize="none" autoComplete="email" error={errors.email} keyboardType="email-address" label="Địa chỉ email" onChangeText={setEmail} placeholder="email-cua-ban@gmail.com" value={email} />
       <AuthField autoCapitalize="none" autoComplete="tel" keyboardType="phone-pad" label="Số điện thoại (tùy chọn)" onChangeText={setPhone} placeholder="0987654321" value={phone} />
-      <AuthField autoCapitalize="none" label="Mã giới thiệu (tùy chọn)" onChangeText={setReferralCode} placeholder="REFXXXXXX" value={referralCode} />
       <AuthField autoCapitalize="none" autoComplete="new-password" error={errors.password} label="Mật khẩu" onChangeText={setPassword} placeholder="Tối thiểu 8 ký tự" secureTextEntry value={password} />
       <AuthField autoCapitalize="none" autoComplete="new-password" error={errors.password_confirmation} label="Xác nhận mật khẩu" onChangeText={setPasswordConfirmation} placeholder="Nhập lại mật khẩu" secureTextEntry value={passwordConfirmation} />
       <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: acceptedTerms }} onPress={() => setAcceptedTerms((value) => !value)} style={styles.termsRow}>

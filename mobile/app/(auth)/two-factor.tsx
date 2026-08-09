@@ -2,6 +2,7 @@ import { useRef, useState, type RefObject } from "react";
 import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { resolveAuthGate } from "@/auth/routing";
 import { AuthKeyboardScreen } from "@/auth/AuthKeyboardScreen";
 import { getDeviceLocale } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
@@ -12,6 +13,7 @@ export default function TwoFactorScreen() {
     isLoading: isAuthLoading,
     pendingAuth,
     session,
+    user,
     verifyTwoFactor,
     resendTwoFactorOtp,
     cancelAuthContinuation
@@ -61,8 +63,8 @@ export default function TwoFactorScreen() {
   }
 
   if (isAuthLoading) return <Loading />;
-  if (session) return <Redirect href="/home" />;
-  if (pendingAuth?.kind !== "two-factor") return <Redirect href="/login" />;
+  const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
+  if (authGate !== "/two-factor") return <Redirect href={authGate ?? "/login"} />;
 
   const validGoogle = !needsGoogle || googleCode.length === 6;
   const validEmail = !needsEmail || emailCode.length === 6;

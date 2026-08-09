@@ -83,6 +83,7 @@ Route::prefix('v1/openapi')
             // Thông tin tài khoản, số dư & quản lý hồ sơ
             Route::middleware('api.enabled:profile')->group(function () {
                 Route::get('account', [AccountController::class, 'show']);
+                Route::post('account/referral-code', [AccountController::class, 'decideReferralPrompt'])->middleware('throttle:10,1');
                 Route::post('account/profile', [AccountController::class, 'updateProfile']);
                 Route::post('account/preferences', [AccountController::class, 'updatePreferences']);
                 Route::post('account/password', [AccountController::class, 'changePassword'])->middleware('throttle:10,1');

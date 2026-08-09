@@ -3,6 +3,7 @@ import * as AppleAuthentication from "expo-apple-authentication";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { resolveAuthGate } from "@/auth/routing";
 import { AuthKeyboardScreen } from "@/auth/AuthKeyboardScreen";
 import { getDeviceLocale, t } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
@@ -17,7 +18,7 @@ import type { NativeOAuthProvider } from "@/features/auth/nativeOAuthContract";
 
 export default function LoginScreen() {
   const locale = getDeviceLocale();
-  const { isLoading: isAuthLoading, pendingAuth, session, login, loginWithApple, loginWithGoogle } = useAuth();
+  const { isLoading: isAuthLoading, pendingAuth, session, user, login, loginWithApple, loginWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -73,9 +74,8 @@ export default function LoginScreen() {
   }
 
   if (isAuthLoading) return <View style={styles.loading}><ActivityIndicator color={colors.primary} /></View>;
-  if (session) return <Redirect href="/home" />;
-  if (pendingAuth?.kind === "email-verification") return <Redirect href="/verify-email" />;
-  if (pendingAuth?.kind === "two-factor") return <Redirect href="/two-factor" />;
+  const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
+  if (authGate) return <Redirect href={authGate} />;
 
   return <AuthKeyboardScreen>
     <Text accessibilityRole="header" style={styles.title}>{t(locale, "appName")}</Text>

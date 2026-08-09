@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AccessibilityInfo, ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { resolveAuthGate } from "@/auth/routing";
 import { AuthKeyboardScreen } from "@/auth/AuthKeyboardScreen";
 import { getDeviceLocale } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
@@ -12,6 +13,7 @@ export default function VerifyEmailScreen() {
     isLoading: isAuthLoading,
     pendingAuth,
     session,
+    user,
     verifyEmail,
     resendEmailVerification,
     cancelAuthContinuation
@@ -53,8 +55,10 @@ export default function VerifyEmailScreen() {
   }
 
   if (isAuthLoading) return <Loading />;
-  if (session) return <Redirect href="/home" />;
-  if (pendingAuth?.kind !== "email-verification") return <Redirect href="/login" />;
+  const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
+  if (authGate !== "/verify-email" || pendingAuth?.kind !== "email-verification") {
+    return <Redirect href={authGate ?? "/login"} />;
+  }
 
   const disabled = action !== null;
   const cannotVerify = disabled || otpCode.length !== 6;

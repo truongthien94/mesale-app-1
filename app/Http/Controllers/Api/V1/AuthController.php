@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\ApiToken;
-use App\Models\Notification;
-use App\Models\Referral;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
@@ -58,6 +56,8 @@ class AuthController extends ApiController
             'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
             'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),
             'referral_code' => $user->referral_code,
+            'referral_prompt_pending' => is_null($user->referral_prompt_decided_at)
+                && Setting::getVal('referral_enabled', '1') === '1',
             'status' => $user->status,
             'email_verified' => ! is_null($user->email_verified_at),
             'created_at' => optional($user->created_at)->toIso8601String(),
@@ -203,7 +203,6 @@ class AuthController extends ApiController
                 // Số điện thoại có thể là định danh đăng nhập nên phải là duy nhất trên toàn hệ thống
                 'phone' => 'nullable|string|max:15|unique:users,phone',
                 'password' => 'required|string|min:8|confirmed',
-                'referral_code' => 'nullable|string|max:50',
                 'device_name' => 'nullable|string|max:100',
             ], $messages);
         } catch (ValidationException $e) {
@@ -214,19 +213,6 @@ class AuthController extends ApiController
         $ipRegisterLimit = (int) Setting::getVal('ip_register_limit', 5);
         if ($ipRegisterLimit > 0 && User::where('ip_address', $request->ip())->count() >= $ipRegisterLimit) {
             return $this->fail(__('Địa chỉ IP của bạn đã đạt giới hạn đăng ký tối đa :limit tài khoản.', ['limit' => $ipRegisterLimit]), 403, 'IP_LIMIT_REACHED');
-        }
-
-        // Xử lý mã giới thiệu (nếu tính năng tiếp thị liên kết đang bật)
-        $referredBy = null;
-        if (Setting::getVal('referral_enabled', '1') === '1' && ! empty($validated['referral_code'])) {
-            $referrer = User::where('referral_code', $validated['referral_code'])->first();
-            if ($referrer) {
-                // Chặn ghi nhận giới thiệu nếu trùng IP với người giới thiệu (chống tự cày hoa hồng)
-                $blockSameIp = Setting::getVal('block_same_ip_referral', '1') === '1';
-                if (! ($blockSameIp && ! empty($referrer->ip_address) && $referrer->ip_address === $request->ip())) {
-                    $referredBy = $referrer->id;
-                }
-            }
         }
 
         // Sinh mã giới thiệu duy nhất cho tài khoản mới
@@ -246,7 +232,7 @@ class AuthController extends ApiController
             // role='user', status='active', balance=0, total_*=0 dùng giá trị mặc định của DB
             // (các cột này đã được loại khỏi mass-assignment vì lý do bảo mật, xem App\Models\User).
             'referral_code' => $newReferralCode,
-            'referred_by' => $referredBy,
+            'referred_by' => null,
             'email_verified_at' => now(),
             'ip_address' => $request->ip(),
             'user_agent' => strip_tags(Str::limit($request->userAgent() ?? 'API Client', 500)),
@@ -288,23 +274,11 @@ class AuthController extends ApiController
             }
         }
 
-        // Ghi nhận quan hệ giới thiệu & nhật ký (Bọc try-catch để bảo vệ luồng đăng ký)
+        // Ghi nhận nhật ký (Bọc try-catch để bảo vệ luồng đăng ký)
         try {
-            if ($referredBy) {
-                Referral::create([
-                    'referrer_id' => $referredBy,
-                    'referred_id' => $user->id,
-                ]);
-                Notification::create([
-                    'user_id' => $referredBy,
-                    'title' => __('Bạn có thành viên mới đăng ký'),
-                    'content' => __('Thành viên :name đã đăng ký tài khoản qua liên kết giới thiệu của bạn.', ['name' => $user->name]),
-                ]);
-            }
-
             ActivityLog::log(__('Đăng ký tài khoản thành công (qua Open API)'), $user->id);
         } catch (\Exception $e) {
-            \Log::error('Lỗi phụ khi tạo referral/log cho API đăng ký.', ['exception' => $e::class]);
+            \Log::error('Lỗi phụ khi tạo log cho API đăng ký.', ['exception' => $e::class]);
         }
 
         // Nếu hệ thống bắt buộc xác minh email: chưa cấp token, gửi mã OTP và yêu cầu xác minh

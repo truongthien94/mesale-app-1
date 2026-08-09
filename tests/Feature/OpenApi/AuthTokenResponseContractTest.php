@@ -163,6 +163,171 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'registered-mobile@example.test']);
     }
 
+    public function test_registration_ignores_inline_referral_and_starts_the_new_account_pending(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        $referrer = $this->createUser([
+            'email' => 'registration-referrer@example.test',
+            'referral_code' => 'REGREF123',
+            'ip_address' => '198.51.100.10',
+            'referral_prompt_decided_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/v1/openapi/auth/register', [
+            'name' => 'Pending Referral User',
+            'email' => 'pending-referral@example.test',
+            'password' => 'registered-password',
+            'password_confirmation' => 'registered-password',
+            'referral_code' => $referrer->referral_code,
+            'device_name' => 'Referral Registration Test',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.user.referral_prompt_pending', true);
+
+        $registeredUser = User::query()->where('email', 'pending-referral@example.test')->firstOrFail();
+        $this->assertNull($registeredUser->referred_by);
+        $this->assertNull($registeredUser->referral_prompt_decided_at);
+        $this->assertDatabaseCount('referrals', 0);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_referral_prompt_applies_a_valid_code_once_then_rejects_replay(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        Setting::setVal('block_same_ip_referral', '1');
+
+        $referrer = $this->createUser([
+            'email' => 'valid-referrer@example.test',
+            'referral_code' => 'VALIDREF1',
+            'ip_address' => '198.51.100.20',
+            'referral_prompt_decided_at' => now(),
+        ]);
+        $user = $this->createUser([
+            'email' => 'valid-referred@example.test',
+            'referral_code' => 'NEWUSER1',
+            'referral_prompt_decided_at' => null,
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Referral Apply Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['referral_code' => 'VALIDREF1'])
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', false);
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'referred_by' => $referrer->id,
+        ]);
+        $this->assertNotNull($user->refresh()->referral_prompt_decided_at);
+        $this->assertDatabaseHas('referrals', [
+            'referrer_id' => $referrer->id,
+            'referred_id' => $user->id,
+        ]);
+        $this->assertDatabaseHas('notifications', ['user_id' => $referrer->id]);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'REFERRAL_PROMPT_ALREADY_DECIDED');
+
+        $this->assertDatabaseCount('referrals', 1);
+        $this->assertDatabaseCount('notifications', 1);
+    }
+
+    public function test_same_ip_referral_rejection_leaves_the_prompt_pending(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        Setting::setVal('block_same_ip_referral', '1');
+
+        $referrer = $this->createUser([
+            'email' => 'same-ip-referrer@example.test',
+            'referral_code' => 'SAMEIP01',
+            'ip_address' => '127.0.0.1',
+            'referral_prompt_decided_at' => now(),
+        ]);
+        $user = $this->createUser([
+            'email' => 'same-ip-referred@example.test',
+            'referral_code' => 'NEWUSER2',
+            'referral_prompt_decided_at' => null,
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Referral Same IP Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['referral_code' => 'UNKNOWN1'])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'REFERRAL_CODE_INVALID');
+        $this->assertNull($user->refresh()->referral_prompt_decided_at);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['referral_code' => $referrer->referral_code])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'REFERRAL_CODE_INVALID');
+
+        $this->assertNull($user->refresh()->referral_prompt_decided_at);
+        $this->assertNull($user->referred_by);
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', true);
+        $this->assertDatabaseCount('referrals', 0);
+    }
+
+    public function test_skipping_referral_prompt_decides_it_without_side_effects(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        $user = $this->createUser([
+            'email' => 'skip-referral@example.test',
+            'referral_code' => 'NEWUSER3',
+            'referral_prompt_decided_at' => null,
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Referral Skip Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', false);
+
+        $this->assertNotNull($user->refresh()->referral_prompt_decided_at);
+        $this->assertNull($user->referred_by);
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', false);
+        $this->assertDatabaseCount('referrals', 0);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_referral_prompt_migration_backfills_existing_members_as_decided(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('referral_prompt_decided_at');
+        });
+
+        $existingUser = $this->createUser([
+            'email' => 'existing-before-migration@example.test',
+            'referral_code' => 'EXISTING1',
+            'created_at' => now()->subYear(),
+        ]);
+
+        $migration = require database_path('migrations/2026_08_10_000001_add_referral_prompt_decided_at_to_users_table.php');
+        $migration->up();
+
+        $this->assertNotNull(
+            DB::table('users')->where('id', $existingUser->id)->value('referral_prompt_decided_at')
+        );
+
+        Setting::setVal('referral_enabled', '1');
+        [$plainToken] = ApiToken::generateFor($existingUser->refresh(), 'Backfill Test', 30, '127.0.0.1');
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', false);
+
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('users', 'referral_prompt_decided_at'));
+    }
+
     public function test_account_endpoint_restores_the_bearer_session_user_with_integer_vnd_wallet_values(): void
     {
         $user = $this->createUser([
@@ -1252,6 +1417,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->decimal('total_withdrawn', 15, 2)->default(0);
             $table->string('referral_code')->nullable()->unique();
             $table->unsignedBigInteger('referred_by')->nullable();
+            $table->timestamp('referral_prompt_decided_at')->nullable();
             $table->unsignedInteger('referral_clicks')->default(0);
             $table->string('role')->default('user');
             $table->string('status')->default('active');
@@ -1387,6 +1553,23 @@ class AuthTokenResponseContractTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('status');
+        });
+
+        Schema::create('referrals', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('referrer_id')->nullable();
+            $table->unsignedBigInteger('referred_id')->unique();
+            $table->timestamps();
+        });
+
+        Schema::create('notifications', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('title');
+            $table->text('content');
+            $table->string('type')->nullable();
+            $table->boolean('is_read')->default(false);
+            $table->timestamps();
         });
 
         Schema::create('api_logs', function (Blueprint $table): void {

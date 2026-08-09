@@ -4,6 +4,7 @@ export type User = {
   id: number;
   name?: string | null;
   email?: string | null;
+  referralPromptPending: boolean;
   phone?: string | null;
   avatar?: string | null;
   referral_code?: string | null;
@@ -68,7 +69,7 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
-function parseUser(value: unknown): User {
+export function parseUser(value: unknown): User {
   if (!isRecord(value) || typeof value.id !== "number" || !Number.isSafeInteger(value.id) || value.id <= 0) {
     throw new AuthContractError("The authentication response did not include a valid user.");
   }
@@ -81,7 +82,8 @@ function parseUser(value: unknown): User {
   const user: User = {
     id: value.id,
     name: value.name as string | null | undefined,
-    email: value.email as string | null | undefined
+    email: value.email as string | null | undefined,
+    referralPromptPending: value.referral_prompt_pending === true
   };
   if (typeof value.phone === "string" || value.phone === null) user.phone = value.phone;
   if (typeof value.avatar === "string" || value.avatar === null) user.avatar = value.avatar;

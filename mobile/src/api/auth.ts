@@ -1,6 +1,7 @@
 import { request, requestEnvelope, type ApiResponse } from "@/api/client";
 import {
   parseLoginResult,
+  parseUser,
   requireAuthenticated,
   type AuthenticatedAuthResult,
   type LoginResult,
@@ -20,7 +21,6 @@ export type RegisterPayload = {
   phone?: string;
   password: string;
   passwordConfirmation: string;
-  referralCode?: string;
 };
 
 export type ResetPasswordPayload = {
@@ -69,7 +69,6 @@ export async function register(payload: RegisterPayload): Promise<LoginResult> {
       phone: payload.phone?.trim() || undefined,
       password: payload.password,
       password_confirmation: payload.passwordConfirmation,
-      referral_code: payload.referralCode?.trim() || undefined,
       device_name: mobileDeviceName
     }
   });
@@ -142,7 +141,21 @@ export async function resendTwoFactorOtp(challengeToken: string): Promise<void> 
 }
 
 export async function getCurrentUser(): Promise<User> {
-  return request<User>("account");
+  return parseUser(await request<unknown>("account"));
+}
+
+export async function applyReferralCode(referralCode: string): Promise<void> {
+  await requestEnvelope<null>("account/referral-code", {
+    method: "POST",
+    body: { referral_code: referralCode.trim() }
+  });
+}
+
+export async function skipReferralPrompt(): Promise<void> {
+  await requestEnvelope<null>("account/referral-code", {
+    method: "POST",
+    body: { skip: true }
+  });
 }
 
 export async function logout(): Promise<void> {

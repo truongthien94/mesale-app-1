@@ -90,6 +90,7 @@ class User extends Authenticatable
             'otp_expires_at' => 'datetime',
             // last_seen_at tự động ép kiểu về đối tượng Carbon datetime
             'last_seen_at' => 'datetime',
+            'referral_prompt_decided_at' => 'datetime',
             // Số lượt click vào link giới thiệu
             'referral_clicks' => 'integer',
         ];

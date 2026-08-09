@@ -44,7 +44,25 @@ test("parses the canonical authenticated Bearer response", () => {
   assert.equal(result.kind, "authenticated");
   assert.equal(result.session.accessToken, "session-token");
   assert.equal(result.session.expiresAt, futureExpiry);
-  assert.deepEqual(result.user, user);
+  assert.deepEqual(result.user, { ...user, referralPromptPending: false });
+});
+
+test("maps the referral prompt flag and defaults an absent field to false", () => {
+  const pending = parseLoginResult({
+    access_token: "new-account-token",
+    token_type: "Bearer",
+    user: { ...user, referral_prompt_pending: true }
+  }, now);
+  const existing = parseLoginResult({
+    access_token: "existing-account-token",
+    token_type: "Bearer",
+    user
+  }, now);
+
+  assert.equal(pending.kind, "authenticated");
+  assert.equal(pending.user.referralPromptPending, true);
+  assert.equal(existing.kind, "authenticated");
+  assert.equal(existing.user.referralPromptPending, false);
 });
 
 test("accepts the temporary token alias only when it is a Bearer session", () => {

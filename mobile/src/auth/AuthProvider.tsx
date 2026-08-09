@@ -34,6 +34,7 @@ type AuthContextValue = {
   resendTwoFactorOtp(): Promise<void>;
   cancelAuthContinuation(): void;
   refreshUser(): Promise<void>;
+  settleReferralPrompt(): Promise<void>;
   completeAccountDeletion(): Promise<void>;
   logout(): Promise<void>;
 };
@@ -174,6 +175,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     if (authRevision.current === revision) setUser(refreshedUser);
   }, []);
 
+  const settleReferralPrompt = useCallback(async () => {
+    setUser((current) => current ? { ...current, referralPromptPending: false } : current);
+    try {
+      await refreshUser();
+    } catch {
+      // The successful decision response is authoritative; a later session
+      // restore will retry the account refresh if this request is offline.
+    }
+  }, [refreshUser]);
+
   const completeAccountDeletion = useCallback(async () => {
     authRevision.current += 1;
     clearAppQueryCache(queryClient);
@@ -219,6 +230,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     resendTwoFactorOtp,
     cancelAuthContinuation,
     refreshUser,
+    settleReferralPrompt,
     completeAccountDeletion,
     logout
   }), [
@@ -236,6 +248,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     resendTwoFactorOtp,
     cancelAuthContinuation,
     refreshUser,
+    settleReferralPrompt,
     completeAccountDeletion,
     logout
   ]);

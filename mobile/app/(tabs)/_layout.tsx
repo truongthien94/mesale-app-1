@@ -1,15 +1,17 @@
 import { Redirect, Tabs } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { resolveAuthGate } from "@/auth/routing";
 import { LoadingState } from "@/components/AsyncState";
 import { getDeviceLocale } from "@/i18n";
 import { colors } from "@/theme/tokens";
 
 export default function TabsLayout() {
-  const { isLoading, session } = useAuth();
+  const { isLoading, pendingAuth, session, user } = useAuth();
   const isVietnamese = getDeviceLocale() === "vi";
 
   if (isLoading) return <LoadingState />;
-  if (!session) return <Redirect href="/login" />;
+  const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
+  if (authGate !== "/home") return <Redirect href={authGate ?? "/login"} />;
 
   return (
     <Tabs
