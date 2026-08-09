@@ -5,7 +5,10 @@ namespace App\Http\Middleware;
 use App\Models\ApiLog;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use JsonSerializable;
 use Symfony\Component\HttpFoundation\Response;
+use Traversable;
 
 /**
  * Middleware tự động ghi nhật ký mọi lần gọi API vào bảng api_logs.
@@ -23,22 +26,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class LogApiRequest
 {
-    /**
-     * Danh sách trường nhạy cảm cần lọc bỏ khỏi request data trước khi lưu log.
-     * Ngăn chặn việc vô tình lưu mật khẩu hay token vào database.
-     */
-    private const SENSITIVE_FIELDS = [
-        'password',
-        'password_confirmation',
-        'api_token',
-        'api_key',
-        'token',
-        'secret',
-        'current_password',
-        'new_password',
-        'otp',
-        'otp_code',
-    ];
+    /** Marker retained in structured logs instead of the original sensitive value. */
+    private const REDACTED_VALUE = '[REDACTED]';
 
     public function handle(Request $request, Closure $next, ?string $group = null): Response
     {
@@ -60,21 +49,21 @@ class LogApiRequest
             $user = $request->user() ?? null;
 
             ApiLog::create([
-                'user_id'          => $user?->id,
-                'method'           => strtoupper($request->method()),
-                'endpoint'         => $this->truncateEndpoint($request->path()),
-                'api_group'        => $apiGroup,
-                'status_code'      => $response->getStatusCode(),
-                'request_data'     => $this->sanitizeRequestData($request),
+                'user_id' => $user?->id,
+                'method' => strtoupper($request->method()),
+                'endpoint' => $this->truncateEndpoint($request->path()),
+                'api_group' => $apiGroup,
+                'status_code' => $response->getStatusCode(),
+                'request_data' => $this->sanitizeRequestData($request),
                 'response_time_ms' => $responseTimeMs,
-                'ip_address'       => $request->ip(),
-                'user_agent'       => $this->truncateUserAgent($request->userAgent()),
+                'ip_address' => $request->ip(),
+                'user_agent' => $this->truncateUserAgent($request->userAgent()),
             ]);
         } catch (\Throwable $e) {
             // Bỏ qua lỗi ghi log — không bao giờ để việc ghi nhật ký làm hỏng response API
             // Ghi vào Laravel log để debug khi cần
-            \Illuminate\Support\Facades\Log::warning('LogApiRequest: Không thể ghi nhật ký API', [
-                'error' => $e->getMessage(),
+            Log::warning('LogApiRequest: Không thể ghi nhật ký API', [
+                'exception' => $e::class,
             ]);
         }
 
@@ -106,7 +95,7 @@ class LogApiRequest
      */
     private function sanitizeRequestData(Request $request): ?string
     {
-        $data = $request->except(self::SENSITIVE_FIELDS);
+        $data = $this->redactSensitiveData($request->all());
 
         // Bỏ qua nếu không có dữ liệu
         if (empty($data)) {
@@ -114,13 +103,93 @@ class LogApiRequest
         }
 
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false) {
+            return null;
+        }
 
         // Cắt ngắn nếu quá dài để bảo vệ dung lượng database
         if (strlen($json) > 5000) {
-            $json = mb_substr($json, 0, 5000) . '... [đã cắt ngắn]';
+            $json = mb_substr($json, 0, 5000).'... [đã cắt ngắn]';
         }
 
         return $json;
+    }
+
+    /**
+     * Redact sensitive values at every nesting level while retaining safe request context.
+     */
+    private function redactSensitiveData(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            $redacted = [];
+
+            foreach ($value as $key => $item) {
+                $redacted[$key] = is_string($key) && $this->isSensitiveField($key)
+                    ? self::REDACTED_VALUE
+                    : $this->redactSensitiveData($item);
+            }
+
+            return $redacted;
+        }
+
+        if ($value instanceof JsonSerializable) {
+            return $this->redactSensitiveData($value->jsonSerialize());
+        }
+
+        if ($value instanceof Traversable) {
+            return $this->redactSensitiveData(iterator_to_array($value));
+        }
+
+        if (is_object($value)) {
+            return $this->redactSensitiveData(get_object_vars($value));
+        }
+
+        return $value;
+    }
+
+    /**
+     * Normalize snake_case, kebab-case and camelCase variants before classification.
+     */
+    private function isSensitiveField(string $field): bool
+    {
+        $normalized = preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $field) ?? $field;
+        $normalized = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $normalized) ?? $normalized);
+        $normalized = trim($normalized, '_');
+
+        if (in_array($normalized, [
+            'authorization',
+            'cookie',
+            'set_cookie',
+            'session_id',
+            'api_key',
+            'private_key',
+            'google2fa_code',
+            'two_factor_code',
+            '2fa_code',
+            'account_number',
+            'account_no',
+            'card_number',
+            'routing_number',
+            'iban',
+        ], true)) {
+            return true;
+        }
+
+        if (str_contains($normalized, 'password')
+            || str_contains($normalized, 'token')
+            || str_contains($normalized, 'secret')
+            || str_contains($normalized, 'otp')) {
+            return true;
+        }
+
+        if (str_contains($normalized, 'account_number') || str_contains($normalized, 'account_no')) {
+            return true;
+        }
+
+        return (str_contains($normalized, 'bank')
+                || str_contains($normalized, 'wallet')
+                || str_contains($normalized, 'payout'))
+            && str_contains($normalized, 'account');
     }
 
     /**
@@ -129,7 +198,7 @@ class LogApiRequest
     private function truncateEndpoint(string $path): string
     {
         // Thêm dấu / phía trước cho nhất quán
-        $endpoint = '/' . ltrim($path, '/');
+        $endpoint = '/'.ltrim($path, '/');
 
         return mb_substr($endpoint, 0, 500);
     }

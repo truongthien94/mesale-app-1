@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\CashbackHistory;
 use App\Models\DailyCheckin;
 use App\Models\Setting;
@@ -54,7 +55,7 @@ class RankingController extends ApiController
                 ->map(fn (User $u) => [
                     'name' => $this->maskName($u->name),
                     'avatar' => $u->avatar,
-                    'value' => (float) $u->total_cashback,
+                    'value' => (int) MoneyHelper::round($u->total_cashback),
                 ])->values();
         }
 
@@ -93,7 +94,7 @@ class RankingController extends ApiController
                 ->map(fn (User $u) => [
                     'name' => $this->maskName($u->name),
                     'avatar' => $u->avatar,
-                    'value' => (float) $u->balance,
+                    'value' => (int) MoneyHelper::round($u->balance),
                 ])->values();
         }
 
@@ -111,8 +112,9 @@ class RankingController extends ApiController
         }
         $len = mb_strlen($name);
         if ($len <= 2) {
-            return mb_substr($name, 0, 1) . '*';
+            return mb_substr($name, 0, 1).'*';
         }
-        return mb_substr($name, 0, 1) . str_repeat('*', $len - 2) . mb_substr($name, -1);
+
+        return mb_substr($name, 0, 1).str_repeat('*', $len - 2).mb_substr($name, -1);
     }
 }

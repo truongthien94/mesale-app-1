@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\BalanceLog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,16 +42,22 @@ class BalanceLogController extends ApiController
             ->orderByDesc('id')
             ->paginate($perPage);
 
-        $items = $logs->getCollection()->map(fn (BalanceLog $log) => [
-            'id' => $log->id,
-            'type' => $log->type,
-            'description' => $log->description,
-            'amount_before' => (float) $log->amount_before,
-            'amount_change' => (float) $log->amount_change,
-            'amount_after' => (float) $log->amount_after,
-            'is_credit' => (float) $log->amount_change >= 0,
-            'created_at' => optional($log->created_at)->toIso8601String(),
-        ]);
+        $items = $logs->getCollection()->map(function (BalanceLog $log): array {
+            $amountBefore = (int) MoneyHelper::round($log->amount_before);
+            $amountAfter = (int) MoneyHelper::round($log->amount_after);
+            $amountChange = $amountAfter - $amountBefore;
+
+            return [
+                'id' => $log->id,
+                'type' => $log->type,
+                'description' => $log->description,
+                'amount_before' => $amountBefore,
+                'amount_change' => $amountChange,
+                'amount_after' => $amountAfter,
+                'is_credit' => $amountChange >= 0,
+                'created_at' => optional($log->created_at)->toIso8601String(),
+            ];
+        });
 
         return $this->ok([
             'items' => $items,

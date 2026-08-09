@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ReferralCommission;
 use App\Models\Setting;
 use App\Models\User;
@@ -42,7 +43,7 @@ class ReferralController extends ApiController
 
         // Danh sách F2 (giới thiệu qua F1)
         $f2Users = collect();
-        if ($f2Enabled && !empty($f1Ids)) {
+        if ($f2Enabled && ! empty($f1Ids)) {
             $f2Users = User::whereIn('referred_by', $f1Ids)
                 ->orderByDesc('created_at')
                 ->get();
@@ -54,12 +55,12 @@ class ReferralController extends ApiController
             'email' => $this->maskEmail($m->email),
             'avatar' => $m->avatar,
             'joined_at' => optional($m->created_at)->toIso8601String(),
-            'total_commission' => (float) ($memberEarnings[$m->id] ?? 0),
+            'total_commission' => (int) MoneyHelper::round($memberEarnings[$m->id] ?? 0),
         ];
 
         // Thống kê hoa hồng tổng hợp
-        $totalCommission = (float) ReferralCommission::where('referrer_id', $user->id)->where('status', 'approved')->sum('amount');
-        $pendingCommission = (float) ReferralCommission::where('referrer_id', $user->id)->where('status', 'pending')->sum('amount');
+        $totalCommission = (int) MoneyHelper::round(ReferralCommission::where('referrer_id', $user->id)->where('status', 'approved')->sum('amount'));
+        $pendingCommission = (int) MoneyHelper::round(ReferralCommission::where('referrer_id', $user->id)->where('status', 'pending')->sum('amount'));
 
         // Lịch sử hoa hồng (phân trang, hỗ trợ lọc level & status)
         $perPage = max(1, min((int) $request->query('per_page', 15), 50));
@@ -72,7 +73,7 @@ class ReferralController extends ApiController
 
         $commissionItems = $commissions->getCollection()->map(fn (ReferralCommission $c) => [
             'id' => $c->id,
-            'amount' => (float) $c->amount,
+            'amount' => (int) MoneyHelper::round($c->amount),
             'level' => (int) $c->level,
             'status' => $c->status,
             'from_member' => $c->referred ? [
@@ -98,7 +99,7 @@ class ReferralController extends ApiController
                 'f2_count' => $f2Users->count(),
                 'total_commission' => $totalCommission,
                 'pending_commission' => $pendingCommission,
-                'total_referral_earned' => (float) $user->total_referral_earned,
+                'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
             ],
             'f1_members' => $f1Users->map($mapMember)->values(),
             'f2_members' => $f2Users->map($mapMember)->values(),
@@ -119,11 +120,12 @@ class ReferralController extends ApiController
      */
     private function maskEmail(?string $email): ?string
     {
-        if (empty($email) || !str_contains($email, '@')) {
+        if (empty($email) || ! str_contains($email, '@')) {
             return $email;
         }
         [$name, $domain] = explode('@', $email, 2);
         $visible = mb_substr($name, 0, 2);
-        return $visible . str_repeat('*', max(1, mb_strlen($name) - 2)) . '@' . $domain;
+
+        return $visible.str_repeat('*', max(1, mb_strlen($name) - 2)).'@'.$domain;
     }
 }

@@ -129,7 +129,7 @@ Route::prefix('v1/openapi')
             Route::middleware('api.enabled:gifts')->group(function () {
                 Route::get('gifts', [GiftController::class, 'index']);
                 Route::get('gifts/redemptions', [GiftController::class, 'redemptions']);
-                Route::post('gifts/redeem', [GiftController::class, 'redeem'])->middleware('throttle:20,1');
+                Route::post('gifts/redeem', [GiftController::class, 'redeem'])->middleware(['idempotency.key', 'throttle:20,1']);
             });
 
             // Nhập Giftcode nhận thưởng
@@ -182,7 +182,7 @@ Route::prefix('v1/openapi')
             // Rút tiền
             Route::middleware('api.enabled:withdraw')->group(function () {
                 Route::get('withdrawals', [WithdrawalController::class, 'index']);
-                Route::post('withdrawals', [WithdrawalController::class, 'store']);
+                Route::post('withdrawals', [WithdrawalController::class, 'store'])->middleware('idempotency.key');
                 Route::post('withdrawals/otp', [WithdrawalController::class, 'sendOtp']);
             });
 
@@ -204,7 +204,6 @@ Route::prefix('v1/openapi')
             });
         });
     });
-
 /*
 |--------------------------------------------------------------------------
 | API cho hệ thống ngoài / Bot (tiền tố /api/v1/bot)

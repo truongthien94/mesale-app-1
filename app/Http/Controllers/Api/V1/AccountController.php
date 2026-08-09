@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\ApiToken;
 use App\Models\CashbackHistory;
@@ -12,6 +13,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -43,13 +46,13 @@ class AccountController extends ApiController
             'avatar' => $user->avatar,
             'referral_code' => $user->referral_code,
             'status' => $user->status,
-            'email_verified' => !is_null($user->email_verified_at),
+            'email_verified' => ! is_null($user->email_verified_at),
             'wallet' => [
                 // Số dư khả dụng có thể rút
-                'balance' => (int) $user->balance,
-                'total_cashback' => (int) $user->total_cashback,
-                'total_referral_earned' => (int) $user->total_referral_earned,
-                'total_withdrawn' => (int) $user->total_withdrawn,
+                'balance' => (int) MoneyHelper::round($user->balance),
+                'total_cashback' => (int) MoneyHelper::round($user->total_cashback),
+                'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
+                'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),
                 'currency' => 'VND',
             ],
             'stats' => [
@@ -81,7 +84,7 @@ class AccountController extends ApiController
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 // Số điện thoại có thể là định danh đăng nhập nên phải là duy nhất trên toàn hệ thống
-                'phone' => 'nullable|string|max:15|unique:users,phone,' . $user->id,
+                'phone' => 'nullable|string|max:15|unique:users,phone,'.$user->id,
             ]);
         } catch (ValidationException $e) {
             return $this->fail(__('Dữ liệu không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
@@ -90,7 +93,7 @@ class AccountController extends ApiController
         $model = User::find($user->id);
         $model->name = $validated['name'];
         // Số điện thoại để trống phải lưu là NULL (không phải chuỗi rỗng) vì cột này có ràng buộc UNIQUE
-        $model->phone = !empty($validated['phone']) ? $validated['phone'] : null;
+        $model->phone = ! empty($validated['phone']) ? $validated['phone'] : null;
         $model->save();
 
         ActivityLog::log(__('Cập nhật thông tin cá nhân (qua Open API)'), $user->id);
@@ -121,7 +124,7 @@ class AccountController extends ApiController
             return $this->fail(__('Dữ liệu đổi mật khẩu không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
         }
 
-        if (!Hash::check($validated['current_password'], $user->password)) {
+        if (! Hash::check($validated['current_password'], $user->password)) {
             return $this->fail(__('Mật khẩu hiện tại không chính xác.'), 422, 'WRONG_PASSWORD');
         }
 
@@ -142,7 +145,7 @@ class AccountController extends ApiController
     /**
      * POST /api/v1/openapi/account/delete
      * Thành viên tự xóa vĩnh viễn tài khoản (yêu cầu bắt buộc của App Store / Google Play).
-     * Cho phép xóa tài khoản dù còn số dư, tự động lưu vết số dư trước khi xóa vào nhật ký hệ thống.
+     * Cho phép xóa dù còn số dư; audit sau xóa chỉ giữ mã đối soát, không giữ email hay số dư.
      */
     public function deleteAccount(Request $request): JsonResponse
     {
@@ -157,25 +160,17 @@ class AccountController extends ApiController
 
         $user = $this->apiUser($request);
 
-        try {
-            $request->validate(['password' => 'required|string'], [
-                'password.required' => __('Vui lòng nhập mật khẩu để xác nhận xóa tài khoản.'),
-            ]);
-        } catch (ValidationException $e) {
-            return $this->fail(__('Thiếu mật khẩu xác nhận.'), 422, 'VALIDATION_ERROR', $e->errors());
+        $confirmationFailure = $this->validateDeletionConfirmation($request, $user);
+        if ($confirmationFailure !== null) {
+            return $confirmationFailure;
         }
 
-        if (!Hash::check($request->password, $user->password)) {
-            return $this->fail(__('Mật khẩu không chính xác.'), 422, 'WRONG_PASSWORD');
-        }
+        $deletionReference = (string) Str::uuid();
 
         try {
-            $userEmail = $user->email;
-            $userBalance = (float) $user->balance;
-
             DB::transaction(function () use ($user) {
                 $model = User::where('id', $user->id)->lockForUpdate()->first();
-                if (!$model) {
+                if (! $model) {
                     throw new \Exception('USER_NOT_FOUND');
                 }
                 $email = $model->email;
@@ -185,17 +180,78 @@ class AccountController extends ApiController
                 DB::table('sessions')->where('user_id', $model->id)->delete();
                 $model->delete();
             });
+        } catch (\Throwable $e) {
+            Log::error('Account deletion transaction failed.', [
+                'deletion_reference' => $deletionReference,
+                'exception' => $e::class,
+            ]);
 
-            // Ghi nhận nhật ký hệ thống kèm số dư trước khi xóa (truyền null cho user_id để log giữ lại trên hệ thống)
-            ActivityLog::log(__('Thành viên tự xóa tài khoản qua Open API: :email (Số dư còn lại trước khi xóa: :balance)', [
-                'email' => $userEmail,
-                'balance' => \App\Helpers\CurrencyHelper::format($userBalance),
-            ]), null);
-
-            return $this->ok(null, __('Tài khoản của bạn đã được xóa vĩnh viễn.'));
-        } catch (\Exception $e) {
-            \Log::error('Lỗi xóa tài khoản qua Open API: ' . $e->getMessage());
             return $this->fail(__('Có lỗi xảy ra trong quá trình xóa tài khoản. Vui lòng thử lại sau.'), 500, 'DELETE_FAILED');
         }
+
+        // The authenticated model no longer exists; subsequent middleware must log this request anonymously.
+        $request->setUserResolver(static fn () => null);
+        $request->attributes->remove('api_token');
+
+        try {
+            ActivityLog::create([
+                'user_id' => null,
+                'activity' => __('Tài khoản đã tự xóa qua Open API (mã đối soát: :reference).', [
+                    'reference' => $deletionReference,
+                ]),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+        } catch (\Throwable $e) {
+            // Account deletion is committed; an audit sink outage must not turn success into HTTP 500.
+            Log::warning('Account deletion committed but audit logging failed.', [
+                'deletion_reference' => $deletionReference,
+                'exception' => $e::class,
+            ]);
+        }
+
+        return $this->ok(null, __('Tài khoản của bạn đã được xóa vĩnh viễn.'));
+    }
+
+    /**
+     * Password accounts always require their password. Passwordless/provider-only
+     * accounts remain blocked until a server-verified provider re-auth proof exists.
+     */
+    private function validateDeletionConfirmation(Request $request, User $user): ?JsonResponse
+    {
+        $passwordHash = $user->getRawOriginal('password');
+        $hasLocalPassword = is_string($passwordHash) && trim($passwordHash) !== '';
+
+        if ($hasLocalPassword) {
+            if (! $request->filled('password') && ! empty($user->google_id)) {
+                return $this->fail(
+                    __('Vui lòng nhập mật khẩu hiện tại hoặc đăng nhập lại bằng nhà cung cấp danh tính đã liên kết trước khi xóa tài khoản.'),
+                    403,
+                    'PASSWORD_OR_PROVIDER_REAUTHENTICATION_REQUIRED'
+                );
+            }
+
+            try {
+                $validated = $request->validate(['password' => 'required|string'], [
+                    'password.required' => __('Vui lòng nhập mật khẩu để xác nhận xóa tài khoản.'),
+                ]);
+            } catch (ValidationException $e) {
+                return $this->fail(__('Thiếu mật khẩu xác nhận.'), 422, 'VALIDATION_ERROR', $e->errors());
+            }
+
+            if (! Hash::check($validated['password'], $passwordHash)) {
+                return $this->fail(__('Mật khẩu không chính xác.'), 422, 'WRONG_PASSWORD');
+            }
+
+            return null;
+        }
+
+        // Provider proof validation is intentionally not guessed here. The native OAuth
+        // re-authentication endpoint must issue a server-verifiable proof before this path can delete.
+        return $this->fail(
+            __('Vui lòng đăng nhập lại bằng nhà cung cấp danh tính đã liên kết trước khi xóa tài khoản.'),
+            403,
+            'PROVIDER_REAUTHENTICATION_REQUIRED'
+        );
     }
 }

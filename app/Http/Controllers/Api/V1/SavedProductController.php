@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\SavedProduct;
 use Illuminate\Http\JsonResponse;
@@ -32,8 +33,8 @@ class SavedProductController extends ApiController
                 'platform' => $p->platform,
                 'name' => $p->name,
                 'image' => $p->image,
-                'price' => (float) $p->price,
-                'cashback_amount' => (float) $p->cashback_amount,
+                'price' => (int) MoneyHelper::round($p->price),
+                'cashback_amount' => (int) MoneyHelper::round($p->cashback_amount),
                 'affiliate_url' => $p->affiliate_url,
                 'product_url' => $p->product_url,
                 'created_at' => optional($p->created_at)->toIso8601String(),
@@ -70,7 +71,7 @@ class SavedProductController extends ApiController
         }
 
         // Quy tắc nghiệp vụ: Không lưu lại các sản phẩm bị thiếu thông tin giá bán (sản phẩm dạng ước tính)
-        if ((float)$validated['price'] <= 0) {
+        if ((float) $validated['price'] <= 0) {
             return $this->fail(__('Sản phẩm này chưa lấy được đầy đủ thông tin giá bán nên không thể lưu lại. Vui lòng thử lấy link lại sau.'), 422, 'MISSING_PRICE');
         }
 
@@ -114,7 +115,7 @@ class SavedProductController extends ApiController
         $user = $this->apiUser($request);
 
         $product = SavedProduct::where('user_id', $user->id)->find($id);
-        if (!$product) {
+        if (! $product) {
             return $this->fail(__('Không tìm thấy sản phẩm đã lưu.'), 404, 'NOT_FOUND');
         }
 

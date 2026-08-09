@@ -1,12 +1,20 @@
-name: Context and Secret Checks
+name: CI, Context, and Secret Checks
 
 on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   context-log-check:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Verify required context files
@@ -28,3 +36,73 @@ jobs:
             echo 'Potential credential detected in tracked files'
             exit 1
           fi
+
+  laravel-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      APP_ENV: testing
+      # Deterministic, non-production key used only by the isolated CI test process.
+      APP_KEY: base64:MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+      APP_DEBUG: "true"
+      APP_DEMO: "false"
+      CACHE_STORE: array
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      MAIL_MAILER: array
+      QUEUE_CONNECTION: sync
+      SESSION_DRIVER: array
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          extensions: mbstring, dom, fileinfo, pdo_sqlite, sqlite3, curl, intl, gd, exif, zip
+          coverage: none
+          tools: composer:v2
+      - name: Resolve Composer cache directory
+        id: composer-cache
+        shell: bash
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-php-8.4-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.4-composer-
+      - name: Install locked PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+      - name: Run Laravel tests
+        run: php artisan test
+
+  mobile-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      CI: "true"
+      EXPO_NO_TELEMETRY: "1"
+      EXPO_PUBLIC_API_BASE_URL: https://ci.invalid/api/v1/openapi
+      EXPO_PUBLIC_API_TIMEOUT_MS: "15000"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install locked mobile dependencies
+        run: npm ci
+      - name: Run mobile tests
+        run: npm run test
+      - name: Type-check mobile
+        run: npm run typecheck
+      - name: Check Expo project health
+        run: npx expo-doctor
+      - name: Export iOS and Android bundles
+        run: npx expo export --platform all --output-dir dist

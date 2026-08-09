@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\BalanceLog;
 use App\Models\GiftCode;
@@ -48,13 +49,13 @@ class GiftCodeController extends ApiController
                 // Khóa bản ghi mã chống đổi vượt số lượt
                 $giftCode = GiftCode::where('code', $code)->lockForUpdate()->first();
 
-                if (!$giftCode) {
+                if (! $giftCode) {
                     throw new \RuntimeException(__('Mã Giftcode không tồn tại. Vui lòng kiểm tra lại.'));
                 }
-                if (!$giftCode->status) {
+                if (! $giftCode->status) {
                     throw new \RuntimeException(__('Mã Giftcode này hiện đã bị tạm dừng.'));
                 }
-                if (!$giftCode->hasStarted()) {
+                if (! $giftCode->hasStarted()) {
                     throw new \RuntimeException(__('Mã Giftcode này chưa tới thời gian sử dụng.'));
                 }
                 if ($giftCode->isExpired()) {
@@ -75,7 +76,7 @@ class GiftCodeController extends ApiController
                 }
                 if ($giftCode->min_total_cashback > 0 && $dbUser->total_cashback < $giftCode->min_total_cashback) {
                     throw new \RuntimeException(__('Bạn cần đạt tối thiểu :amount tiền hoàn tích lũy để dùng mã này.', [
-                        'amount' => number_format($giftCode->min_total_cashback, 0, ',', '.') . 'đ',
+                        'amount' => number_format($giftCode->min_total_cashback, 0, ',', '.').'đ',
                     ]));
                 }
                 if ($giftCode->min_account_age_days > 0 && $dbUser->created_at
@@ -121,19 +122,19 @@ class GiftCodeController extends ApiController
                     $amount,
                     $newBalance,
                     'giftcode_reward',
-                    __('Nhận thưởng Giftcode :code', ['code' => '#' . $giftCode->code])
+                    __('Nhận thưởng Giftcode :code', ['code' => '#'.$giftCode->code])
                 );
 
                 ActivityLog::log(__('Đổi Giftcode :code nhận thưởng :amount (qua Open API)', [
-                    'code' => '#' . $giftCode->code,
-                    'amount' => number_format($amount, 0, ',', '.') . 'đ',
+                    'code' => '#'.$giftCode->code,
+                    'amount' => number_format($amount, 0, ',', '.').'đ',
                 ]), $dbUser->id);
 
                 Notification::create([
                     'user_id' => $dbUser->id,
                     'title' => __('Nhận thưởng Giftcode thành công'),
                     'content' => __('Bạn vừa nhận :amount từ mã Giftcode :code vào số dư ví khả dụng.', [
-                        'amount' => number_format($amount, 0, ',', '.') . 'đ',
+                        'amount' => number_format($amount, 0, ',', '.').'đ',
                         'code' => $giftCode->code,
                     ]),
                 ]);
@@ -142,14 +143,15 @@ class GiftCodeController extends ApiController
             });
 
             return $this->ok([
-                'amount' => (float) $amount,
+                'amount' => (int) MoneyHelper::round($amount),
             ], __('Chúc mừng! Bạn đã nhận :amount từ Giftcode vào ví khả dụng.', [
-                'amount' => number_format($amount, 0, ',', '.') . 'đ',
+                'amount' => number_format($amount, 0, ',', '.').'đ',
             ]));
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 400, 'REDEEM_FAILED');
         } catch (\Throwable $e) {
-            \Log::error('Lỗi đổi Giftcode qua Open API: ' . $e->getMessage());
+            \Log::error('Lỗi đổi Giftcode qua Open API.', ['exception' => $e::class]);
+
             return $this->fail(__('Có lỗi xảy ra khi đổi mã, vui lòng thử lại sau.'), 500, 'REDEEM_ERROR');
         }
     }

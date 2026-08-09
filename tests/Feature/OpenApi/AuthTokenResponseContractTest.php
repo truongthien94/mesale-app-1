@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\OpenApi;
 
+use App\Models\ActivityLog;
 use App\Models\ApiLog;
 use App\Models\ApiToken;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
@@ -65,8 +67,73 @@ class AuthTokenResponseContractTest extends TestCase
 
         $apiLog = ApiLog::query()->latest('id')->firstOrFail();
         $this->assertSame(200, $apiLog->status_code);
-        $this->assertStringNotContainsString('password', (string) $apiLog->request_data);
+        $this->assertSame('[REDACTED]', json_decode($apiLog->request_data, true, flags: JSON_THROW_ON_ERROR)['password']);
         $this->assertStringNotContainsString('correct-password', (string) $apiLog->request_data);
+    }
+
+    public function test_api_logging_recursively_redacts_sensitive_fields_and_key_variants(): void
+    {
+        $secrets = [
+            'top-password-secret',
+            'confirmation-secret',
+            'plain-token-secret',
+            'access-token-secret',
+            'refresh-token-secret',
+            'challenge-token-secret',
+            'google-2fa-secret',
+            'email-otp-secret',
+            'otp-secret',
+            'account-number-secret',
+            'camel-account-secret',
+            'private-key-secret',
+        ];
+
+        $this->postJson('/api/v1/openapi/auth/login', [
+            'email' => 'unknown@example.test',
+            'password' => $secrets[0],
+            'password_confirmation' => $secrets[1],
+            'security' => [
+                'token' => $secrets[2],
+                'accessToken' => $secrets[3],
+                'refresh_token' => $secrets[4],
+                'challenge-token' => $secrets[5],
+                'google2fa_code' => $secrets[6],
+                'emailOtpCode' => $secrets[7],
+                'otp' => $secrets[8],
+            ],
+            'payment' => [
+                'account_number' => $secrets[9],
+                'bankAccountNumber' => $secrets[10],
+            ],
+            'nested' => [
+                ['privateKey' => $secrets[11], 'safe_value' => 'retained-context'],
+            ],
+        ])->assertUnauthorized();
+
+        $rawLog = ApiLog::query()->latest('id')->firstOrFail()->request_data;
+        $logged = json_decode($rawLog, true, flags: JSON_THROW_ON_ERROR);
+
+        foreach ([
+            'password',
+            'password_confirmation',
+            'security.token',
+            'security.accessToken',
+            'security.refresh_token',
+            'security.challenge-token',
+            'security.google2fa_code',
+            'security.emailOtpCode',
+            'security.otp',
+            'payment.account_number',
+            'payment.bankAccountNumber',
+            'nested.0.privateKey',
+        ] as $path) {
+            $this->assertSame('[REDACTED]', data_get($logged, $path), "{$path} was not redacted");
+        }
+
+        $this->assertSame('retained-context', data_get($logged, 'nested.0.safe_value'));
+        foreach ($secrets as $secret) {
+            $this->assertStringNotContainsString($secret, $rawLog);
+        }
     }
 
     public function test_register_returns_the_same_session_token_contract(): void
@@ -204,6 +271,121 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseCount('api_tokens', 0);
     }
 
+    public function test_account_deletion_feature_flag_still_blocks_the_mutation(): void
+    {
+        $user = $this->createUser();
+        [$plainToken] = ApiToken::generateFor($user, 'Deletion Flag Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['password' => 'correct-password'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'FEATURE_DISABLED');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_oauth_link_does_not_bypass_password_for_an_account_with_a_local_password(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        $user = $this->createUser(['google_id' => 'linked-google-identity']);
+        [$plainToken] = ApiToken::generateFor($user, 'Linked OAuth Deletion Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['confirmation' => 'DELETE'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'PASSWORD_OR_PROVIDER_REAUTHENTICATION_REQUIRED');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['password' => 'correct-password'])
+            ->assertOk();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
+    public function test_passwordless_account_deletion_requires_server_verified_provider_reauthentication(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        $user = $this->createUser([
+            'password' => null,
+            'google_id' => 'passwordless-google-identity',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Passwordless Deletion Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['confirmation' => 'DELETE'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'PROVIDER_REAUTHENTICATION_REQUIRED');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_account_deletion_removes_related_auth_data_without_logging_raw_email_or_balance(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        $user = $this->createUser([
+            'email' => 'privacy-deletion@example.test',
+            'balance' => '98765.00',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Privacy Deletion Test', 30, '127.0.0.1');
+        DB::table('password_reset_tokens')->insert([
+            'email' => $user->email,
+            'token' => 'hashed-reset-token',
+            'created_at' => now(),
+        ]);
+        DB::table('sessions')->insert([
+            'id' => 'deletion-session',
+            'user_id' => $user->id,
+        ]);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['password' => 'correct-password'])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $this->assertDatabaseMissing('api_tokens', ['user_id' => $user->id]);
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
+        $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+
+        $auditLog = ActivityLog::query()->latest('id')->firstOrFail();
+        $this->assertNull($auditLog->user_id);
+        $this->assertStringNotContainsString($user->email, $auditLog->activity);
+        $this->assertStringNotContainsString('98765', $auditLog->activity);
+
+        $apiLog = ApiLog::query()->latest('id')->firstOrFail();
+        $this->assertNull($apiLog->user_id);
+        $this->assertSame('/api/v1/openapi/account/delete', $apiLog->endpoint);
+        $this->assertSame(
+            '[REDACTED]',
+            data_get(json_decode($apiLog->request_data, true, flags: JSON_THROW_ON_ERROR), 'password')
+        );
+        $this->assertStringNotContainsString('correct-password', $apiLog->request_data);
+    }
+
+    public function test_audit_log_failure_after_committed_deletion_does_not_change_success_to_http_500(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        $user = $this->createUser(['email' => 'audit-outage@example.test']);
+        [$plainToken] = ApiToken::generateFor($user, 'Audit Outage Test', 30, '127.0.0.1');
+
+        DB::statement(<<<'SQL'
+            CREATE TRIGGER reject_account_deletion_audit
+            BEFORE INSERT ON activity_logs
+            BEGIN
+                SELECT RAISE(ABORT, 'audit sink unavailable');
+            END
+            SQL);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['password' => 'correct-password'])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+    }
+
     private function enableOpenApiAuth(): void
     {
         foreach ([
@@ -252,7 +434,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('phone')->nullable()->unique();
             $table->string('avatar')->nullable();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
+            $table->string('password')->nullable();
             $table->decimal('balance', 15, 2)->default(0);
             $table->decimal('total_cashback', 15, 2)->default(0);
             $table->decimal('total_referral_earned', 15, 2)->default(0);
@@ -297,6 +479,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->timestamp('last_used_at')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
 
         Schema::create('activity_logs', function (Blueprint $table): void {
@@ -306,6 +489,19 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
             $table->timestamp('created_at')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
+        });
+
+        Schema::create('password_reset_tokens', function (Blueprint $table): void {
+            $table->string('email')->primary();
+            $table->string('token');
+            $table->timestamp('created_at')->nullable();
+        });
+
+        Schema::create('sessions', function (Blueprint $table): void {
+            $table->string('id')->primary();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->longText('payload')->nullable();
         });
 
         Schema::create('cashback_histories', function (Blueprint $table): void {
@@ -332,6 +528,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('ip_address', 45)->nullable();
             $table->string('user_agent', 500)->nullable();
             $table->timestamp('created_at')->nullable();
+            $table->foreign('user_id')->references('id')->on('users')->nullOnDelete();
         });
     }
 }

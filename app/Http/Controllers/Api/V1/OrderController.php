@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\CashbackHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -79,7 +80,7 @@ class OrderController extends ApiController
         $user = $this->apiUser($request);
 
         $order = $this->resolveOrder((int) $user->id, $key);
-        if (!$order) {
+        if (! $order) {
             return $this->fail(__('Không tìm thấy đơn hàng.'), 404, 'ORDER_NOT_FOUND');
         }
 
@@ -107,9 +108,9 @@ class OrderController extends ApiController
             'platform' => $order->platform,
             'product_name' => $order->product_name,
             'product_image' => $order->product_image,
-            'original_price' => (float) $order->original_price,
-            'commission_amount' => (float) $order->commission_amount, // Tổng số tiền hoa hồng thực tế nhận từ sàn Shopee/TikTok
-            'cashback_amount' => (float) $order->cashback_amount,
+            'original_price' => (int) MoneyHelper::round($order->original_price),
+            'commission_amount' => (int) MoneyHelper::round($order->commission_amount), // Tổng số tiền hoa hồng thực tế nhận từ sàn Shopee/TikTok
+            'cashback_amount' => (int) MoneyHelper::round($order->cashback_amount),
             'cashback_rate' => (float) $order->cashback_rate,
             'status' => $order->status,
             'rejected_reason' => $order->rejected_reason,
@@ -131,9 +132,9 @@ class OrderController extends ApiController
             'product_name' => $order->product_name,
             'product_image' => $order->product_image,
             'shop_name' => $order->shop_name,
-            'original_price' => (float) $order->original_price,
-            'commission_amount' => (float) $order->commission_amount,
-            'cashback_amount' => (float) $order->cashback_amount,
+            'original_price' => (int) MoneyHelper::round($order->original_price),
+            'commission_amount' => (int) MoneyHelper::round($order->commission_amount),
+            'cashback_amount' => (int) MoneyHelper::round($order->cashback_amount),
             'cashback_rate' => (float) $order->cashback_rate,
             'status' => $order->status,
             'rejected_reason' => $order->rejected_reason,

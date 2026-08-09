@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\Banner;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
@@ -19,6 +20,9 @@ class ConfigController extends ApiController
      */
     public function show(Request $request): JsonResponse
     {
+        $withdrawalFeeType = Setting::getVal('withdrawal_fee_type', 'percentage');
+        $withdrawalFeeValue = Setting::getVal('withdrawal_fee_value', 0);
+
         // Danh sách banner đang hiển thị ở trang chủ (giống logic web)
         $banners = Banner::where('is_active', true)
             ->orderBy('order')
@@ -55,9 +59,12 @@ class ConfigController extends ApiController
             ],
             'withdraw' => [
                 'enabled' => Setting::getVal('withdrawal_enabled', '1') === '1',
-                'min_amount' => (float) Setting::getVal('min_withdraw', 50000),
-                'fee_type' => Setting::getVal('withdrawal_fee_type', 'percentage'),
-                'fee_value' => (float) Setting::getVal('withdrawal_fee_value', 0),
+                'min_amount' => (int) MoneyHelper::round(Setting::getVal('min_withdraw', 50000)),
+                'fee_type' => $withdrawalFeeType,
+                'fee_value' => $withdrawalFeeType === 'percentage'
+                    ? (float) $withdrawalFeeValue
+                    : (int) MoneyHelper::round($withdrawalFeeValue),
+                'fee_value_unit' => $withdrawalFeeType === 'percentage' ? 'percent' : 'vnd',
                 'otp_required' => Setting::getVal('withdraw_otp_required', '0') === '1',
                 'bank_enabled' => Setting::getVal('withdraw_bank_enabled', '1') === '1',
                 'wallet_enabled' => Setting::getVal('withdraw_wallet_enabled', '1') === '1',

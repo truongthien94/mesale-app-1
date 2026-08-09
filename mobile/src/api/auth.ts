@@ -1,36 +1,67 @@
 import { request } from "@/api/client";
-import type { Session } from "@/auth/session";
+import {
+  parseLoginResult,
+  requireAuthenticated,
+  type AuthenticatedAuthResult,
+  type LoginResult,
+  type User
+} from "@/api/authContract";
 
-export type User = {
-  id: number;
-  name?: string;
-  email?: string;
-};
+export type { AuthContinuation, LoginResult, TwoFactorMethod, User } from "@/api/authContract";
 
-type LoginResponse = {
-  access_token?: string;
-  token?: string;
-  token_type?: string;
-  expires_at?: string | null;
-  user: User;
-};
+const mobileDeviceName = "Mesale Mobile";
 
-export type AuthResult = { session: Session; user: User };
-
-export async function login(email: string, password: string): Promise<AuthResult> {
-  const response = await request<LoginResponse>("auth/login", {
+export async function login(email: string, password: string): Promise<LoginResult> {
+  const response = await request<unknown>("auth/login", {
     method: "POST",
     authenticated: false,
-    body: { email, password }
+    body: { email, password, device_name: mobileDeviceName }
   });
-  const accessToken = response.access_token ?? response.token;
-  if (!accessToken || response.token_type?.toLowerCase() !== "bearer") {
-    throw new Error("The API did not return a session Bearer token.");
-  }
-  return {
-    session: { accessToken, tokenType: "Bearer", expiresAt: response.expires_at ?? undefined },
-    user: response.user
-  };
+  return parseLoginResult(response);
+}
+
+export async function verifyEmail(email: string, otpCode: string): Promise<AuthenticatedAuthResult> {
+  const response = await request<unknown>("auth/verify-email", {
+    method: "POST",
+    authenticated: false,
+    body: { email, otp_code: otpCode, device_name: mobileDeviceName }
+  });
+  return requireAuthenticated(parseLoginResult(response));
+}
+
+export async function resendEmailVerification(email: string): Promise<void> {
+  await request<unknown>("auth/verify-email/resend", {
+    method: "POST",
+    authenticated: false,
+    body: { email }
+  });
+}
+
+export type TwoFactorCodes = {
+  google2faCode?: string;
+  emailOtpCode?: string;
+};
+
+export async function verifyTwoFactor(challengeToken: string, codes: TwoFactorCodes): Promise<AuthenticatedAuthResult> {
+  const response = await request<unknown>("auth/login/2fa", {
+    method: "POST",
+    authenticated: false,
+    body: {
+      challenge_token: challengeToken,
+      google2fa_code: codes.google2faCode,
+      email_otp_code: codes.emailOtpCode,
+      device_name: mobileDeviceName
+    }
+  });
+  return requireAuthenticated(parseLoginResult(response));
+}
+
+export async function resendTwoFactorOtp(challengeToken: string): Promise<void> {
+  await request<unknown>("auth/login/2fa/resend", {
+    method: "POST",
+    authenticated: false,
+    body: { challenge_token: challengeToken }
+  });
 }
 
 export async function getCurrentUser(): Promise<User> {

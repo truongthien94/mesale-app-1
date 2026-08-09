@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\BalanceLog;
 use App\Models\Gift;
 use App\Models\GiftRedemption;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\FinancialIdempotencyService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +25,7 @@ class GiftController extends ApiController
         if (Setting::getVal('gift_redemption_enabled', '0') !== '1') {
             return $this->fail(__('Chức năng quy đổi quà tặng hiện đang tạm khóa để bảo trì.'), 403, 'GIFT_DISABLED');
         }
+
         return null;
     }
 
@@ -71,7 +73,7 @@ class GiftController extends ApiController
                 'title' => $g->title,
                 'image' => $g->image,
                 'description' => $g->description,
-                'price' => (float) $g->price,
+                'price' => (int) MoneyHelper::round($g->price),
                 'stock' => (int) $g->stock,
                 'type' => $g->type,
                 'tag' => $g->tag,
@@ -118,7 +120,7 @@ class GiftController extends ApiController
                 'code' => $r->code,
                 'gift_title' => $r->gift->title ?? null,
                 'gift_image' => $r->gift->image ?? null,
-                'amount' => (float) $r->amount,
+                'amount' => (int) MoneyHelper::round($r->amount),
                 'status' => $r->status,
                 'created_at' => optional($r->created_at)->toIso8601String(),
                 'processed_at' => optional($r->processed_at)->toIso8601String(),
@@ -136,7 +138,7 @@ class GiftController extends ApiController
      * POST /api/v1/openapi/gifts/redeem
      * Body: gift_id, fullname, phone, email, address (bắt buộc với quà vật lý), notes
      */
-    public function redeem(Request $request): JsonResponse
+    public function redeem(Request $request, FinancialIdempotencyService $idempotency): JsonResponse
     {
         if ($resp = $this->ensureFeatureEnabled()) {
             return $resp;
@@ -145,7 +147,7 @@ class GiftController extends ApiController
         $user = $this->apiUser($request);
 
         $gift = Gift::find($request->input('gift_id'));
-        if (!$gift) {
+        if (! $gift) {
             return $this->fail(__('Món quà không tồn tại.'), 404, 'GIFT_NOT_FOUND');
         }
 
@@ -162,91 +164,148 @@ class GiftController extends ApiController
             return $this->fail(__('Dữ liệu không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
         }
 
+        $redemptionInput = [
+            'gift_id' => (int) $validated['gift_id'],
+            'fullname' => trim($validated['fullname']),
+            'phone' => trim($validated['phone']),
+            'email' => strtolower(trim($validated['email'])),
+            'address' => isset($validated['address']) && trim($validated['address']) !== ''
+                ? trim($validated['address'])
+                : null,
+            'notes' => isset($validated['notes']) && trim($validated['notes']) !== ''
+                ? trim($validated['notes'])
+                : null,
+        ];
+
         try {
-            $redemption = DB::transaction(function () use ($user, $validated) {
-                // Khóa dòng quà tặng chống vượt kho
-                $gift = Gift::where('id', $validated['gift_id'])->lockForUpdate()->firstOrFail();
+            $result = $idempotency->execute(
+                (int) $user->id,
+                'gift.redeem',
+                (string) $request->attributes->get('idempotency_key'),
+                $redemptionInput,
+                function () use ($user, $redemptionInput): array {
+                    // Khóa dòng quà tặng chống vượt kho
+                    $gift = Gift::where('id', $redemptionInput['gift_id'])->lockForUpdate()->firstOrFail();
 
-                if (!$gift->status) {
-                    throw new \RuntimeException(__('Món quà này hiện không còn hoạt động trên hệ thống.'));
+                    if (! $gift->status) {
+                        throw new \RuntimeException('GIFT_INACTIVE');
+                    }
+                    if ($gift->stock <= 0) {
+                        throw new \RuntimeException('GIFT_OUT_OF_STOCK');
+                    }
+
+                    // Khóa dòng user chống trừ âm ví
+                    $dbUser = User::where('id', $user->id)->lockForUpdate()->firstOrFail();
+                    if ($dbUser->balance < $gift->price) {
+                        throw new \RuntimeException('INSUFFICIENT_BALANCE');
+                    }
+
+                    $oldBalance = $dbUser->balance;
+                    $newBalance = $oldBalance - $gift->price;
+                    // balance được gán tường minh (không mass-assign) vì cột này đã bị loại khỏi $fillable vì lý do bảo mật.
+                    $dbUser->balance = $newBalance;
+                    $dbUser->save();
+                    $gift->decrement('stock');
+
+                    $code = 'GFT'.strtoupper(Str::random(8));
+                    while (GiftRedemption::where('code', $code)->exists()) {
+                        $code = 'GFT'.strtoupper(Str::random(8));
+                    }
+
+                    $redemption = GiftRedemption::create([
+                        'code' => $code,
+                        'user_id' => $dbUser->id,
+                        'gift_id' => $gift->id,
+                        'amount' => $gift->price,
+                        'shipping_info' => [
+                            'fullname' => $redemptionInput['fullname'],
+                            'phone' => $redemptionInput['phone'],
+                            'email' => $redemptionInput['email'],
+                            'address' => $redemptionInput['address'],
+                            'notes' => $redemptionInput['notes'],
+                        ],
+                        'status' => 'pending',
+                    ]);
+
+                    BalanceLog::create([
+                        'user_id' => $dbUser->id,
+                        'amount_before' => $oldBalance,
+                        'amount_change' => -$gift->price,
+                        'amount_after' => $newBalance,
+                        'type' => 'gift_exchange',
+                        'description' => __('Đổi quà tặng :code (:title)', ['code' => '#'.$redemption->code, 'title' => $gift->title]),
+                    ]);
+
+                    ActivityLog::log(__('Đổi quà tặng :title (qua Open API), trừ :amount', [
+                        'title' => $gift->title,
+                        'amount' => number_format($gift->price, 0, ',', '.').'đ',
+                    ]), $dbUser->id);
+
+                    return [
+                        'status' => 200,
+                        'data' => [
+                            'code' => $redemption->code,
+                            'amount' => (int) MoneyHelper::round($redemption->amount),
+                            'status' => $redemption->status,
+                        ],
+                    ];
                 }
-                if ($gift->stock <= 0) {
-                    throw new \RuntimeException(__('Món quà này hiện đã hết hàng trong kho.'));
+            );
+
+            if ($result['outcome'] === FinancialIdempotencyService::OUTCOME_CONFLICT) {
+                return $this->fail(__('Idempotency-Key đã được sử dụng với dữ liệu khác.'), 409, 'IDEMPOTENCY_KEY_REUSED');
+            }
+            if ($result['outcome'] === FinancialIdempotencyService::OUTCOME_IN_PROGRESS) {
+                return $this->fail(__('Yêu cầu cùng Idempotency-Key đang được xử lý.'), 409, 'IDEMPOTENCY_REQUEST_IN_PROGRESS');
+            }
+
+            if ($result['outcome'] === FinancialIdempotencyService::OUTCOME_COMPLETED) {
+                // External notifications are intentionally skipped on replay.
+                try {
+                    Setting::sendEmailQueue($redemptionInput['email'], 'gift_created', [
+                        'name' => $redemptionInput['fullname'],
+                        'email' => $redemptionInput['email'],
+                        'gift_title' => $gift->title,
+                        'gift_price' => number_format($gift->price),
+                    ]);
+                } catch (\Throwable $e) {
+                    \Log::warning('Gift redemption email notification failed.', ['exception' => $e::class]);
                 }
 
-                // Khóa dòng user chống trừ âm ví
-                $dbUser = User::where('id', $user->id)->lockForUpdate()->firstOrFail();
-                if ($dbUser->balance < $gift->price) {
-                    throw new \RuntimeException(__('Số dư ví khả dụng của bạn không đủ để quy đổi phần quà này.'));
+                try {
+                    Setting::sendTelegramTemplate('telegram_template_gift_created', [
+                        'name' => $redemptionInput['fullname'],
+                        'email' => $redemptionInput['email'],
+                        'gift_title' => $gift->title,
+                        'gift_price' => number_format($gift->price),
+                    ]);
+                } catch (\Throwable $e) {
+                    \Log::warning('Gift redemption Telegram notification failed.', ['exception' => $e::class]);
                 }
+            }
 
-                $oldBalance = $dbUser->balance;
-                $newBalance = $oldBalance - $gift->price;
-                // balance được gán tường minh (không mass-assign) vì cột này đã bị loại khỏi $fillable vì lý do bảo mật.
-                $dbUser->balance = $newBalance;
-                $dbUser->save();
-                $gift->decrement('stock');
-
-                $code = 'GFT' . strtoupper(Str::random(8));
-                while (GiftRedemption::where('code', $code)->exists()) {
-                    $code = 'GFT' . strtoupper(Str::random(8));
-                }
-
-                $redemption = GiftRedemption::create([
-                    'code' => $code,
-                    'user_id' => $dbUser->id,
-                    'gift_id' => $gift->id,
-                    'amount' => $gift->price,
-                    'shipping_info' => [
-                        'fullname' => $validated['fullname'],
-                        'phone' => $validated['phone'],
-                        'email' => $validated['email'],
-                        'address' => $validated['address'] ?? null,
-                        'notes' => $validated['notes'] ?? null,
-                    ],
-                    'status' => 'pending',
-                ]);
-
-                BalanceLog::create([
-                    'user_id' => $dbUser->id,
-                    'amount_before' => $oldBalance,
-                    'amount_change' => -$gift->price,
-                    'amount_after' => $newBalance,
-                    'type' => 'gift_exchange',
-                    'description' => __('Đổi quà tặng :code (:title)', ['code' => '#' . $redemption->code, 'title' => $gift->title]),
-                ]);
-
-                ActivityLog::log(__('Đổi quà tặng :title (qua Open API), trừ :amount', [
-                    'title' => $gift->title,
-                    'amount' => number_format($gift->price, 0, ',', '.') . 'đ',
-                ]), $dbUser->id);
-
-                return $redemption;
-            });
-
-            // Thông báo cho admin qua email + Telegram (ngoài transaction)
-            Setting::sendEmailQueue($validated['email'], 'gift_created', [
-                'name' => $validated['fullname'],
-                'email' => $validated['email'],
-                'gift_title' => $gift->title,
-                'gift_price' => number_format($gift->price),
-            ]);
-            Setting::sendTelegramTemplate('telegram_template_gift_created', [
-                'name' => $validated['fullname'],
-                'email' => $validated['email'],
-                'gift_title' => $gift->title,
-                'gift_price' => number_format($gift->price),
-            ]);
-
-            return $this->ok([
-                'code' => $redemption->code,
-                'amount' => (float) $redemption->amount,
-                'status' => $redemption->status,
-            ], __('Gửi yêu cầu đổi quà thành công! Vui lòng chờ admin duyệt và gửi dữ liệu.'));
+            return $this->ok(
+                $result['data'],
+                __('Gửi yêu cầu đổi quà thành công! Vui lòng chờ admin duyệt và gửi dữ liệu.'),
+                $result['status']
+            );
         } catch (\RuntimeException $e) {
-            return $this->fail($e->getMessage(), 400, 'REDEEM_FAILED');
+            $failures = [
+                'GIFT_INACTIVE' => __('Món quà này hiện không còn hoạt động trên hệ thống.'),
+                'GIFT_OUT_OF_STOCK' => __('Món quà này hiện đã hết hàng trong kho.'),
+                'INSUFFICIENT_BALANCE' => __('Số dư ví khả dụng của bạn không đủ để quy đổi phần quà này.'),
+            ];
+
+            if (isset($failures[$e->getMessage()])) {
+                return $this->fail($failures[$e->getMessage()], 400, 'REDEEM_FAILED');
+            }
+
+            \Log::error('Gift redemption transaction failed.', ['exception' => $e::class]);
+
+            return $this->fail(__('Có lỗi hệ thống xảy ra khi đổi quà. Vui lòng thử lại sau.'), 500, 'REDEEM_ERROR');
         } catch (\Throwable $e) {
-            \Log::error('Lỗi đổi quà qua Open API: ' . $e->getMessage());
+            \Log::error('Gift redemption transaction failed.', ['exception' => $e::class]);
+
             return $this->fail(__('Có lỗi xảy ra khi đổi quà, vui lòng thử lại sau.'), 500, 'REDEEM_ERROR');
         }
     }

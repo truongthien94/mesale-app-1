@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\BalanceLog;
 use App\Models\CashbackHistory;
@@ -9,6 +10,7 @@ use App\Models\DailyCheckin;
 use App\Models\Notification;
 use App\Models\Setting;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,6 +29,7 @@ class CheckinController extends ApiController
         if (Setting::getVal('daily_checkin_enabled', '1') !== '1') {
             return $this->fail(__('Tính năng điểm danh hiện đang tạm khóa.'), 403, 'CHECKIN_DISABLED');
         }
+
         return null;
     }
 
@@ -47,7 +50,7 @@ class CheckinController extends ApiController
             $userAgent = $request->userAgent() ?? 'Unknown';
             $isMobile = preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $userAgent) || preg_match('/ipad|playbook|silk/i', $userAgent);
 
-            if ($allowedDevice === 'mobile' && !$isMobile) {
+            if ($allowedDevice === 'mobile' && ! $isMobile) {
                 return __('Hệ thống chỉ cho phép điểm danh trên thiết bị di động (Mobile).');
             }
             if ($allowedDevice === 'desktop' && $isMobile) {
@@ -73,7 +76,7 @@ class CheckinController extends ApiController
         // Số ngày tuổi tài khoản tối thiểu
         $minAccountAgeDays = (int) Setting::getVal('checkin_min_account_age_days', 0);
         if ($minAccountAgeDays > 0 && $user->created_at) {
-            $accountAgeDays = (int) \Carbon\Carbon::parse($user->created_at)->startOfDay()->diffInDays(now()->startOfDay());
+            $accountAgeDays = (int) Carbon::parse($user->created_at)->startOfDay()->diffInDays(now()->startOfDay());
             if ($accountAgeDays < $minAccountAgeDays) {
                 return __('Tài khoản của bạn cần đăng ký tối thiểu :min ngày mới được điểm danh (Hiện tại tài khoản mới đăng ký được :current ngày).', [
                     'min' => $minAccountAgeDays,
@@ -107,13 +110,16 @@ class CheckinController extends ApiController
             ->first();
         $currentStreak = 0;
         if ($lastCheckin) {
-            $lastDate = \Carbon\Carbon::parse($lastCheckin->checked_in_date);
+            $lastDate = Carbon::parse($lastCheckin->checked_in_date);
             if ($lastDate->isToday() || $lastDate->isYesterday()) {
                 $currentStreak = (int) $lastCheckin->streak_days;
             }
         }
 
-        $milestones = json_decode(Setting::getVal('checkin_streak_milestones', '{"7":2000}'), true) ?: [];
+        $milestones = array_map(
+            fn ($amount): int => (int) MoneyHelper::round($amount),
+            json_decode(Setting::getVal('checkin_streak_milestones', '{"7":2000}'), true) ?: []
+        );
 
         $history = DailyCheckin::where('user_id', $user->id)
             ->orderByDesc('checked_in_date')
@@ -123,14 +129,14 @@ class CheckinController extends ApiController
 
         return $this->ok([
             'has_checked_in_today' => $hasCheckedInToday,
-            'can_checkin' => !$hasCheckedInToday && $eligibilityError === null,
+            'can_checkin' => ! $hasCheckedInToday && $eligibilityError === null,
             'ineligible_reason' => $hasCheckedInToday ? __('Hôm nay bạn đã điểm danh rồi.') : $eligibilityError,
             'current_streak' => $currentStreak,
-            'reward_coins' => (float) Setting::getVal('checkin_reward_coins', 500),
+            'reward_coins' => (int) MoneyHelper::round(Setting::getVal('checkin_reward_coins', 500)),
             'milestones' => (object) $milestones,
             'history' => [
                 'items' => $history->getCollection()->map(fn (DailyCheckin $c) => [
-                    'coins_earned' => (float) $c->coins_earned,
+                    'coins_earned' => (int) MoneyHelper::round($c->coins_earned),
                     'streak_days' => (int) $c->streak_days,
                     'checked_in_date' => optional($c->checked_in_date)->toDateString(),
                 ]),
@@ -165,7 +171,7 @@ class CheckinController extends ApiController
         return DB::transaction(function () use ($user, $today) {
             // Khóa dòng user để tuần tự hóa các yêu cầu điểm danh đồng thời của cùng tài khoản
             $userModel = User::where('id', $user->id)->lockForUpdate()->first();
-            if (!$userModel) {
+            if (! $userModel) {
                 return $this->fail(__('Không tìm thấy thông tin tài khoản người dùng.'), 404, 'USER_NOT_FOUND');
             }
 
@@ -185,13 +191,13 @@ class CheckinController extends ApiController
 
             // Tính thưởng + thưởng mốc streak
             // Chuẩn hoá về số nguyên đồng phòng trường hợp admin nhập giá trị cấu hình có phần thập phân
-            $rewardCoins = \App\Helpers\MoneyHelper::round(Setting::getVal('checkin_reward_coins', 500));
+            $rewardCoins = MoneyHelper::round(Setting::getVal('checkin_reward_coins', 500));
             $totalEarned = $rewardCoins;
             $milestones = json_decode(Setting::getVal('checkin_streak_milestones', '{"7":2000}'), true) ?: [];
             $bonusCoins = 0;
             $isBonus = false;
             if (isset($milestones[$streakDays])) {
-                $bonusCoins = \App\Helpers\MoneyHelper::round($milestones[$streakDays]);
+                $bonusCoins = MoneyHelper::round($milestones[$streakDays]);
                 $totalEarned += $bonusCoins;
                 $isBonus = true;
             }
@@ -211,30 +217,30 @@ class CheckinController extends ApiController
 
             $logMsg = __('Điểm danh ngày :date', ['date' => $today]);
             if ($isBonus) {
-                $logMsg .= ' ' . __('(Thưởng chuỗi :days ngày)', ['days' => $streakDays]);
+                $logMsg .= ' '.__('(Thưởng chuỗi :days ngày)', ['days' => $streakDays]);
             }
             BalanceLog::write($userModel, $oldBalance, $totalEarned, $userModel->balance, 'checkin', $logMsg);
 
             ActivityLog::log(__('Điểm danh ngày :date nhận +:amount (qua Open API)', [
                 'date' => $today,
-                'amount' => number_format($totalEarned, 0, ',', '.') . 'đ',
+                'amount' => number_format($totalEarned, 0, ',', '.').'đ',
             ]), $userModel->id);
 
             Notification::create([
                 'user_id' => $userModel->id,
                 'title' => __('Điểm danh thành công!'),
                 'content' => __('Bạn đã nhận :amount từ việc điểm danh hôm nay. Chuỗi ngày hiện tại: :days ngày.', [
-                    'amount' => number_format($totalEarned, 0, ',', '.') . 'đ',
+                    'amount' => number_format($totalEarned, 0, ',', '.').'đ',
                     'days' => $streakDays,
                 ]),
             ]);
 
             return $this->ok([
-                'coins_earned' => (float) $totalEarned,
+                'coins_earned' => (int) MoneyHelper::round($totalEarned),
                 'streak_days' => (int) $streakDays,
                 'is_bonus' => $isBonus,
-                'bonus_amount' => (float) $bonusCoins,
-                'new_balance' => (float) $userModel->balance,
+                'bonus_amount' => (int) MoneyHelper::round($bonusCoins),
+                'new_balance' => (int) MoneyHelper::round($userModel->balance),
             ], __('Điểm danh thành công!'));
         });
     }

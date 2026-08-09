@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Models\Coupon;
 use App\Models\Setting;
 use Illuminate\Http\JsonResponse;
@@ -61,8 +62,8 @@ class CouponController extends ApiController
                 'title' => $c->title,
                 'description' => $c->description,
                 'category' => $c->category,
-                'min_spend' => (float) $c->min_spend,
-                'discount_amount' => (float) $c->discount_amount,
+                'min_spend' => (int) MoneyHelper::round($c->min_spend),
+                'discount_amount' => (int) MoneyHelper::round($c->discount_amount),
                 'discount_percentage' => (float) $c->discount_percentage,
                 'image_url' => $c->image_url,
                 'redirect_link' => $c->redirect_link,

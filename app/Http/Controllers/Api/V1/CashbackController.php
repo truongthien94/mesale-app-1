@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Helpers\MoneyHelper;
 use App\Helpers\SecurityHelper;
 use App\Models\CashbackClick;
 use App\Models\Setting;
@@ -44,9 +45,10 @@ class CashbackController extends ApiController
         // Giới hạn tần suất tạo link theo cấu hình (chống spam/cào dữ liệu)
         $rateLimit = (int) Setting::getVal('rate_limit_create_link_5m', 10);
         if ($rateLimit > 0) {
-            $limiterKey = 'api-create-link:' . $user->id;
+            $limiterKey = 'api-create-link:'.$user->id;
             if (RateLimiter::tooManyAttempts($limiterKey, $rateLimit)) {
                 $minutesLeft = ceil(RateLimiter::availableIn($limiterKey) / 60);
+
                 return $this->fail(
                     __('Bạn đã đạt giới hạn tạo link hoàn tiền (:limit link/5 phút). Vui lòng thử lại sau :minutes phút.', [
                         'limit' => $rateLimit,
@@ -61,8 +63,8 @@ class CashbackController extends ApiController
 
         // Tự bổ sung https:// nếu thiếu giao thức
         $urlInput = $request->input('url');
-        if ($urlInput && !str_starts_with($urlInput, 'http://') && !str_starts_with($urlInput, 'https://')) {
-            $urlInput = 'https://' . $urlInput;
+        if ($urlInput && ! str_starts_with($urlInput, 'http://') && ! str_starts_with($urlInput, 'https://')) {
+            $urlInput = 'https://'.$urlInput;
             $request->merge(['url' => $urlInput]);
         }
 
@@ -80,7 +82,7 @@ class CashbackController extends ApiController
         $url = $request->input('url');
 
         // Chống SSRF: chặn truy vấn tới IP nội bộ / loopback
-        if (!SecurityHelper::validateSsfUrl($url)) {
+        if (! SecurityHelper::validateSsfUrl($url)) {
             return $this->fail(__('Đường dẫn sản phẩm không hợp lệ hoặc không an toàn.'), 422, 'UNSAFE_URL');
         }
 
@@ -103,7 +105,7 @@ class CashbackController extends ApiController
                 break;
             }
         }
-        if (!$isValidDomain) {
+        if (! $isValidDomain) {
             return $this->fail(__('Hệ thống chỉ hỗ trợ xử lý đường dẫn sản phẩm chính thức từ Shopee, TikTok Shop hoặc Lazada.'), 422, 'DOMAIN_NOT_SUPPORTED');
         }
 
@@ -116,7 +118,7 @@ class CashbackController extends ApiController
         } elseif (str_contains($url, 'lazada.') || str_contains($url, 'lzd.co')) {
             $platform = 'lazada';
         }
-        if (!$platform) {
+        if (! $platform) {
             return $this->fail(__('Hệ thống hiện tại chỉ hỗ trợ hoàn tiền cho các sản phẩm từ các sàn thương mại điện tử liên kết.'), 422, 'PLATFORM_NOT_SUPPORTED');
         }
 
@@ -173,9 +175,9 @@ class CashbackController extends ApiController
             'platform' => $platform,
             'name' => $productData['name'],
             'image' => $productData['image'] ?? null,
-            'price' => (float) $productData['price'],
-            'commission_amount' => (float) $productData['commission_amount'], // Số tiền hoa hồng ước tính thực tế nhận từ sàn
-            'cashback_amount' => (float) $productData['cashback_amount'],
+            'price' => (int) MoneyHelper::round($productData['price']),
+            'commission_amount' => (int) MoneyHelper::round($productData['commission_amount']), // Số tiền hoa hồng ước tính thực tế nhận từ sàn
+            'cashback_amount' => (int) MoneyHelper::round($productData['cashback_amount']),
             'cashback_rate' => (float) $productData['cashback_rate'],
             // Cờ báo số liệu chỉ là ƯỚC TÍNH vì không lấy được giá bán thật (hay gặp ở Lazada: API tạo
             // link không trả giá). Khi bằng true thì price và cashback_amount có thể bằng 0 — hệ thống

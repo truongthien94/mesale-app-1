@@ -8,6 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test": "npm run test:auth-contract",
+    "test:auth-contract": "node --test tests/auth-contract.test.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -28,6 +30,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.0.10",
+    "expo-doctor": "1.20.1",
     "typescript": "~5.8.3"
   }
 }

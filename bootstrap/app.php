@@ -78,6 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // Middleware dành riêng cho hệ thống Open API (App Mobile / Frontend)
             'api.enabled' => \App\Http\Middleware\ApiEndpointEnabled::class,
             'api.auth' => \App\Http\Middleware\ApiAuthenticate::class,
+            'idempotency.key' => \App\Http\Middleware\RequireIdempotencyKey::class,
             // Công tắc riêng của nhóm API cho hệ thống ngoài (Bot), độc lập với Open API
             'bot.enabled' => \App\Http\Middleware\BotApiEnabled::class,
             // Ghi nhật ký mọi lần gọi API vào bảng api_logs để Admin giám sát
