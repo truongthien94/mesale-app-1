@@ -71,6 +71,7 @@ class PaymentAccountController extends ApiController
         $accountNumber = is_string($accountNumberInput) ? trim($accountNumberInput) : '';
         $accountName = is_string($accountNameInput) ? strtoupper(trim($accountNameInput)) : '';
         $makeDefault = $request->boolean('is_default');
+        $destinationHash = UserPaymentAccount::destinationHash($paymentMethod, $bankName, $accountNumber);
         $accountInput = [
             'payment_method' => $paymentMethod,
             'bank_name' => $bankName,
@@ -144,21 +145,20 @@ class PaymentAccountController extends ApiController
                 'payment_account.create',
                 (string) $request->attributes->get('idempotency_key'),
                 $accountInput,
-                function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault): array {
-                    $account = DB::transaction(function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault) {
+                function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault, $destinationHash): array {
+                    $account = DB::transaction(function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault, $destinationHash) {
                         // Khoá dòng User để serialize hoàn toàn các request lưu tài khoản song song
                         // (tránh 2 request đồng thời tạo ra bản ghi trùng hoặc 2 cờ mặc định)
                         User::where('id', $user->id)->lockForUpdate()->first();
                         $existing = UserPaymentAccount::where('user_id', $user->id)->get();
 
                         // Chống trùng lặp: cùng hình thức + ngân hàng/ví + số tài khoản
-                        $duplicate = $existing->first(function ($acc) use ($paymentMethod, $bankName, $accountNumber) {
-                            return $acc->payment_method === $paymentMethod
-                                && $acc->bank_name === $bankName
-                                && $acc->account_number === $accountNumber;
-                        });
+                        // Payout destinations are globally owned, not just unique per user.
+                        $duplicate = UserPaymentAccount::where('destination_hash', $destinationHash)->first();
                         if ($duplicate) {
-                            throw new \Exception('DUPLICATE');
+                            throw new \Exception($duplicate->user_id === $user->id
+                                ? 'DUPLICATE'
+                                : 'ACCOUNT_ALREADY_CLAIMED');
                         }
 
                         // Giới hạn số lượng tài khoản tối đa mỗi user
@@ -179,6 +179,7 @@ class PaymentAccountController extends ApiController
                             'bank_name' => $bankName,
                             'account_number' => $accountNumber,
                             'account_name' => $accountName,
+                            'destination_hash' => $destinationHash,
                             'is_default' => $isDefault,
                         ]);
 
@@ -207,6 +208,20 @@ class PaymentAccountController extends ApiController
         } catch (\Exception $e) {
             if ($e->getMessage() === 'DUPLICATE') {
                 return $this->fail(__('Tài khoản này đã tồn tại trong sổ của bạn.'), 422, 'DUPLICATE_ACCOUNT');
+            }
+            if ($e->getMessage() === 'ACCOUNT_ALREADY_CLAIMED') {
+                return $this->fail(__('Số tài khoản này đã được sử dụng bởi một tài khoản khác trong hệ thống.'), 422, 'ACCOUNT_ALREADY_CLAIMED');
+            }
+            if ($this->isDestinationUniqueConstraintViolation($e)) {
+                $duplicate = UserPaymentAccount::where('destination_hash', $destinationHash)->first();
+
+                return $this->fail(
+                    $duplicate?->user_id === $user->id
+                        ? __('Tài khoản này đã tồn tại trong sổ của bạn.')
+                        : __('Số tài khoản này đã được sử dụng bởi một tài khoản khác trong hệ thống.'),
+                    422,
+                    $duplicate?->user_id === $user->id ? 'DUPLICATE_ACCOUNT' : 'ACCOUNT_ALREADY_CLAIMED'
+                );
             }
             if ($e->getMessage() === 'MAX_REACHED') {
                 return $this->fail(__('Bạn chỉ có thể lưu tối đa :max tài khoản nhận tiền.', ['max' => self::MAX_ACCOUNTS]), 422, 'MAX_REACHED');
@@ -312,5 +327,13 @@ class PaymentAccountController extends ApiController
         }
 
         return str_repeat('*', max(4, $length - 4)).substr($accountNumber, -4);
+    }
+
+    private function isDestinationUniqueConstraintViolation(\Throwable $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return (str_contains($message, 'destination_hash') || str_contains($message, 'user_payment_accounts_destination_hash_unique'))
+            && (str_contains($message, 'unique') || str_contains($message, 'constraint'));
     }
 }

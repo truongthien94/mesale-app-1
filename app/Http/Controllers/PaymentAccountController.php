@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserPaymentAccount;
-use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -87,22 +87,22 @@ class PaymentAccountController extends Controller
         $accountNumber = trim($request->input('account_number'));
         $accountName = strtoupper(trim($request->input('account_name')));
         $makeDefault = $request->boolean('is_default');
+        $destinationHash = UserPaymentAccount::destinationHash($paymentMethod, $bankName, $accountNumber);
 
         try {
-            $account = DB::transaction(function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault) {
+            $account = DB::transaction(function () use ($user, $paymentMethod, $bankName, $accountNumber, $accountName, $makeDefault, $destinationHash) {
                 // Khoá dòng User để serialize hoàn toàn các request lưu tài khoản song song của cùng một thành viên
                 // (tránh việc 2 request "tài khoản đầu tiên" cùng chạy tạo ra 2 bản ghi trùng hoặc 2 cờ mặc định).
                 User::where('id', $user->id)->lockForUpdate()->first();
                 $existing = UserPaymentAccount::where('user_id', $user->id)->get();
 
                 // Chống trùng lặp: cùng hình thức + ngân hàng/ví + số tài khoản
-                $duplicate = $existing->first(function ($acc) use ($paymentMethod, $bankName, $accountNumber) {
-                    return $acc->payment_method === $paymentMethod
-                        && $acc->bank_name === $bankName
-                        && $acc->account_number === $accountNumber;
-                });
+                // Payout destinations are globally owned, not just unique per user.
+                $duplicate = UserPaymentAccount::where('destination_hash', $destinationHash)->first();
                 if ($duplicate) {
-                    throw new \Exception('DUPLICATE');
+                    throw new \Exception($duplicate->user_id === $user->id
+                        ? 'DUPLICATE'
+                        : 'ACCOUNT_ALREADY_CLAIMED');
                 }
 
                 // Giới hạn số lượng tài khoản tối đa mỗi user
@@ -123,12 +123,27 @@ class PaymentAccountController extends Controller
                     'bank_name' => $bankName,
                     'account_number' => $accountNumber,
                     'account_name' => $accountName,
+                    'destination_hash' => $destinationHash,
                     'is_default' => $isDefault,
                 ]);
             });
         } catch (\Exception $e) {
             if ($e->getMessage() === 'DUPLICATE') {
                 return response()->json(['success' => false, 'message' => __('Tài khoản này đã tồn tại trong sổ của bạn.')], 422);
+            }
+            if ($e->getMessage() === 'ACCOUNT_ALREADY_CLAIMED') {
+                return response()->json(['success' => false, 'code' => 'ACCOUNT_ALREADY_CLAIMED', 'message' => __('Số tài khoản này đã được sử dụng bởi một tài khoản khác trong hệ thống.')], 422);
+            }
+            if ($this->isDestinationUniqueConstraintViolation($e)) {
+                $duplicate = UserPaymentAccount::where('destination_hash', $destinationHash)->first();
+
+                return response()->json([
+                    'success' => false,
+                    'code' => $duplicate?->user_id === $user->id ? 'DUPLICATE_ACCOUNT' : 'ACCOUNT_ALREADY_CLAIMED',
+                    'message' => $duplicate?->user_id === $user->id
+                        ? __('Tài khoản này đã tồn tại trong sổ của bạn.')
+                        : __('Số tài khoản này đã được sử dụng bởi một tài khoản khác trong hệ thống.'),
+                ], 422);
             }
             if ($e->getMessage() === 'MAX_REACHED') {
                 return response()->json(['success' => false, 'message' => __('Bạn chỉ có thể lưu tối đa :max tài khoản nhận tiền.', ['max' => self::MAX_ACCOUNTS])], 422);
@@ -144,6 +159,14 @@ class PaymentAccountController extends Controller
             'message' => __('Đã lưu tài khoản nhận tiền vào sổ.'),
             'account' => $account,
         ]);
+    }
+
+    private function isDestinationUniqueConstraintViolation(\Throwable $exception): bool
+    {
+        $message = strtolower($exception->getMessage());
+
+        return (str_contains($message, 'destination_hash') || str_contains($message, 'user_payment_accounts_destination_hash_unique'))
+            && (str_contains($message, 'unique') || str_contains($message, 'constraint'));
     }
 
     /**

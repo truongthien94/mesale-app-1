@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Referral extends Model
 {
@@ -12,8 +12,17 @@ class Referral extends Model
     // Danh sách các cột có thể điền thông tin
     protected $fillable = [
         'referrer_id',
-        'referred_id'
+        'referred_id',
     ];
+
+    /**
+     * A null referrer preserves the referred member's relationship history
+     * without retaining the deleted member's personal information.
+     */
+    public function hasAnonymizedReferrer(): bool
+    {
+        return $this->referrer_id === null;
+    }
 
     /**
      * Mối quan hệ: Lấy thông tin người giới thiệu (Referrer - F0).

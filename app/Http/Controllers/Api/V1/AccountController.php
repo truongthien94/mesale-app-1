@@ -319,6 +319,21 @@ class AccountController extends ApiController
         User $user,
         NativeOAuthTokenVerifier $oauthVerifier
     ): ?JsonResponse {
+        // Apple grants are revoked only after a fresh Apple reauthentication. A
+        // local password alone cannot prove that the caller can disconnect the
+        // linked provider grant, so never allow it to bypass this requirement.
+        if (! empty($user->apple_id)) {
+            if (! $request->filled('apple_identity_token')) {
+                return $this->fail(
+                    __('Vui lòng đăng nhập lại bằng Sign in with Apple trước khi xóa tài khoản để ngắt liên kết Apple.'),
+                    403,
+                    'APPLE_REAUTH_REQUIRED_FOR_DELETION'
+                );
+            }
+
+            return $this->validateAppleDeletionCredential($request, $user, $oauthVerifier);
+        }
+
         $passwordHash = $user->getRawOriginal('password');
         $hasLocalPassword = is_string($passwordHash) && trim($passwordHash) !== '';
 

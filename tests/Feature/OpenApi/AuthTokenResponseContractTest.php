@@ -8,8 +8,8 @@ use App\Models\ApiToken;
 use App\Models\Setting;
 use App\Models\User;
 use Firebase\JWT\JWT;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -507,6 +507,22 @@ class AuthTokenResponseContractTest extends TestCase
             ->postJson('/api/v1/openapi/account/delete', ['google_id_token' => $idToken])
             ->assertForbidden()
             ->assertJsonPath('code', 'OAUTH_IDENTITY_MISMATCH');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_password_confirmation_cannot_delete_an_apple_linked_account_without_fresh_apple_reauthentication(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        $user = $this->createUser([
+            'apple_id' => 'apple-password-bypass-subject',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Apple Password Bypass Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['password' => 'correct-password'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'APPLE_REAUTH_REQUIRED_FOR_DELETION');
 
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }

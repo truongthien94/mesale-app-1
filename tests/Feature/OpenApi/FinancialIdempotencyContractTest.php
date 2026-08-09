@@ -12,6 +12,7 @@ use App\Models\GiftRedemption;
 use App\Models\Setting;
 use App\Models\Task;
 use App\Models\User;
+use App\Models\UserPaymentAccount;
 use App\Models\UserTask;
 use App\Models\Withdrawal;
 use Illuminate\Database\QueryException;
@@ -353,6 +354,55 @@ class FinancialIdempotencyContractTest extends TestCase
         $this->assertDatabaseCount('idempotency_keys', 1);
     }
 
+    public function test_payment_account_destination_cannot_be_claimed_by_another_user(): void
+    {
+        $first = $this->postPaymentAccount('payment-account-global-0001');
+        $first->assertOk();
+
+        $secondUser = $this->createUser([
+            'name' => 'Second Financial User',
+            'email' => 'financial-contract-second@example.test',
+            'referral_code' => 'REFFINANCIAL2',
+        ]);
+        [$secondToken] = ApiToken::generateFor($secondUser, 'Financial Contract Test 2', 30, '127.0.0.1');
+
+        $this->postPaymentAccountFor($secondToken, 'payment-account-global-0002')
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'ACCOUNT_ALREADY_CLAIMED');
+
+        $this->assertDatabaseCount('user_payment_accounts', 1);
+        $this->assertDatabaseHas('user_payment_accounts', ['user_id' => $this->user->id]);
+    }
+
+    public function test_database_destination_unique_constraint_blocks_cross_user_race(): void
+    {
+        $first = UserPaymentAccount::create([
+            'user_id' => $this->user->id,
+            'payment_method' => 'bank',
+            'bank_name' => 'Vietcombank',
+            'account_number' => '0123456789',
+            'account_name' => 'FIRST USER',
+            'is_default' => true,
+        ]);
+
+        $this->assertNotEmpty($first->destination_hash);
+        $secondUser = $this->createUser([
+            'name' => 'Second Financial User',
+            'email' => 'financial-contract-third@example.test',
+            'referral_code' => 'REFFINANCIAL3',
+        ]);
+
+        $this->expectException(QueryException::class);
+        UserPaymentAccount::create([
+            'user_id' => $secondUser->id,
+            'payment_method' => 'BANK',
+            'bank_name' => '  Vietcombank  ',
+            'account_number' => '0123 456789',
+            'account_name' => 'SECOND USER',
+            'is_default' => false,
+        ]);
+    }
+
     public function test_otp_lock_cleanup_survives_the_rolled_back_idempotent_transaction(): void
     {
         Setting::setVal('withdraw_otp_required', '1');
@@ -538,7 +588,12 @@ class FinancialIdempotencyContractTest extends TestCase
 
     private function postPaymentAccount(?string $key, array $overrides = []): TestResponse
     {
-        $request = $this->withToken($this->plainToken);
+        return $this->postPaymentAccountFor($this->plainToken, $key, $overrides);
+    }
+
+    private function postPaymentAccountFor(string $token, ?string $key, array $overrides = []): TestResponse
+    {
+        $request = $this->withToken($token);
         if ($key !== null) {
             $request = $request->withHeader('Idempotency-Key', $key);
         }
@@ -621,10 +676,10 @@ class FinancialIdempotencyContractTest extends TestCase
         return $task;
     }
 
-    private function createUser(): User
+    private function createUser(array $overrides = []): User
     {
         $user = new User;
-        $user->forceFill([
+        $user->forceFill(array_merge([
             'name' => 'Financial Contract User',
             'email' => 'financial-contract@example.test',
             'password' => Hash::make('correct-password'),
@@ -636,7 +691,7 @@ class FinancialIdempotencyContractTest extends TestCase
             'status' => 'active',
             'role' => 'user',
             'email_verified_at' => now(),
-        ]);
+        ], $overrides));
         $user->save();
 
         return $user;
@@ -857,6 +912,7 @@ class FinancialIdempotencyContractTest extends TestCase
             $table->string('payment_method', 20)->default('bank');
             $table->string('bank_name', 100);
             $table->string('account_number', 50);
+            $table->char('destination_hash', 64)->unique();
             $table->string('account_name', 100);
             $table->boolean('is_default')->default(false);
             $table->timestamps();

@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class ReferralCommission extends Model
 {
@@ -16,13 +16,25 @@ class ReferralCommission extends Model
         'cashback_history_id',
         'amount',
         'level',
-        'status'
+        'status',
     ];
 
     // Chuyển đổi định dạng dữ liệu
     protected $casts = [
         'amount' => 'decimal:2',
+        'referrer_id' => 'integer',
+        'referred_id' => 'integer',
+        'cashback_history_id' => 'integer',
+        'level' => 'integer',
     ];
+
+    /**
+     * A null referrer is an intentional anonymized ledger row, not an orphan.
+     */
+    public function hasAnonymizedReferrer(): bool
+    {
+        return $this->referrer_id === null;
+    }
 
     /**
      * Mối quan hệ: Hoa hồng thuộc về một Người giới thiệu nhận được (Referrer).

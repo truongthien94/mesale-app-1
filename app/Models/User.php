@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // [BẢO MẬT] Các cột nhạy cảm về tiền và đặc quyền KHÔNG được đưa vào danh sách mass-assignment
 // nhằm loại bỏ hoàn toàn nguy cơ leo thang đặc quyền / tự nâng số dư nếu về sau có đoạn code
@@ -108,6 +110,21 @@ class User extends Authenticatable
             if (empty($user->id) || static::where('id', $user->id)->exists()) {
                 $maxId = (int) static::max('id');
                 $user->id = $maxId + 1;
+            }
+        });
+
+        // Preserve referral history before the user's FK cascade can run.
+        static::deleting(function (User $user): void {
+            if (Schema::hasTable('referrals')) {
+                DB::table('referrals')
+                    ->where('referrer_id', $user->getKey())
+                    ->update(['referrer_id' => null]);
+            }
+
+            if (Schema::hasTable('referral_commissions')) {
+                DB::table('referral_commissions')
+                    ->where('referrer_id', $user->getKey())
+                    ->update(['referrer_id' => null]);
             }
         });
     }
