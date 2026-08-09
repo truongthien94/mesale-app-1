@@ -1,17 +1,18 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-002`
+- Latest checkpoint: `CKP-20260810-003`
 - Session: `SES-20260810-001`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Round 4 retention/dependency work verified locally
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: not received for Round 4; no Round 4 push is authorized
+- Push gate: received and completed for Round 4 direct fast-forward push
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: `bd1b802` (Round 3 push/CI context)
+- Remote `main`: Round 4 published at `9c96f74`
 - Local implementation commit: `e130991` (Round 4 idempotency retention)
+- Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
 
 ## Active Round 4 Work
@@ -41,6 +42,8 @@
 - No physical-device screenshots, signed IPA/AAB, production AASA/Asset Links deployment, or performance baseline exists. Source legal/deletion/support resources and association groundwork are present; Round 3 GitHub Actions runs `31325626880` and `31325812368` passed.
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 - Round 4 redacted operational sync was verified exactly once for `SES-20260810-001`, `CKP-20260810-001`, `CKP-20260810-002`, `TSK-MOB-011`, `DEC-20260810-001`, `DEC-20260810-002`, `CHG-20260810-001`, `TST-20260810-001` through `003`, `BLK-DATA-001`, `BLK-DEP-001`, and `GATE-BOTH-007`. GitHub Issues #14 and #7 contain matching local evidence and remain open.
+- Round 4 remote CI run `31328158427` passed all three jobs. It emitted a non-failing warning that Actions v4 JavaScript runtimes target deprecated Node.js 20 and are being forced to Node.js 24.
+- Post-push operational sync was verified exactly once for `CKP-20260810-003` and `TST-20260810-004`; the Round 4 session/task/change/blocker/gate rows were updated in place rather than duplicated.
 
 ## Open Blockers
 
@@ -60,6 +63,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. Wait for the Round 4 push gate, then verify remote CI. Subsequent work is staging/API readiness, OAuth owner inputs/device evidence, Google identity uniqueness, the owner/legal long-term ledger policy, production idempotency scheduler evidence, production duplicate audit for payout destinations, push transport/configuration, the staged Expo dependency upgrade, then device/screenshot and signed-artifact verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Round 4 source and remote CI are verified. Subsequent work is staging/API readiness, OAuth owner inputs/device evidence, Google identity uniqueness, the owner/legal long-term ledger policy, production idempotency scheduler evidence, production duplicate audit for payout destinations, push transport/configuration, the staged Expo dependency upgrade, CI action-runtime maintenance, then device/screenshot and signed-artifact verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.

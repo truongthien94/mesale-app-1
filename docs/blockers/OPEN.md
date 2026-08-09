@@ -1,6 +1,6 @@
 # Open Blockers
 
-Local evidence at Round 4 checkpoint `CKP-20260810-002`: Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34` contract tests, TypeScript, Expo Doctor `18/18`, Expo dependency check, iOS/Android exports, PHP lint/targeted Pint, diff check, and secret scan passed. Remote `main` remains `bd1b802`; Round 4 has not been pushed or verified by CI.
+Round 4 checkpoint `CKP-20260810-003`: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed. Commit `9c96f74` is published on `main`; GitHub Actions run `31328158427` passed all jobs.
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|

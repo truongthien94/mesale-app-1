@@ -5,7 +5,7 @@ Mesale is a Laravel + Expo monorepo for the native member app migration. Laravel
 ## Current Status
 
 - Branch under review: `codex/mvp-p0-20260809`.
-- Remote `main` is `bd1b802`; Round 4 implementation is committed locally as `e130991` and is not pushed without the separate owner gate.
+- Round 4 is published on `main` at `9c96f74`; GitHub Actions run `31328158427` passed all context/secret, Laravel, and mobile jobs.
 - Scope decision: this repository intentionally remains a Laravel + Expo monorepo. `BLK-SCOPE-001` is resolved.
 - M0 (API readiness/security) and M1 (foundation) are still open. The implementation is not a release candidate.
 - Production Open API is intentionally disabled: `GET https://mesale.vn/api/v1/openapi/config` currently returns HTTP `503` / `API_DISABLED`.
