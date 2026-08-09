@@ -6,7 +6,7 @@ Current verdicts:
 - [Google Play current-state audit](PLAY-STORE-CURRENT-AUDIT.md): `NOT READY`
 - M0 and M1 remain open; passing local foundation checks is not milestone completion evidence.
 - Production Open API remains disabled and must not be bypassed.
-- Round 5 referral prompt implementation is locally verified (`77/702` PHPUnit, `37/37` mobile, TypeScript, Expo Doctor `18/18`, and both exports); it does not change the store verdict.
+- Round 5 referral prompt implementation is published and CI verified (`77/702` PHPUnit, `37/37` mobile, TypeScript, Expo Doctor `18/18`, and both exports in run `31330756601`); it does not change the store verdict.
 - Round 4 evidence: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed; remote CI run `31328158427` passed all jobs.
 
 An ID is complete only when source, tests, generated artifact, device behavior, and store-console evidence agree. Local checks do not substitute for staging, remote CI, signed artifact, or device evidence.

@@ -3,7 +3,7 @@
 - Date: 2026-08-10
 - Session: `SES-20260810-002`
 - Task: `TSK-MOB-012`
-- Status: partial / blocked for release
+- Status: partial / blocked for release; CI verified
 
 ## Passed Local Evidence
 
@@ -11,6 +11,7 @@
 - Existing users are backfilled as decided; invalid and same-IP codes remain retryable.
 - Auth continuation priority is preserved for email verification and 2FA.
 - PHPUnit, mobile tests, TypeScript, Expo Doctor, both platform exports, lint, diff, and secret checks pass locally.
+- Commits `72a1f14` and `a9c7659` are published to `main`; CI run `31330756601` passed all jobs.
 
 ## Blocking Evidence
 

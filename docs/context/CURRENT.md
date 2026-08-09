@@ -1,17 +1,17 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-004`
+- Latest checkpoint: `CKP-20260810-006`
 - Session: `SES-20260810-002`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round 5 referral prompt locally verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Round 5 referral prompt pushed and CI verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received for Round 5; remote CI verification pending
+- Push gate: received and completed for Round 5
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
-- Remote target: `origin/main`; Round 5 commit is ready for direct push
-- Remote `main`: Round 4 published at `83d20fa`; Round 5 commit pending
-- Local implementation commit: pending (Round 5)
+- Remote target: `origin/main`
+- Remote `main`: Round 5 published at `a9c7659`
+- Round 5 implementation commit: `72a1f14`; context commit: `a9c7659`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
 
@@ -24,7 +24,7 @@
 
 ## Verified Current State
 
-- Round 5 local implementation: backend migration/backfill, authenticated referral apply/skip, auth response/account pending flag, native referral screen, and continuation-first routing are implemented.
+- Round 5 implementation: backend migration/backfill, authenticated referral apply/skip, auth response/account pending flag, native referral screen, and continuation-first routing are published on `main`.
 - Round 5 verification: PHPUnit `77/702`, mobile `37/37`, TypeScript, Expo Doctor `18/18`, iOS/Android export, PHP syntax, targeted Pint, diff, and secret checks passed.
 
 - Local Laravel portable PHP run before Round 5: `72` tests / `664` assertions.
@@ -47,7 +47,7 @@
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 - Round 4 redacted operational sync was verified exactly once for `SES-20260810-001`, `CKP-20260810-001`, `CKP-20260810-002`, `TSK-MOB-011`, `DEC-20260810-001`, `DEC-20260810-002`, `CHG-20260810-001`, `TST-20260810-001` through `003`, `BLK-DATA-001`, `BLK-DEP-001`, and `GATE-BOTH-007`. GitHub Issues #14 and #7 contain matching local evidence and remain open.
 - Round 4 remote CI run `31328158427` passed all three jobs. It emitted a non-failing warning that Actions v4 JavaScript runtimes target deprecated Node.js 20 and are being forced to Node.js 24.
-- Round 5 local operational IDs are `SES-20260810-002`, `CKP-20260810-004`/`005`, `TSK-MOB-012`, `DEC-20260810-003`, `CHG-20260810-002`, `TST-20260810-005` through `007`, and `GATE-BOTH-008`; redacted Sheet sync is pending final remote evidence.
+- Round 5 operational IDs are `SES-20260810-002`, `CKP-20260810-004` through `006`, `TSK-MOB-012`, `DEC-20260810-003`, `CHG-20260810-002`, `TST-20260810-005` through `008`, and `GATE-BOTH-008`; redacted Sheet sync was verified exactly once for each ID.
 
 ## Open Blockers
 
@@ -67,6 +67,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. Round 5 source/tests are locally verified but remote CI and production/staging/device/store evidence remain pending. After the approved push, record the remote commit and CI run, then continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Round 5 source/tests, direct push, and remote CI are verified. Continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.
