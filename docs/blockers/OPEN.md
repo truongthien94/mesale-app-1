@@ -1,6 +1,6 @@
 # Open Blockers
 
-Local evidence at Round 3 checkpoint `CKP-20260809-018`: Laravel `68` tests / `648` assertions, mobile `34/34` contract tests, TypeScript, Expo Doctor `18/18`, Expo export, PHP lint/Pint, and secret scan passed. Apple deletion reauthentication, global saved payout-destination uniqueness, and bounded referral-ledger preservation are resolved locally; remote CI, production, device, and store evidence remain unclaimed.
+Local and remote evidence at Round 3 checkpoint `CKP-20260809-019`: Laravel `68` tests / `648` assertions, mobile `34/34` contract tests, TypeScript, Expo Doctor `18/18`, Expo export, PHP lint/Pint, secret scan, and GitHub Actions run `31325626880` passed. Apple deletion reauthentication, global saved payout-destination uniqueness, and bounded referral-ledger preservation are resolved locally; production, device, and store evidence remain unclaimed.
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|
@@ -18,7 +18,7 @@ Local evidence at Round 3 checkpoint `CKP-20260809-018`: Laravel `68` tests / `6
 | `BLK-PUSH-001` | P1 | Push transport | The current Laravel push service sends through FCM HTTP v1 and cannot accept a raw iOS APNs token as an FCM registration token. Owner must choose FCM for both platforms or approve an APNs bridge, then supply Firebase/APNs/EAS configuration and tests. | Product/backend/release | Open |
 | `BLK-DEVICE-001` | P1 | QA | No physical iOS/Android verification, screenshot regression, font scaling, accessibility, keyboard, offline, retry, performance, or signed-artifact evidence exists. GitHub Issue #20. | Mobile/QA/release | Open |
 | `BLK-UI-001` | P1 | Accessibility/parity | Approved orange `#f97316` with white text measures about `2.80:1`; do not change the visual reference without product approval and screenshot evidence. | Product/design | Open |
-| `BLK-TEST-001` | P2 | Test quality | Resolved locally: portable PHP reports 65 tests/625 assertions. The authorized push is complete, but no GitHub Actions result has been verified for the pushed commits. | Backend/CI | Resolved locally; remote CI pending |
+| `BLK-TEST-001` | P2 | Test quality | Remote CI run `31325626880` passed for commit `62e6678`; device/store evidence remains outside CI. | Backend/CI | Resolved |
 
 Resolved in this checkpoint:
 

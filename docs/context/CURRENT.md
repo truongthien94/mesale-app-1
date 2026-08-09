@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-018`
+- Latest checkpoint: `CKP-20260809-019`
 - Session: `SES-20260809-006`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Round 3 store-compliance groundwork verified locally
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received for Round 3; publication waits for full local verification
+- Push gate: received and completed for Round 3 direct push
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Published commits: `e916d58` (implementation) and `3b61fbe` (CKP-015 documentation)
+- Published commit: `62e6678` (Round 3 groundwork and documentation)
 - Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
 
 ## Active Round 3 Work
@@ -19,7 +19,7 @@
 - App-level iOS privacy declarations derived from the installed Expo packages.
 - Public privacy, terms, support, and deletion instructions.
 - AASA and Asset Links association-file groundwork with explicit owner placeholders.
-- Local verification plus App Store and Google Play source audits completed; direct push is authorized and pending commit inspection.
+- Local verification plus App Store and Google Play source audits completed; direct push and remote CI are verified.
 
 ## Verified Current State
 
@@ -38,7 +38,7 @@
 - Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
 - SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
 - `npm audit --omit=dev` remains a tracked release blocker; no blind forced fix is authorized.
-- No physical-device screenshots, signed IPA/AAB, verified GitHub Actions result for this round, production AASA/Asset Links deployment, or performance baseline exists. Source legal/deletion/support resources and association groundwork are present.
+- No physical-device screenshots, signed IPA/AAB, production AASA/Asset Links deployment, or performance baseline exists. Source legal/deletion/support resources and association groundwork are present; GitHub Actions run `31325626880` passed.
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 
 ## Open Blockers
@@ -55,7 +55,7 @@
 - `BLK-DEP-001`: Expo-compatible remediation for 22 npm advisories.
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
-- `BLK-TEST-001`: resolved locally; the authorized push is complete, but a verified GitHub Actions result is still pending and must not be inferred.
+- `BLK-TEST-001`: resolved for commit `62e6678`; GitHub Actions run `31325626880` passed. Device/store evidence remains separate.
 
 ## Handoff
 
