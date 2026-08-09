@@ -11,7 +11,7 @@ type LoginResponse = {
   access_token?: string;
   token?: string;
   token_type?: string;
-  expires_at?: string;
+  expires_at?: string | null;
   user: User;
 };
 
@@ -28,7 +28,7 @@ export async function login(email: string, password: string): Promise<AuthResult
     throw new Error("The API did not return a session Bearer token.");
   }
   return {
-    session: { accessToken, tokenType: "Bearer", expiresAt: response.expires_at },
+    session: { accessToken, tokenType: "Bearer", expiresAt: response.expires_at ?? undefined },
     user: response.user
   };
 }

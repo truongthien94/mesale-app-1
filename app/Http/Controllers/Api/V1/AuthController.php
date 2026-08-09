@@ -57,22 +57,41 @@ class AuthController extends ApiController
     }
 
     /**
+     * Build the mobile session-token contract without exposing a personal API key.
+     */
+    protected function tokenResponseData(User $user, string $plainToken, ?string $expiresAt): array
+    {
+        return [
+            'access_token' => $plainToken,
+            // Temporary alias for existing Open API clients during the contract migration.
+            'token' => $plainToken,
+            'token_type' => 'Bearer',
+            'expires_at' => $expiresAt,
+            'user' => $this->userResource($user),
+        ];
+    }
+
+    /**
      * Cấp token mới cho thành viên và trả về phản hồi đăng nhập chuẩn.
      */
     protected function respondWithToken(User $user, Request $request, ?string $deviceName, string $message, int $status = 200): JsonResponse
     {
-        [$plainToken] = ApiToken::generateFor(
+        [$plainToken, $apiToken] = ApiToken::generateFor(
             $user,
             $deviceName ?? 'API Client',
             $this->tokenTtlDays(),
             $request->ip()
         );
 
-        return $this->ok([
-            'token' => $plainToken,
-            'token_type' => 'Bearer',
-            'user' => $this->userResource($user),
-        ], $message, $status);
+        return $this->ok(
+            $this->tokenResponseData(
+                $user,
+                $plainToken,
+                optional($apiToken->expires_at)->toIso8601String()
+            ),
+            $message,
+            $status
+        );
     }
 
     /**
