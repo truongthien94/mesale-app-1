@@ -1,0 +1,57 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+key.json
+*.p8
+*.pem
+*.key
+*.jks
+*.keystore
+*.mobileprovision
+*.p12
+
+# Dependencies and generated output
+node_modules/
+vendor/
+storage/framework/
+storage/logs/
+storage/app/
+public/build/
+public/hot
+public/uploads/
+public/public_html/
+public/ckfinder/
+public/packages/
+public/.htaccess
+public/.user.ini
+public/php.ini
+public/mesale-phone-flow-auto*
+public/**/*.pre-*
+bootstrap/cache/
+storage/
+__pycache__/
+*.pyc
+**/*.pre-*
+**/*.seo-backup-*
+
+# Local databases and exports
+database.sql
+*.sqlite
+*.sqlite3
+
+# Mobile/build artifacts
+mobile/.expo/
+mobile/node_modules/
+mobile/dist/
+mobile/.eas/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/ios/Pods/
+
+# Editors and OS files
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini

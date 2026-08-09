@@ -1,0 +1,78 @@
+/* Ẩn các khối AlpineJS khi chưa khởi tạo xong */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Ẩn các icon thô khi đang load để tránh chớp màn hình */
+i[data-lucide] {
+    opacity: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Đảm bảo click vào icon luôn xuyên qua và truyền trực tiếp xuống phần tử cha */
+i[data-lucide],
+i[data-lucide] *,
+svg.lucide,
+svg.lucide *,
+.lucide,
+.lucide * {
+    pointer-events: none !important;
+}
+
+/* Cấu hình màu sắc của NProgress bằng biến CSS dynamic */
+#nprogress .bar {
+    background: var(--theme-color) !important;
+    height: 3px !important;
+    z-index: 99999 !important;
+}
+
+#nprogress .peg {
+    box-shadow: 0 0 10px var(--theme-color), 0 0 5px var(--theme-color) !important;
+}
+
+#nprogress .spinner {
+    display: none !important;
+    /* Tắt spinner xoay tròn vì đã có thanh loading bar rất tinh tế */
+}
+
+/* Hiệu ứng mờ dần khi chuyển trang */
+body {
+    transition: opacity 0.15s ease-in-out;
+}
+
+body.page-leaving {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Tự động bù trừ khoảng cách khi cuộn tới anchor để tránh bị Header Sticky che khuất */
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+    /* Bù trừ chiều cao của header (64px) + khoảng đệm an toàn */
+}
+
+/* Bổ sung scroll-margin-top cho các tiêu đề trong bài viết để hiển thị đẹp mắt nhất */
+.blog-content h2,
+.blog-content h3,
+.blog-content h4 {
+    scroll-margin-top: 80px;
+}
+
+/* Hạ z-index của header và nâng z-index của main khi modal Hướng dẫn tương tác mở để tránh bị đè */
+body.demo-modal-open header {
+    z-index: 30 !important;
+}
+body.demo-modal-open main {
+    z-index: 50 !important;
+}
+
+/* Ẩn scrollbar cho các khu vực cuộn ngang (như slider voucher) */
+.scrollbar-none::-webkit-scrollbar {
+    display: none !important;
+}
+.scrollbar-none {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+}

@@ -1,0 +1,17 @@
+# ------------------------------------------------------------------------------
+# Cấu hình bảo mật hệ thống - CMSNT.CO
+# Ngăn chặn Hacker dò quét và tải các file nhạy cảm (.env, .git, .sql, .zip...)
+# ------------------------------------------------------------------------------
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Ngăn chặn truy cập trực tiếp vào các file nén, backup và cấu hình nhạy cảm ở thư mục gốc
+    # Nếu hacker cố tình dò quét các file này sẽ nhận về mã lỗi 403 Forbidden
+    RewriteRule (?i)\.(env|git|sql|zip|rar|tar|gz|7z|log|bak|conf|db|sqlite)$ - [F,L]
+
+    # Tự động chuyển hướng toàn bộ traffic vào thư mục public/ nếu cấu hình sai hoặc không đổi được Document Root
+    # Giúp website Laravel hoạt động bình thường mà không lộ mã nguồn thư mục gốc
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
