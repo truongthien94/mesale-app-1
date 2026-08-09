@@ -1,6 +1,6 @@
 # Open Blockers
 
-Round 4 checkpoint `CKP-20260810-003`: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed. Commit `9c96f74` is published on `main`; GitHub Actions run `31328158427` passed all jobs.
+Round 5 checkpoint `CKP-20260810-005`: local Laravel `77` tests / `702` assertions, mobile `37/37`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, lint, diff, and secret checks passed. The referral onboarding contract is locally verified; remote CI, production API, staging, device, and store evidence remain open. Round 4 commit `83d20fa` remains the remote baseline until the Round 5 push is verified.
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|

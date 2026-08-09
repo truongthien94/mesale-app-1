@@ -6,6 +6,7 @@ Current verdicts:
 - [Google Play current-state audit](PLAY-STORE-CURRENT-AUDIT.md): `NOT READY`
 - M0 and M1 remain open; passing local foundation checks is not milestone completion evidence.
 - Production Open API remains disabled and must not be bypassed.
+- Round 5 referral prompt implementation is locally verified (`77/702` PHPUnit, `37/37` mobile, TypeScript, Expo Doctor `18/18`, and both exports); it does not change the store verdict.
 - Round 4 evidence: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed; remote CI run `31328158427` passed all jobs.
 
 An ID is complete only when source, tests, generated artifact, device behavior, and store-console evidence agree. Local checks do not substitute for staging, remote CI, signed artifact, or device evidence.
@@ -26,6 +27,7 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 | `GATE-BOTH-003` | Open | No fake earnings, hidden features, incentivized reviews, or dynamic native code | No prohibited behavior is present in the current source; complete product, metadata, remote-config, and reviewer-path audit remains open. |
 | `GATE-BOTH-006` | Partial / blocked | Round 3 store-compliance source groundwork | Source groundwork and local checks pass; staging, owner inputs, signed artifacts, devices, and store-console evidence remain missing. |
 | `GATE-BOTH-007` | Partial / blocked | Round 4 idempotency retention and dependency remediation | Local pruning/tests, dependency plan, direct push, and remote CI pass; production scheduler evidence, SDK upgrade, signed artifacts, devices, and store-console proof remain missing. |
+| `GATE-BOTH-008` | Partial / blocked | Round 5 one-time post-registration referral decision | Local backend/mobile implementation and test/export evidence pass; production API activation, staging OAuth, physical devices, signed artifacts, push, and store-console proof remain missing. |
 
 ## Required Release Evidence
 

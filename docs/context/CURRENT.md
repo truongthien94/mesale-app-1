@@ -1,39 +1,43 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-003`
-- Session: `SES-20260810-001`
+- Latest checkpoint: `CKP-20260810-004`
+- Session: `SES-20260810-002`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round 4 retention/dependency work verified locally
+- Phase: M0 P0 remediation and M1 MVP foundation; Round 5 referral prompt locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for Round 4 direct fast-forward push
+- Push gate: received for Round 5; remote CI verification pending
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
-- Remote target: `origin/main`
-- Remote `main`: Round 4 published at `9c96f74`
-- Local implementation commit: `e130991` (Round 4 idempotency retention)
+- Remote target: `origin/main`; Round 5 commit is ready for direct push
+- Remote `main`: Round 4 published at `83d20fa`; Round 5 commit pending
+- Local implementation commit: pending (Round 5)
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
 
-## Active Round 4 Work
+## Active Round 5 Work
 
-- Configurable retention and scheduled pruning for completed/stale-processing financial idempotency records.
-- Mobile advisory audit with safe-fix evaluation and an official incremental Expo SDK 54-to-57 upgrade plan.
-- No package/lockfile, production flag/data, middleware, route, or Round 1-3 behavior change.
+- Move referral-code entry out of registration into a dedicated post-authentication screen.
+- Add an internal decision timestamp, backfill existing users, and add authenticated apply/skip behavior.
+- Preserve email-verification and 2FA priority before the new screen.
+- No production flag/data, referral-reporting, idempotency, OAuth, deletion, package, or Round 1-4 behavior change.
 
 ## Verified Current State
 
-- Local Laravel portable PHP run: `72` tests / `664` assertions.
+- Round 5 local implementation: backend migration/backfill, authenticated referral apply/skip, auth response/account pending flag, native referral screen, and continuation-first routing are implemented.
+- Round 5 verification: PHPUnit `77/702`, mobile `37/37`, TypeScript, Expo Doctor `18/18`, iOS/Android export, PHP syntax, targeted Pint, diff, and secret checks passed.
+
+- Local Laravel portable PHP run before Round 5: `72` tests / `664` assertions.
 - Focused idempotency pruning run: `4` tests / `16` assertions.
 - Apple-linked deletion now uses policy option B: fresh Sign in with Apple reauthentication is mandatory before deletion, so the transient refresh token can be revoked before the local transaction. Password-only deletion returns `APPLE_REAUTH_REQUIRED_FOR_DELETION`.
 - Saved payout destinations are normalized into a SHA-256 destination identity and globally hard-blocked by a database unique constraint; cross-user attempts return `ACCOUNT_ALREADY_CLAIMED`.
 - Deleting a referrer now nulls only `referrer_id` in `referrals` and `referral_commissions`; relationship and commission amounts remain queryable for the surviving referred member. No denormalized referrer PII exists in those tables.
 - Both new migrations passed a clean SQLite test migration and two-step rollback. Task-specific Apple, payment-account, and referral-ledger regressions passed individually and in the full suite.
 - Redacted operational sync was verified for `SES-20260809-005`, `CKP-20260809-015`, `TSK-MOB-009`, `DEC-20260809-009`, `CHG-20260809-013`, `TST-20260809-014`, `BLK-AUTH-003`, `BLK-FIN-001`, `BLK-DATA-002`, and `GATE-BOTH-005`; each ID occurs exactly once. No Sheet location, service-account path, credentials, or member data is recorded here.
-- Mobile contract tests: `34/34` passed.
+- Mobile contract tests before Round 5: `34/34` passed; Round 5: `37/37` passed.
 - TypeScript typecheck: passed.
-- Expo Doctor: `18/18` passed.
-- iOS and Android Expo exports: passed; approximately `3.08 MB` and `3.09 MB` Hermes bundles respectively.
+- Expo Doctor: `18/18` passed for Round 5.
+- iOS and Android Expo exports: passed; Round 5 bundles approximately `3.09 MB` each.
 - Strict idempotency replay preflight, payment-account activity-log masking, and admin password/2FA reset token revocation: resolved locally and covered by local regression tests.
 - Backend native Google and Apple OAuth verification/exchange and native mobile provider flows are implemented locally, but feature flags are OFF and owner credentials are not yet supplied.
 - Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
@@ -43,7 +47,7 @@
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 - Round 4 redacted operational sync was verified exactly once for `SES-20260810-001`, `CKP-20260810-001`, `CKP-20260810-002`, `TSK-MOB-011`, `DEC-20260810-001`, `DEC-20260810-002`, `CHG-20260810-001`, `TST-20260810-001` through `003`, `BLK-DATA-001`, `BLK-DEP-001`, and `GATE-BOTH-007`. GitHub Issues #14 and #7 contain matching local evidence and remain open.
 - Round 4 remote CI run `31328158427` passed all three jobs. It emitted a non-failing warning that Actions v4 JavaScript runtimes target deprecated Node.js 20 and are being forced to Node.js 24.
-- Post-push operational sync was verified exactly once for `CKP-20260810-003` and `TST-20260810-004`; the Round 4 session/task/change/blocker/gate rows were updated in place rather than duplicated.
+- Round 5 local operational IDs are `SES-20260810-002`, `CKP-20260810-004`/`005`, `TSK-MOB-012`, `DEC-20260810-003`, `CHG-20260810-002`, `TST-20260810-005` through `007`, and `GATE-BOTH-008`; redacted Sheet sync is pending final remote evidence.
 
 ## Open Blockers
 
@@ -63,6 +67,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. Round 4 source and remote CI are verified. Subsequent work is staging/API readiness, OAuth owner inputs/device evidence, Google identity uniqueness, the owner/legal long-term ledger policy, production idempotency scheduler evidence, production duplicate audit for payout destinations, push transport/configuration, the staged Expo dependency upgrade, CI action-runtime maintenance, then device/screenshot and signed-artifact verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Round 5 source/tests are locally verified but remote CI and production/staging/device/store evidence remain pending. After the approved push, record the remote commit and CI run, then continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.

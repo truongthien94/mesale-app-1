@@ -5,11 +5,11 @@ Mesale is a Laravel + Expo monorepo for the native member app migration. Laravel
 ## Current Status
 
 - Branch under review: `codex/mvp-p0-20260809`.
-- Round 4 is published on `main` at `9c96f74`; GitHub Actions run `31328158427` passed all context/secret, Laravel, and mobile jobs.
+- Round 4 is published on `main` at `83d20fa`; Round 5 referral onboarding is locally verified and is being pushed under the approved owner gate.
 - Scope decision: this repository intentionally remains a Laravel + Expo monorepo. `BLK-SCOPE-001` is resolved.
 - M0 (API readiness/security) and M1 (foundation) are still open. The implementation is not a release candidate.
 - Production Open API is intentionally disabled: `GET https://mesale.vn/api/v1/openapi/config` currently returns HTTP `503` / `API_DISABLED`.
-- Current local baseline: Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile contract tests `34/34`, TypeScript, Expo Doctor `18/18`, dependency compatibility, and iOS/Android exports passed.
+- Current local baseline: Round 5 Laravel `77` tests / `702` assertions, mobile contract tests `37/37`, TypeScript, Expo Doctor `18/18`, and iOS/Android exports passed. Remote CI and release evidence remain pending.
 - Round 3 adds native Google and Sign in with Apple client flows, server exchange contracts, Apple deletion reauthentication, app privacy declarations, public legal/support/deletion resources, AASA/Asset Links groundwork, and Android App Links intent filters.
 - `npm audit --omit=dev` remains at 22 findings (`7 high`, `15 moderate`). No safe SDK 53 fix exists; follow [the incremental Expo SDK 54-to-57 plan](docs/release/MOBILE-DEPENDENCY-UPGRADE-PLAN.md) and never use a blind forced fix.
 
@@ -52,6 +52,7 @@ Credentials and member data are intentionally excluded from Git. Never commit `.
 The current native surface includes:
 
 - Authentication: email/password login and registration, password reset, email verification, OTP/2FA continuation, session restore, and logout.
+- Post-registration referral: one-time native apply/skip step after email verification/2FA; existing accounts are backfilled as decided and invalid/same-IP codes remain retryable.
 - Tabs: Home, Wallet, Earn, Inbox, and Account.
 - Home: `/account` bootstrap, config/banner loading, cashback link creation, native product results, and safe external marketplace handoff.
 - Wallet: orders and order detail, balance logs, withdrawals with OTP, and payment-account list/create/set-default/delete operations.
