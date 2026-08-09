@@ -5,6 +5,7 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { AuthButton, AuthField, AuthForm, AuthLink } from "@/features/auth/components";
+import { LegalLinks } from "@/features/legal/LegalLinks";
 import { validateRegistration } from "@/features/auth/validation";
 import { colors, spacing } from "@/theme/tokens";
 
@@ -57,6 +58,7 @@ export default function RegisterScreen() {
       <FormErrorSummary errors={requestError?.errors} message={requestError?.message} />
       <AuthButton label="Đăng ký tài khoản" loading={submitting} onPress={() => void submit()} />
       <AuthLink href="/login">Đã có tài khoản? Đăng nhập</AuthLink>
+      <LegalLinks />
     </AuthForm>
   );
 }

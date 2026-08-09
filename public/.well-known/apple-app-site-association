@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.vn.mesale.app",
+        "paths": [
+          "/home",
+          "/wallet/orders/*",
+          "/account/delete"
+        ]
+      }
+    ]
+  }
+}

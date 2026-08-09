@@ -9,6 +9,8 @@ use App\Http\Controllers\WithdrawalController;
 use App\Http\Controllers\PaymentAccountController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RankingController;
+use App\Http\Controllers\StoreCompliancePageController;
+use App\Http\Controllers\WellKnownController;
 
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
@@ -29,6 +31,14 @@ Route::get('/change-currency/{code}', [\App\Http\Controllers\CurrencyController:
 Route::match(['get', 'post'], '/api/shopee/product', [HomeController::class, 'getProductInfo'])->name('shopee.product')->middleware('throttle:10,1');
 Route::get('/coupons', [\App\Http\Controllers\CouponController::class, 'index'])->name('coupons.index');
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
+Route::get('/privacy', [StoreCompliancePageController::class, 'privacy'])->name('legal.privacy');
+Route::get('/terms', [StoreCompliancePageController::class, 'terms'])->name('legal.terms');
+Route::get('/support', [StoreCompliancePageController::class, 'support'])->name('support');
+Route::get('/account-deletion', [StoreCompliancePageController::class, 'accountDeletion'])->name('account-deletion');
+Route::get('/.well-known/apple-app-site-association', [WellKnownController::class, 'appleAppSiteAssociation'])
+    ->name('well-known.apple');
+Route::get('/.well-known/assetlinks.json', [WellKnownController::class, 'assetLinks'])
+    ->name('well-known.android');
 
 // ==========================================
 // Tuyến đường sinh file manifest.json động để hỗ trợ PWA (Thêm vào màn hình chính)

@@ -6,6 +6,11 @@ import {
   type LoginResult,
   type User
 } from "@/api/authContract";
+import {
+  buildAppleOAuthRequest,
+  buildGoogleOAuthRequest,
+  type AppleNativeCredential
+} from "@/features/auth/nativeOAuthContract";
 
 export type { AuthContinuation, LoginResult, TwoFactorMethod, User } from "@/api/authContract";
 
@@ -32,6 +37,24 @@ export async function login(email: string, password: string): Promise<LoginResul
     method: "POST",
     authenticated: false,
     body: { email, password, device_name: mobileDeviceName }
+  });
+  return parseLoginResult(response);
+}
+
+export async function loginWithGoogleIdToken(idToken: string): Promise<LoginResult> {
+  const response = await request<unknown>("auth/oauth/google", {
+    method: "POST",
+    authenticated: false,
+    body: buildGoogleOAuthRequest(idToken)
+  });
+  return parseLoginResult(response);
+}
+
+export async function loginWithAppleCredential(credential: AppleNativeCredential): Promise<LoginResult> {
+  const response = await request<unknown>("auth/oauth/apple", {
+    method: "POST",
+    authenticated: false,
+    body: buildAppleOAuthRequest(credential)
   });
   return parseLoginResult(response);
 }

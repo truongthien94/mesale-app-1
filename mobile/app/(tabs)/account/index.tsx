@@ -8,6 +8,7 @@ import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState"
 import { useAccount } from "@/features/account/api";
 import { AccountButton, AccountCard, AccountHeader, AccountMenuRow, accountStyles } from "@/features/account/components";
 import { colors, spacing } from "@/theme/tokens";
+import { LegalLinks } from "@/features/legal/LegalLinks";
 
 export default function AccountRoute() {
   const router = useRouter();
@@ -68,6 +69,7 @@ export default function AccountRoute() {
         <AccountMenuRow title="Xóa tài khoản" subtitle="Xóa vĩnh viễn cùng tài khoản website" onPress={() => router.push("/(tabs)/account/delete")} />
       </AccountCard>
       <AccountButton label="Đăng xuất" loading={loggingOut} onPress={() => void signOut()} tone="secondary" />
+      <LegalLinks compact />
       <Text style={accountStyles.body}>Dữ liệu ví, đơn hàng và tài khoản luôn do máy chủ Mesale quản lý. Ứng dụng không lưu database business riêng.</Text>
     </ScrollView>
   );

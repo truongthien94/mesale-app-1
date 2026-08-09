@@ -1,36 +1,44 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-016`
-- Session: `SES-20260809-005`
+- Latest checkpoint: `CKP-20260809-018`
+- Session: `SES-20260809-006`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation
+- Phase: M0 P0 remediation and M1 MVP foundation; Round 3 store-compliance groundwork verified locally
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed; Round 2 was fast-forwarded directly to `origin/main`
+- Push gate: received for Round 3; publication waits for full local verification
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Published commits: `e916d58` (implementation) and `3b61fbe` (CKP-015 documentation)
-- Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`; no production activation was performed
+- Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
+
+## Active Round 3 Work
+
+- Native Google and Apple login, distinct OAuth errors, and Apple deletion reauthentication.
+- App-level iOS privacy declarations derived from the installed Expo packages.
+- Public privacy, terms, support, and deletion instructions.
+- AASA and Asset Links association-file groundwork with explicit owner placeholders.
+- Local verification plus App Store and Google Play source audits completed; direct push is authorized and pending commit inspection.
 
 ## Verified Current State
 
-- Local Laravel portable PHP run: `65` tests / `625` assertions.
+- Local Laravel portable PHP run: `68` tests / `648` assertions.
 - Apple-linked deletion now uses policy option B: fresh Sign in with Apple reauthentication is mandatory before deletion, so the transient refresh token can be revoked before the local transaction. Password-only deletion returns `APPLE_REAUTH_REQUIRED_FOR_DELETION`.
 - Saved payout destinations are normalized into a SHA-256 destination identity and globally hard-blocked by a database unique constraint; cross-user attempts return `ACCOUNT_ALREADY_CLAIMED`.
 - Deleting a referrer now nulls only `referrer_id` in `referrals` and `referral_commissions`; relationship and commission amounts remain queryable for the surviving referred member. No denormalized referrer PII exists in those tables.
 - Both new migrations passed a clean SQLite test migration and two-step rollback. Task-specific Apple, payment-account, and referral-ledger regressions passed individually and in the full suite.
 - Redacted operational sync was verified for `SES-20260809-005`, `CKP-20260809-015`, `TSK-MOB-009`, `DEC-20260809-009`, `CHG-20260809-013`, `TST-20260809-014`, `BLK-AUTH-003`, `BLK-FIN-001`, `BLK-DATA-002`, and `GATE-BOTH-005`; each ID occurs exactly once. No Sheet location, service-account path, credentials, or member data is recorded here.
-- Mobile contract tests: `30/30` passed.
+- Mobile contract tests: `34/34` passed.
 - TypeScript typecheck: passed.
 - Expo Doctor: `18/18` passed.
 - iOS and Android Expo exports: passed; approximately `3.03 MB` JavaScript per platform.
 - Strict idempotency replay preflight, payment-account activity-log masking, and admin password/2FA reset token revocation: resolved locally and covered by local regression tests.
-- Backend native Google and Apple OAuth verification/exchange is implemented, but feature flags are OFF and native mobile provider packages/owner credentials are not yet supplied.
+- Backend native Google and Apple OAuth verification/exchange and native mobile provider flows are implemented locally, but feature flags are OFF and owner credentials are not yet supplied.
 - Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
 - SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
-- `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate); no blind forced fix is authorized.
-- No physical-device screenshots, signed IPA/AAB, verified GitHub Actions result for the pushed commits, public deletion/support resources, AASA/Asset Links, or performance baseline exists.
+- `npm audit --omit=dev` remains a tracked release blocker; no blind forced fix is authorized.
+- No physical-device screenshots, signed IPA/AAB, verified GitHub Actions result for this round, production AASA/Asset Links deployment, or performance baseline exists. Source legal/deletion/support resources and association groundwork are present.
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 
 ## Open Blockers
@@ -43,7 +51,7 @@
 - `BLK-DATA-002`: bounded referral-ledger preservation is resolved locally, but long-term retention/anonymization for the wider financial ledger remains an owner/legal decision before production activation.
 - `BLK-FIN-001`: global hard-block policy and database constraint are resolved locally; production duplicate audit and MariaDB deployment/concurrency evidence remain pending.
 - `BLK-PUSH-001`: choose FCM-for-both-platforms or an APNs bridge, then provide transport, credentials, EAS configuration, and device tests.
-- `BLK-STORE-001`: deletion/support/legal URLs, privacy manifest and declarations, deep links, push, review accounts, signed artifacts, and store-console evidence.
+- `BLK-STORE-001`: owner-approved deletion/support/legal content, production association verification, push, review accounts, signed artifacts, and store-console evidence; source groundwork is present.
 - `BLK-DEP-001`: Expo-compatible remediation for 22 npm advisories.
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.

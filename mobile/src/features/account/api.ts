@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { request, requestEnvelope } from "@/api/client";
 import { accountPaths, normalizePreferences, sessionRevokePath } from "@/features/account/contracts";
 import type { AccountData, AccountPreferences, SecurityStatus, SessionCollection, TwoFactorSetup } from "@/features/account/types";
+import { buildAppleDeletionRequest, type AppleNativeCredential } from "@/features/auth/nativeOAuthContract";
 
 export const accountKeys = {
   detail: ["account", "detail"] as const,
@@ -118,9 +119,11 @@ export function useRevokeOtherSessions() {
 
 export function useDeleteAccount() {
   return useMutation({
-    mutationFn: (password?: string) => requestEnvelope<null>(accountPaths.delete, {
+    mutationFn: (input: { password?: string; appleCredential?: AppleNativeCredential } = {}) => requestEnvelope<null>(accountPaths.delete, {
       method: "POST",
-      body: password?.trim() ? { password } : {}
+      body: input.appleCredential
+        ? buildAppleDeletionRequest(input.appleCredential)
+        : (input.password?.trim() ? { password: input.password } : {})
     })
   });
 }

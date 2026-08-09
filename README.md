@@ -5,15 +5,15 @@ Mesale is a Laravel + Expo monorepo for the native member app migration. Laravel
 ## Current Status
 
 - Branch under review: `codex/mvp-p0-20260809`.
-- Source commit: `4fd38f7` (local verification target; not pushed).
+- Round 3 source is being verified locally on `codex/mvp-p0-20260809` before the authorized fast-forward to `origin/main`.
 - Scope decision: this repository intentionally remains a Laravel + Expo monorepo. `BLK-SCOPE-001` is resolved.
 - M0 (API readiness/security) and M1 (foundation) are still open. The implementation is not a release candidate.
 - Production Open API is intentionally disabled: `GET https://mesale.vn/api/v1/openapi/config` currently returns HTTP `503` / `API_DISABLED`.
-- Local Laravel verification: `60` tests and `606` assertions, with no test warnings in the local portable PHP run.
-- Mobile verification: `30/30` contract tests, TypeScript typecheck, Expo Doctor `18/18`, and iOS/Android Expo exports passed. Export JavaScript bundles are approximately `3.03 MB` per platform; this is not signed-build or device evidence.
-- `npm audit --omit=dev` reports `22` production-tree advisories (`7` high, `15` moderate). Do not use `npm audit fix --force` without an Expo-compatible upgrade plan.
+- Previous local baseline: Laravel `65` tests / `625` assertions, mobile contract tests `30/30`, TypeScript, Expo Doctor `18/18`, and iOS/Android exports passed. Round 3 verification results are recorded in the latest checkpoint after the final run.
+- Round 3 adds native Google and Sign in with Apple client flows, server exchange contracts, Apple deletion reauthentication, app privacy declarations, public legal/support/deletion resources, AASA/Asset Links groundwork, and Android App Links intent filters.
+- `npm audit --omit=dev` advisories remain tracked as a release blocker; do not use `npm audit fix --force` without an Expo-compatible upgrade plan.
 
-The current verdict for both stores is **NOT READY**. No production activation, production migration, signed AAB/IPA, physical-device screenshot regression, native OAuth client integration, push configuration, public account-deletion resource, or dedicated support URL has been completed.
+The current verdict for both stores is **NOT READY**. Production API activation, signed AAB/IPA, physical-device screenshot regression, push configuration, provider credentials, owner-approved legal/support content, and store-console evidence remain incomplete.
 
 ## Architecture and Data Rules
 
@@ -59,7 +59,7 @@ The current native surface includes:
 - Inbox: notification pagination, filtering, read, and read-all.
 - Account: dashboard, profile, password, preferences, security/2FA, sessions/revocation, and account-deletion UI.
 
-Native Google and Sign in with Apple client packages, push notifications, blog/legal/support screens, and complete store-review resources are still pending. The full member inventory and website-to-native mapping are maintained in [docs/inventory/feature-matrix.md](docs/inventory/feature-matrix.md).
+Native Google and Sign in with Apple client packages, Apple deletion reauthentication, clickable legal links, public legal/support/deletion resources, app privacy declarations, and deep-link association groundwork are implemented locally. Provider credentials, push notifications, blog/UGC screens, signed artifacts, device evidence, and complete store-review resources remain pending. The full member inventory and website-to-native mapping are maintained in [docs/inventory/feature-matrix.md](docs/inventory/feature-matrix.md).
 
 The strict replay preflight, payment-account activity-log masking, and admin password/2FA reset token revocation are implemented and pass local regression coverage. Remote CI confirmation remains pending the next authorized push. Ledger retention/anonymization, Apple grant revocation for every deletion path, provider identity uniqueness/linking, payment-account uniqueness/concurrency, and push token transport remain open blockers.
 

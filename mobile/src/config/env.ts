@@ -23,7 +23,18 @@ function readTimeout(): number {
   return Number.isFinite(value) && value > 0 ? value : 15000;
 }
 
+function readOptionalPublicValue(name: string, value: string | undefined): string | undefined {
+  const normalized = value?.trim();
+  if (normalized?.toLowerCase().includes("placeholder")) {
+    throw new Error(`${name} must not contain a placeholder credential.`);
+  }
+  return normalized || undefined;
+}
+
 export const env = {
   apiBaseUrl: readApiBaseUrl(),
-  apiTimeoutMs: readTimeout()
+  apiTimeoutMs: readTimeout(),
+  googleWebClientId: readOptionalPublicValue("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID", process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID),
+  googleIosClientId: readOptionalPublicValue("EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID", process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID),
+  googleIosUrlScheme: readOptionalPublicValue("EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME", process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME)
 } as const;

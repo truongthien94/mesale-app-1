@@ -14,9 +14,10 @@ import {
   type TwoFactorCodes,
   type User
 } from "@/api/auth";
-import type { AuthenticatedAuthResult } from "@/api/authContract";
+import type { AuthenticatedAuthResult, LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
 import { clearSession, clearSessionIfTokenMatches, loadSession, onSessionInvalidated, saveSession, type Session } from "@/auth/session";
+import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
 
 type AuthContextValue = {
   isLoading: boolean;
@@ -24,6 +25,8 @@ type AuthContextValue = {
   session: Session | null;
   user: User | null;
   login(email: string, password: string): Promise<void>;
+  loginWithGoogle(): Promise<void>;
+  loginWithApple(): Promise<void>;
   register(payload: RegisterPayload): Promise<void>;
   verifyEmail(otpCode: string): Promise<void>;
   resendEmailVerification(): Promise<void>;
@@ -98,10 +101,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setLoading(false);
   }, [queryClient]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const revision = ++authRevision.current;
-    setPendingAuth(null);
-    const result = await loginRequest(email, password);
+  const acceptLoginResult = useCallback(async (result: LoginResult, revision: number) => {
     if (authRevision.current !== revision) return;
     if (result.kind === "authenticated") {
       await acceptAuthenticated(result, revision);
@@ -111,18 +111,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setLoading(false);
   }, [acceptAuthenticated]);
 
+  const login = useCallback(async (email: string, password: string) => {
+    const revision = ++authRevision.current;
+    setPendingAuth(null);
+    const result = await loginRequest(email, password);
+    await acceptLoginResult(result, revision);
+  }, [acceptLoginResult]);
+
+  const loginWithGoogle = useCallback(async () => {
+    const revision = ++authRevision.current;
+    setPendingAuth(null);
+    await acceptLoginResult(await signInWithGoogleNative(), revision);
+  }, [acceptLoginResult]);
+
+  const loginWithApple = useCallback(async () => {
+    const revision = ++authRevision.current;
+    setPendingAuth(null);
+    await acceptLoginResult(await signInWithAppleNative(), revision);
+  }, [acceptLoginResult]);
+
   const register = useCallback(async (payload: RegisterPayload) => {
     const revision = ++authRevision.current;
     setPendingAuth(null);
     const result = await registerRequest(payload);
-    if (authRevision.current !== revision) return;
-    if (result.kind === "authenticated") {
-      await acceptAuthenticated(result, revision);
-      return;
-    }
-    setPendingAuth(result);
-    setLoading(false);
-  }, [acceptAuthenticated]);
+    await acceptLoginResult(result, revision);
+  }, [acceptLoginResult]);
 
   const verifyEmail = useCallback(async (otpCode: string) => {
     if (pendingAuth?.kind !== "email-verification") throw new Error("Email verification is not pending.");
@@ -197,6 +210,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     user,
     login,
+    loginWithGoogle,
+    loginWithApple,
     register,
     verifyEmail,
     resendEmailVerification,
@@ -212,6 +227,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     user,
     login,
+    loginWithGoogle,
+    loginWithApple,
     register,
     verifyEmail,
     resendEmailVerification,

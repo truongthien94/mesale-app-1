@@ -77,6 +77,7 @@ jobs:
         run: |
           mkdir -p bootstrap/cache
           mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs
+          touch storage/installed.lock
       - name: Install locked PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
       - name: Run Laravel tests

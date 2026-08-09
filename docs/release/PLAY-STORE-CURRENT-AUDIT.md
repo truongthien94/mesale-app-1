@@ -15,7 +15,7 @@ This is a source/current-state audit, not a Play Console certification. Artifact
 - Local evidence source commit: `4fd38f7`; Laravel `60` tests / `606` assertions, mobile `30/30` contract tests, TypeScript typecheck, and Expo Doctor `18/18` passed.
 - Native MVP tabs/screens cover auth, Home, Wallet, Earn, Inbox, Account, orders, balance logs, withdrawals/OTP, payment accounts, referrals, check-in, tasks, gifts, gift codes, notifications, security, sessions, and deletion UI.
 - Session Bearer tokens use SecureStore; no personal Bot API key, service account, keystore, or WebView is present in the mobile source.
-- Backend Google/Apple OAuth verification and exchange are implemented, but native provider packages, owner credentials, feature-flag rollout, safe identity-linking/uniqueness evidence, and staging/device evidence are pending. Apple grant revocation is not yet complete for every deletion-confirmation path.
+- Backend Google/Apple OAuth verification and exchange plus native client flows are implemented locally, but owner credentials, feature-flag rollout, safe identity-linking/uniqueness evidence, and staging/device evidence are pending. Apple-linked deletion now requires fresh Apple reauthentication and server-side grant revocation.
 - Local Laravel: `60` tests / `606` assertions with zero warnings. Mobile contracts `30/30`, TypeScript, Expo Doctor `18/18`, and iOS/Android exports pass. Export bundles are approximately `3.03 MB` per platform, not signed AAB evidence.
 - Production API config remains HTTP `503` / `API_DISABLED`; no production activation or mutation occurred.
 - `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate`). Do not use a blind forced fix.
@@ -28,7 +28,7 @@ The MVP is implemented in source but has not been verified on physical Android d
 
 ### Account deletion and privacy
 
-In-app deletion UI and backend confirmation controls exist, but a public web deletion resource, provider reauthentication/disconnect evidence, retained-data disclosure, Privacy Policy/Support links, and Play Console deletion/Data Safety evidence are missing. Current hard-delete behavior cascades through financial history/ledger records without an approved retention/anonymization design, and password/Google-confirmed deletion does not guarantee Apple grant revocation for an Apple-linked account.
+In-app deletion UI and backend confirmation controls exist, including fresh Apple reauthentication and revocation. Public legal/deletion/support routes and in-app links exist in source, but owner-approved content, provider/device evidence, retained-data disclosure, and Play Console deletion/Data Safety evidence remain missing. The wider financial-ledger retention/anonymization design is still awaiting approval.
 
 ### Target API and artifact policy
 
@@ -40,9 +40,9 @@ The app exchanges account identifiers, cashback, orders, wallet balances, referr
 
 ## Open Release Gaps
 
-- No signed AAB, Play App Signing, version code, production merged manifest, or staged-rollout evidence.
+- No signed AAB, Play App Signing, version code, production merged manifest, or staged-rollout evidence. Public legal/deletion/support routes and in-app legal links now exist in source.
 - Android 16 KB page-size compatibility is unknown until every native `.so` in the release AAB/APK is inspected.
-- No verified `assetlinks.json` or Android App Links configuration exists.
+- Android App Links intent filters and `assetlinks.json` groundwork exist in source with a release-certificate fingerprint placeholder; production HTTPS verification and the owner fingerprint remain required.
 - Effective permission removals are configured in source, but the release merged manifest must confirm no restricted SMS/Call Log, storage, location, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`, overlay, or dynamic native-code behavior.
 - Notification permission/push registration is not complete; OTP remains server/email based and does not request SMS permission.
 - No physical-device accessibility, edge-to-edge, keyboard, offline/retry, crash, performance, or screenshot regression evidence.

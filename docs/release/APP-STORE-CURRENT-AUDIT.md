@@ -12,13 +12,13 @@ This is a source/current-state audit, not a submission certification. Evidence m
 ## Current Evidence
 
 - Expo SDK 53 / React Native 0.79.6 / Expo Router 5 managed app; bundle identifier is `vn.mesale.app`.
-- Local evidence source commit: `4fd38f7`; Laravel `60` tests / `606` assertions, mobile `30/30` contract tests, TypeScript typecheck, and Expo Doctor `18/18` passed.
+- Round 3 local evidence is recorded in checkpoint `CKP-20260809-017` and the final checkpoint for this push; prior baseline was Laravel `65` tests / `625` assertions, mobile `30/30` contract tests, TypeScript, and Expo Doctor `18/18`.
 - Native MVP routes exist for auth, Home, Wallet, Earn, Inbox, and Account, including orders, wallet logs, withdrawals/OTP, payment accounts, referrals, check-in, tasks, gifts, gift codes, notifications, profile, security, sessions, and deletion UI.
 - Session restore validates expiry and restores `/account`; API requests use SecureStore-backed Bearer tokens, clear stale sessions on `401`, and never use member `sk_live_...` API keys.
-- Backend Google and Sign in with Apple OAuth exchange/verification is implemented with server-only provider checks, Apple `sub`/JWKS/issuer/audience/expiry/nonce handling, authorization-code exchange, and flags defaulting to OFF. Native provider packages and owner credentials are not supplied. Apple grant revocation is not yet complete for every permitted deletion-confirmation path.
+- Backend Google and Sign in with Apple OAuth exchange/verification is implemented with server-only provider checks, Apple `sub`/JWKS/issuer/audience/expiry/nonce handling, authorization-code exchange, and flags defaulting to OFF. Native provider packages and UI flows are present locally, while owner credentials, staging rollout, and physical-device evidence are missing. Apple-linked deletion requires fresh native Apple reauthentication and server-side grant revocation.
 - Local Laravel verification: `60` tests / `606` assertions, zero warnings.
 - Mobile contract tests: `30/30` passed; TypeScript passed; Expo Doctor passed `18/18`; iOS/Android exports passed with approximately `3.03 MB` JavaScript per platform.
-- No signed IPA, physical-device test, screenshot regression, remote CI run for this branch, push configuration, public deletion URL, dedicated support URL, AASA, or App Store Connect metadata is available.
+- No signed IPA, physical-device test, screenshot regression, verified remote CI result for this round, push configuration, owner-approved support contact, production AASA deployment, or App Store Connect metadata is available. Public legal/deletion/support routes and in-app legal links now exist in source.
 - Production API read-only check: `GET /api/v1/openapi/config` returns HTTP `503` / `API_DISABLED`; no bypass or production mutation occurred.
 - Dependency audit: `22` production-tree advisories (`7` high, `15` moderate); no forced upgrade was attempted.
 
@@ -32,15 +32,15 @@ Required before submission: reviewer-reachable staging/production service, compl
 
 ### Guideline 4.8 - Sign in with Apple
 
-The backend exchange is present but native Apple and Google client packages, provider configuration, and end-to-end staging/device evidence are missing. If Google login is exposed on iOS, Sign in with Apple must be available as an equivalent option. The UI and documents must use the name `Sign in with Apple`, never "iCloud login".
+The backend exchange and native Apple/Google client flows are present, but provider configuration and end-to-end staging/device evidence are missing. If Google login is exposed on iOS, Sign in with Apple is available as an equivalent option. The UI and documents use the name `Sign in with Apple`, never "iCloud login".
 
 ### Guidelines 5.1.1(i)/(v) - Privacy, support, and deletion
 
-Account deletion UI and backend confirmation handling exist, but a public deletion resource, provider reauthentication on-device, retained-data explanation, Privacy Policy/Terms/Support links, and a support response path are incomplete. The current hard-delete cascades through financial history/ledger data without an approved retention/anonymization contract. An Apple-linked account confirmed by password or Google can also be deleted locally without guaranteed Apple grant revocation. Resolve both backend contracts before enabling deletion for review.
+Account deletion UI and backend confirmation handling exist, including fresh Apple reauthentication and revocation. Public legal/deletion/support routes and in-app links exist in source, but owner-approved content, a verified support response path, staging/device evidence, and retained-data approval remain incomplete. Resolve the wider financial-ledger retention/anonymization contract before enabling deletion for review.
 
 ### Guideline 5.1.1 - Privacy Manifest and Required Reason APIs
 
-No app-level `PrivacyInfo.xcprivacy`/Expo privacy manifest or reconciled App Privacy inventory has been verified in a signed archive. Inventory app and SDK data access, declare Required Reason APIs, inspect generated `Info.plist`/entitlements, and reconcile App Store Connect answers.
+An Expo app-level privacy manifest and collected-data declarations are configured in source, but no signed archive has verified the generated `PrivacyInfo.xcprivacy`, `Info.plist`, entitlements, or App Store Connect answers. Inventory app and SDK data access, declare Required Reason APIs, inspect the archive, and reconcile the console answers.
 
 ### Guidelines 1.6/5.1.1 - Network and permissions
 
@@ -49,7 +49,7 @@ Source config rejects cleartext/non-HTTPS production URLs and disables arbitrary
 ## Open Release Gaps
 
 - No Apple Team/Services ID/key, Google client IDs, APNs/Firebase push configuration, EAS production project, provisioning, or review account has been verified.
-- No AASA/universal-link configuration or verified response exists.
+- AASA and iOS associated-domain configuration exist in source with an Apple Team ID placeholder; production HTTPS/CDN verification and owner-supplied Team ID remain required.
 - No source/device screenshot set covers small iPhone, Pro Max, light/dark, font scaling, keyboard, loading, empty, error, and offline states.
 - No startup, FPS, memory, crash, accessibility, or low-end device baseline exists.
 - Google provider identity still needs a duplicate audit, safe-linking decision, and database uniqueness strategy before rollout.
