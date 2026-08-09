@@ -23,9 +23,13 @@ public/uploads/
 public/public_html/
 public/ckfinder/
 public/packages/
+public/.htaccess
+public/.user.ini
+public/php.ini
 public/mesale-phone-flow-auto*
 public/**/*.pre-*
 bootstrap/cache/
+storage/
 __pycache__/
 *.pyc
 **/*.pre-*

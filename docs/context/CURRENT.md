@@ -1,6 +1,6 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-002`
+- Latest checkpoint: `CKP-20260809-004`
 - Session: `SES-20260809-002`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 API audit + M1 Expo foundation verification
