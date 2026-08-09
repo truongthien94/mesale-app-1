@@ -1,15 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-015`
+- Latest checkpoint: `CKP-20260809-016`
 - Session: `SES-20260809-005`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: not received for Round 2; local commits only
+- Push gate: received and completed; Round 2 was fast-forwarded directly to `origin/main`
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
-- Branch: `codex/mvp-p0-20260809`
-- Source commit: `e916d58` (local Round 2 implementation; not pushed)
+- Local branch: `codex/mvp-p0-20260809`
+- Remote target: `origin/main`
+- Published commits: `e916d58` (implementation) and `3b61fbe` (CKP-015 documentation)
 - Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`; no production activation was performed
 
 ## Verified Current State
@@ -29,7 +30,7 @@
 - Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
 - SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
 - `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate); no blind forced fix is authorized.
-- No physical-device screenshots, signed IPA/AAB, remote CI evidence for this branch, push configuration, public deletion/support resources, AASA/Asset Links, or performance baseline exists.
+- No physical-device screenshots, signed IPA/AAB, verified GitHub Actions result for the pushed commits, public deletion/support resources, AASA/Asset Links, or performance baseline exists.
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 
 ## Open Blockers
@@ -46,7 +47,7 @@
 - `BLK-DEP-001`: Expo-compatible remediation for 22 npm advisories.
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
-- `BLK-TEST-001`: resolved locally; remote CI confirmation awaits the next authorized push and must not be inferred here.
+- `BLK-TEST-001`: resolved locally; the authorized push is complete, but a verified GitHub Actions result is still pending and must not be inferred.
 
 ## Handoff
 

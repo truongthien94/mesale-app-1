@@ -18,7 +18,7 @@ Local evidence at source commit `e916d58`: Laravel `65` tests / `625` assertions
 | `BLK-PUSH-001` | P1 | Push transport | The current Laravel push service sends through FCM HTTP v1 and cannot accept a raw iOS APNs token as an FCM registration token. Owner must choose FCM for both platforms or approve an APNs bridge, then supply Firebase/APNs/EAS configuration and tests. | Product/backend/release | Open |
 | `BLK-DEVICE-001` | P1 | QA | No physical iOS/Android verification, screenshot regression, font scaling, accessibility, keyboard, offline, retry, performance, or signed-artifact evidence exists. GitHub Issue #20. | Mobile/QA/release | Open |
 | `BLK-UI-001` | P1 | Accessibility/parity | Approved orange `#f97316` with white text measures about `2.80:1`; do not change the visual reference without product approval and screenshot evidence. | Product/design | Open |
-| `BLK-TEST-001` | P2 | Test quality | Resolved locally: portable PHP reports 60 tests/606 assertions with zero warnings. Remote CI confirmation is pending the next authorized push; no GitHub run is claimed in this checkpoint. | Backend/CI | Resolved locally; remote pending |
+| `BLK-TEST-001` | P2 | Test quality | Resolved locally: portable PHP reports 65 tests/625 assertions. The authorized push is complete, but no GitHub Actions result has been verified for the pushed commits. | Backend/CI | Resolved locally; remote CI pending |
 
 Resolved in this checkpoint:
 
