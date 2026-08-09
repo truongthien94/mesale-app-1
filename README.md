@@ -6,6 +6,13 @@ Repository: `https://github.com/thichmmo/mesale-app`
 
 Status: migration in progress. The current branch contains the Laravel baseline, migration context, and the first Expo foundation. It is not a production release and it does not activate the production Open API.
 
+## Repository State
+
+- Default branch: `main`, intentionally initialized as an empty review baseline.
+- Migration branch: `codex/migration-20260809`.
+- Review: draft Pull Request `#6` from the migration branch to `main`.
+- Merge policy: no merge, force-push, history rewrite, production activation, or credential change without explicit approval.
+
 ## Product Architecture
 
 - Laravel and mesale.vn remain the only business backend, database, and source of truth.
@@ -144,6 +151,19 @@ GitHub Markdown is the redacted, versioned handoff:
 
 If logs disagree with source or tests, source/test evidence wins and the discrepancy is recorded as a decision.
 
+Operational records use stable IDs and the `Asia/Bangkok` timezone:
+
+- sessions: `SES-YYYYMMDD-NNN`;
+- checkpoints: `CKP-YYYYMMDD-NNN`;
+- tasks: `TSK-MOB-NNN`;
+- decisions: `DEC-YYYYMMDD-NNN`;
+- changes: `CHG-YYYYMMDD-NNN`;
+- tests: `TST-YYYYMMDD-NNN`;
+- blockers: `BLK-GROUP-NNN`;
+- release gates: `GATE-IOS/AND/BOTH-NNN`.
+
+The detailed Sheet retains session/task/change/test rows. GitHub keeps only redacted checkpoints, decisions, blockers, and release gates; it must never contain the Sheet URL, local service-account path, secrets, or member data.
+
 ## GitHub Workflow
 
 - Use a bounded branch named `codex/migration-YYYYMMDD` for migration work.
@@ -166,7 +186,6 @@ Marketplace checkout for Shopee, TikTok Shop, and Lazada concerns physical goods
 - `BLK-AUTH-001`: Apple/Google OAuth server credentials and exchange contracts are pending.
 - `BLK-STORE-001`: deletion/support/legal/deep-link store resources are incomplete.
 - `BLK-GH-001`: GitHub Project scope is unavailable to the current CLI token.
-- `BLK-GH-002`: the empty remote has no distinct PR base branch yet.
 - `BLK-TOOL-001`: PHP CLI is unavailable for Laravel runtime tests.
 
 See [docs/blockers/OPEN.md](docs/blockers/OPEN.md) for the maintained register.
