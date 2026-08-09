@@ -1,35 +1,50 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-012`
-- Session: `SES-20260809-003`
+- Latest checkpoint: `CKP-20260809-014`
+- Session: `SES-20260809-004`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 API safety/auth contract correction and M1 foundation remediation
+- Phase: M0 P0 remediation and M1 MVP foundation
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received for the current migration branch; merge is not authorized
-- Repository: `thichmmo/mesale-app`, currently a Laravel + Expo monorepo pending explicit scope confirmation (`BLK-SCOPE-001`)
-- GitHub default branch: `main` restored to the reviewed migration baseline at `6854dec`
-- GitHub branch: `codex/migration-20260809` is pushed with verified code head `8b81b53`, checkpoint commit `9d475f3`, and restored-`main` synchronization commit `3d809e5`
-- GitHub PR: draft PR #6 is updated, open and unmerged; push run `31310086133` and PR run `31310087406` both pass context/secret, Laravel, and mobile jobs for `9d475f3`
-- GitHub Issues: #12 tracks the bounded P0 correction and remains open for warning cleanup; #13 is the current API blocker candidate while duplicate #1 awaits owner-directed reconciliation; #14-#17 track data lifecycle, financial concurrency, UI contrast, and Linux test warnings
-- Operational log: Google Sheet is synchronized through `CKP-20260809-012`, `DEC-20260809-007`, `CHG-20260809-010`, and `TST-20260809-011`
-- Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`
-- PHP verification: portable PHP is available; isolated HTTP auth tests pass
-- Dependency status: 22 npm advisories remain (7 high, 15 moderate); no forced audit fix is authorized
-- Test-quality status: local Laravel reports 22 passed/235 assertions, while Linux CI succeeds with 22 warnings/235 assertions (`BLK-TEST-001`)
-- Store status: App Store and Google Play current-state audits both report `NOT READY`
-- Security status: no credentials or production member data are included in repository context documents
-- Current tasks: `TSK-MOB-001` (M0 auth/API) and `TSK-MOB-002` (foundation remediation) remain open; `TSK-MOB-007` P0 corrections are implemented and verified
+- Push gate: not requested for this checkpoint
+- Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
+- Branch: `codex/mvp-p0-20260809`
+- Source commit: `4fd38f7` (local verification target; not pushed)
+- Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`; no production activation was performed
 
-## Verified P0 Corrections
+## Verified Current State
 
-- Recursive redaction covers nested authentication, OTP, bank, token, and payment-account fields.
-- Login models authenticated, email-verification-required, or 2FA-required outcomes without persisting a session before a Bearer token exists.
-- Withdrawal creation and gift redemption require replay-safe `Idempotency-Key` handling with encrypted stored replay responses.
-- Audited member money responses use integer VND while percentages and rates remain decimal.
-- Account deletion avoids raw identity/balance logs and does not return a false HTTP 500 after committed deletion; OAuth-only reauthentication remains pending.
-- CI runs Laravel tests, mobile parser tests, TypeScript, Expo Doctor, exports, context checks, and secret checks.
+- Local Laravel portable PHP run: `60` tests / `606` assertions, zero warnings.
+- Mobile contract tests: `30/30` passed.
+- TypeScript typecheck: passed.
+- Expo Doctor: `18/18` passed.
+- iOS and Android Expo exports: passed; approximately `3.03 MB` JavaScript per platform.
+- Strict idempotency replay preflight, payment-account activity-log masking, and admin password/2FA reset token revocation: resolved locally and covered by local regression tests.
+- Backend native Google and Apple OAuth verification/exchange is implemented, but feature flags are OFF and native mobile provider packages/owner credentials are not yet supplied.
+- Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
+- SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
+- `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate); no blind forced fix is authorized.
+- No physical-device screenshots, signed IPA/AAB, remote CI evidence for this branch, push configuration, public deletion/support resources, AASA/Asset Links, or performance baseline exists.
+- External operational logs and remote CI are not evidence for this local-only checkpoint; no remote result is claimed.
 
-## Next Action
+## Open Blockers
 
-Keep M0/M1 open, production API disabled, and both store verdicts at `NOT READY`. Next work must address the Linux PHPUnit warning source, staging/API readiness, Apple/Google OAuth, idempotency retention, database-backed normalized payment-account uniqueness, dependency remediation, and representative iOS/Android device evidence.
+- `BLK-API-001`: production Open API remains `503 API_DISABLED`; staging and production readiness, review access, activation approval, monitoring, and rollback.
+- `BLK-AUTH-001`: native Apple/Google client packages, provider credentials, safe account linking, and rollout evidence.
+- `BLK-AUTH-003`: Apple grant revocation strategy for every account-deletion confirmation path.
+- `BLK-AUTH-002`: Google provider identity lacks a database unique constraint; duplicate audit and owner decision are required.
+- `BLK-DATA-001`: idempotency retention/pruning; proposed 24-hour policy is unapproved.
+- `BLK-DATA-002`: financial ledger retention/anonymization must be approved before production account hard-delete.
+- `BLK-FIN-001`: owner decision required for normalized payment-account uniqueness scope (global versus per payment method), then MariaDB concurrency proof.
+- `BLK-PUSH-001`: choose FCM-for-both-platforms or an APNs bridge, then provide transport, credentials, EAS configuration, and device tests.
+- `BLK-STORE-001`: deletion/support/legal URLs, privacy manifest and declarations, deep links, push, review accounts, signed artifacts, and store-console evidence.
+- `BLK-DEP-001`: Expo-compatible remediation for 22 npm advisories.
+- `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
+- `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
+- `BLK-TEST-001`: resolved locally; remote CI confirmation awaits the next authorized push and must not be inferred here.
+
+## Handoff
+
+Keep M0/M1 open and store verdicts at `NOT READY`. Next work is staging/API readiness, OAuth owner inputs, Apple grant-revocation and identity-linking decisions, financial-ledger retention/anonymization, idempotency retention, payment-account uniqueness, push transport/configuration, dependency remediation, then device/screenshot and signed-artifact verification. Source and tests are authoritative if any log disagrees.
+
+No secrets, service-account information, raw HTTP responses, or member data are included in this context.

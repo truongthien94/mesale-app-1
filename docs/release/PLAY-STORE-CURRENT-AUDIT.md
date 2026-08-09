@@ -3,90 +3,58 @@
 Audit date: 2026-08-09
 Timezone: Asia/Bangkok
 Target: `mobile/`
+Branch: `codex/mvp-p0-20260809`
 Verdict: **NOT READY FOR GOOGLE PLAY SUBMISSION**
-Milestone status: **M1 is not complete**
+Milestone status: **M0 and M1 remain open**
 
-## Evidence labels
+This is a source/current-state audit, not a Play Console certification. Artifact, device, and console answers remain unknown until generated and reviewed.
 
-- **Observed:** directly present in repository files.
-- **Measured:** produced by a local read-only command against the current working tree.
-- **Reported:** stated in approved migration documents but not yet proven in an AAB/device run.
-- **Unknown:** requires a generated production manifest/AAB, Play Console, device evidence or credentials not inspected here.
+## Current Evidence
 
-## Project summary
+- Expo SDK 53 / React Native 0.79.6 / Expo Router 5 managed app with application ID `vn.mesale.app`.
+- Local evidence source commit: `4fd38f7`; Laravel `60` tests / `606` assertions, mobile `30/30` contract tests, TypeScript typecheck, and Expo Doctor `18/18` passed.
+- Native MVP tabs/screens cover auth, Home, Wallet, Earn, Inbox, Account, orders, balance logs, withdrawals/OTP, payment accounts, referrals, check-in, tasks, gifts, gift codes, notifications, security, sessions, and deletion UI.
+- Session Bearer tokens use SecureStore; no personal Bot API key, service account, keystore, or WebView is present in the mobile source.
+- Backend Google/Apple OAuth verification and exchange are implemented, but native provider packages, owner credentials, feature-flag rollout, safe identity-linking/uniqueness evidence, and staging/device evidence are pending. Apple grant revocation is not yet complete for every deletion-confirmation path.
+- Local Laravel: `60` tests / `606` assertions with zero warnings. Mobile contracts `30/30`, TypeScript, Expo Doctor `18/18`, and iOS/Android exports pass. Export bundles are approximately `3.03 MB` per platform, not signed AAB evidence.
+- Production API config remains HTTP `503` / `API_DISABLED`; no production activation or mutation occurred.
+- `npm audit --omit=dev`: `22` advisories (`7` high, `15` moderate`). Do not use a blind forced fix.
 
-- **Observed:** Expo SDK 53 / React Native 0.79.6 managed app with application ID `vn.mesale.app` (`mobile/package.json:17`, `mobile/package.json:26`, `mobile/app.json:34`).
-- **Observed:** bootstrap, email/password login, email verification, two-factor verification and a placeholder authenticated home/logout flow exist (`mobile/app/index.tsx:6`, `mobile/app/(auth)/login.tsx:9`, `mobile/app/(auth)/verify-email.tsx:9`, `mobile/app/(auth)/two-factor.tsx:9`, `mobile/app/home.tsx:7`).
-- **Measured:** mobile auth parser tests pass 5/5 and TypeScript check passes.
-- **Measured:** production dependency audit reports 7 high and 15 moderate advisories, with no critical advisories.
-- **Measured:** production-mode Expo export produces approximately 2.72 MB JavaScript bundles for both iOS and Android. These are bundle-size baselines only; they do not establish startup TTI, FPS, render cost, memory behavior, final APK/AAB size or 16 KB page-size compatibility.
+## Blocking Findings
 
-## Critical blockers
+### Broken functionality and reviewer access
 
-### [CRITICAL] Broken/Minimum Functionality - Product implementation is incomplete
+The MVP is implemented in source but has not been verified on physical Android devices, in a signed release, or against a reviewer-reachable API. Production Open API is disabled. Required: staging/production API with auth, throttle, request logging, monitoring, rollback, and review credentials.
 
-- **Observed:** the current mobile surface does not yet include registration, account deletion, cashback, orders, wallet, withdrawal, tasks, gifts, notifications, legal/support, app links or store-review utility.
-- **Required:** M1 and the representative native vertical slices must be completed and verified before an AAB can be considered for testing or review.
+### Account deletion and privacy
 
-### [CRITICAL] Broken Functionality - Reviewer backend is unavailable
+In-app deletion UI and backend confirmation controls exist, but a public web deletion resource, provider reauthentication/disconnect evidence, retained-data disclosure, Privacy Policy/Support links, and Play Console deletion/Data Safety evidence are missing. Current hard-delete behavior cascades through financial history/ledger records without an approved retention/anonymization design, and password/Google-confirmed deletion does not guarantee Apple grant revocation for an Apple-linked account.
 
-- **Measured:** `https://mesale.vn/api/v1/openapi/config` returns HTTP 503 with code `API_DISABLED`; the public site and manifest remain HTTP 200.
-- **Required:** provide a stable reviewer-reachable backend and review credentials for the full review window. Staging/API readiness must be proven without bypassing feature flags, authentication, throttling or logging.
+### Target API and artifact policy
 
-### [CRITICAL] Target API requirement is not verified
+No production AAB or generated merged manifest exists. On 2026-08-09, API 35 is the current new-app/update floor in the reviewed policy snapshot; from 2026-08-31, new apps and updates must be prepared for API 36. Recheck the official deadline immediately before submission, inspect `targetSdkVersion`, and build an AAB with current Expo/RN support.
 
-- **Observed:** `mobile/app.json` does not pin or expose an Android target SDK (`mobile/app.json:33`).
-- **Unknown:** no generated Android project or release AAB exists in the audited source, so the resolved target SDK cannot be proven.
-- **Policy timing:** on 2026-08-09, API 35 is the current new-app/update floor; from 2026-08-31 new apps and updates must target API 36 under the July 2026 policy snapshot.
-- **Required:** choose an Expo/RN toolchain that resolves to the submission-date requirement, generate the production artifact, inspect `targetSdkVersion`, and repeat immediately before submission.
+### Data Safety and Financial Features
 
-### [SOURCE CONFIG REMEDIATED; PRODUCTION MANIFEST VERIFICATION PENDING] Permissions policy
+The app exchanges account identifiers, cashback, orders, wallet balances, referrals, notifications, and withdrawals through Laravel. Complete the Data Safety form from actual API/SDK behavior and review the Financial Features declaration; do not infer Console answers from source assumptions.
 
-- **Observed:** `mobile/app.json` blocks `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE` and `WRITE_EXTERNAL_STORAGE` (`mobile/app.json:35`).
-- **Measured after remediation:** fresh Expo introspection resolves `INTERNET` and `VIBRATE` as the effective permissions; the three blocked entries are retained only as manifest removals with `tools:node=remove`.
-- **Remaining gate:** inspect the production release merged manifest/AAB before closing this finding. Use the Android photo picker for future avatar/manual-submission media.
-- **Unknown:** production merged-manifest sources and any max-SDK constraints are not available until prebuild/AAB generation.
+## Open Release Gaps
 
-### [CRITICAL] User Data and Account Deletion requirements are not implemented
+- No signed AAB, Play App Signing, version code, production merged manifest, or staged-rollout evidence.
+- Android 16 KB page-size compatibility is unknown until every native `.so` in the release AAB/APK is inspected.
+- No verified `assetlinks.json` or Android App Links configuration exists.
+- Effective permission removals are configured in source, but the release merged manifest must confirm no restricted SMS/Call Log, storage, location, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`, overlay, or dynamic native-code behavior.
+- Notification permission/push registration is not complete; OTP remains server/email based and does not request SMS permission.
+- No physical-device accessibility, edge-to-edge, keyboard, offline/retry, crash, performance, or screenshot regression evidence.
+- Google provider identity needs a duplicate audit, safe-linking decision, and database uniqueness strategy before production OAuth rollout.
+- Strict replay preflight, admin password/2FA reset token revocation, and payment-account activity-log masking are implemented and pass local regression coverage; remote CI confirmation remains pending.
+- Idempotency replay retention/pruning and real MariaDB payment-account uniqueness/concurrency are unresolved.
+- Push transport remains unresolved: the current backend sends FCM HTTP v1 messages and cannot treat a raw iOS APNs token as an FCM token. Choose FCM for both platforms or approve an APNs bridge before enabling push.
+- UGC comments/likes/shares require filtering, report, block, and contact mechanisms before exposure.
+- Marketplace handoff concerns physical goods and should not use Play Billing. Future digital features require a separate policy review.
+- Target audience, content rating, support contact, store metadata, Data Safety, and Financial Features Console answers are unknown.
+- Dependency advisories require an Expo-compatible remediation and regression plan.
 
-- **Observed:** no in-app Privacy Policy or account-deletion flow exists in `mobile/app/`.
-- **Observed:** the backend deletion path now avoids raw email/balance audit content and preserves a successful deletion when post-commit audit logging fails. Provider-only deletion remains blocked until server-verifiable OAuth reauthentication proof exists.
-- **Required:** implement the native deletion path and provider reauthentication, verify server-side associated-data handling, publish the web resource, and reconcile retained security data with the Data safety form.
+## Audit Trail
 
-### [CRITICAL] Data safety and financial declarations are unknown
-
-- **Observed:** current dependencies do not include ad, analytics or crash-reporting SDKs, reducing the current SDK declaration surface (`mobile/package.json:15`).
-- **Reported:** the product handles account identifiers, cashback, wallet balances, orders, referrals and withdrawals through Laravel.
-- **Required:** complete the Data safety inventory from actual network payloads and SDK behavior. Review the Financial Features Declaration because wallet/withdrawal functionality may be in scope; do not guess the Console answers.
-
-## Warnings and release gaps
-
-- **AAB and signing:** no production AAB, Play App Signing evidence, version code or release merged manifest has been inspected. EAS production `autoIncrement` is configured, but the resolved version code is **unknown** (`mobile/eas.json:16`).
-- **16 KB page size:** RN 0.79+ provides aligned React Native core binaries, but every third-party native `.so` still requires release APK/AAB verification. No artifact exists, so compatibility is **unknown**, not passed.
-- **App Links:** only a custom scheme exists; no Android `intentFilters` or verified `assetlinks.json` configuration is present (`mobile/app.json:7`, `mobile/app.json:33`).
-- **Cleartext:** the TypeScript environment gate requires HTTPS outside development (`mobile/src/config/env.ts:14`). The release manifest/network-security behavior remains **unknown** until the generated project is checked.
-- **Metadata/assets:** no source launcher icon or store screenshot assets were found. Target audience, IARC content rating, support contact and store listing are **unknown/manual**.
-- **Supply chain:** npm reports 22 production-tree advisories. Upgrade only through an Expo-compatible resolution, then rerun audit, typecheck, build and device tests.
-- **Test quality:** local Laravel tests report 22 passed/235 assertions, but Linux CI reports 22 warnings/235 assertions. Resolve the environment-specific warning source before release-quality sign-off.
-- **UGC:** planned comments require terms acceptance, moderation, in-app reporting and blocking before exposure.
-- **Accessibility/contrast:** auth screens now handle safe areas, keyboard avoidance and accessibility metadata, but device evidence is absent. The orange/white primary action contrast is approximately `2.80:1` and awaits design approval rather than an unreviewed palette change.
-
-## Positive current evidence
-
-- **Observed:** no SMS/Call Log, background location, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`, accessibility-service, exact-alarm or install-package functionality is declared in source app configuration (`mobile/app.json:33`). Production merged-manifest verification is still required.
-- **Observed:** OTP is server/email based in the target architecture; no restricted SMS permission package is installed.
-- **Observed:** no Play Billing or external digital-unlock payment SDK is installed. Planned Shopee/TikTok/Lazada purchases are physical-goods handoffs and should not use Play Billing.
-- **Observed:** no keystore, service-account file or hardcoded credential exists under `mobile/`; root ignore rules cover common signing and secret formats (`.gitignore:1`, `.gitignore:12`).
-- **Observed:** the app uses SecureStore for session credentials and no WebView wrapper is present (`mobile/src/auth/session.ts:1`, `mobile/src/auth/session.ts:47`).
-
-## Unknown/manual checks
-
-- Play Console Data safety, Financial Features, target audience, IARC and account deletion declarations.
-- Developer account/organization status, Play App Signing, review credentials and staged rollout configuration.
-- Production merged manifest, target SDK, native library page alignment and cleartext setting.
-- Physical-device tests, Android 15/16 edge-to-edge behavior, accessibility and low-end performance.
-- Final App Links/assetlinks response and notification permission behavior after push is implemented.
-
-## Audit trail
-
-Applied on 2026-08-09: `playstore-review` with the July 2026 Google Play policy reference; `migrate-cashback-to-react-native`; `assess-react-native-migration`; `react-native-best-practices` including Android 16 KB guidance; and `react-navigation` safe-area guidance. This is a current-state audit, not a Play-readiness certification.
+Applied on 2026-08-09 using `playstore-review`, `migrate-cashback-to-react-native`, `assess-react-native-migration`, `react-native-best-practices` (including Android 16 KB guidance), and `react-navigation` safe-area guidance. Current verdict remains **NOT READY**.

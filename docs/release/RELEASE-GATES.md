@@ -4,23 +4,33 @@ Current verdicts:
 
 - [App Store current-state audit](APP-STORE-CURRENT-AUDIT.md): `NOT READY`
 - [Google Play current-state audit](PLAY-STORE-CURRENT-AUDIT.md): `NOT READY`
-- M0 and M1 remain open; foundation checks are not milestone completion evidence
+- M0 and M1 remain open; passing local foundation checks is not milestone completion evidence.
+- Production Open API remains disabled and must not be bypassed.
+- Local evidence source commit: `4fd38f7`; Laravel `60` tests / `606` assertions, mobile `30/30` contract tests, TypeScript typecheck, and Expo Doctor `18/18` passed. Strict idempotency replay preflight, payment-account log masking, and admin credential-reset token revocation are resolved locally.
 
-The IDs below match the operational release-gate register. A gate is complete only when source, generated artifact, device behavior and store-console evidence agree.
+An ID is complete only when source, tests, generated artifact, device behavior, and store-console evidence agree. Local checks do not substitute for staging, remote CI, signed artifact, or device evidence.
 
 | Gate ID | Status | Requirement | Current evidence / missing proof |
 | --- | --- | --- | --- |
-| `GATE-IOS-001` | Open | Sign in with Apple when Google/social login is offered | Neither native provider is implemented; server JWKS/nonce/`sub` verification and review evidence are missing. |
-| `GATE-IOS-002` | Open | In-app account deletion | Backend logging is hardened, but provider reauthentication, native flow, public deletion resource and retention disclosure are missing. |
-| `GATE-IOS-003` | Blocked | Privacy Policy, App Privacy, Privacy Manifest, Required Reason APIs, permissions and ATS artifact | ATS arbitrary loads are disabled in source; app manifest, declarations, generated `Info.plist`/archive and public policy remain missing. |
-| `GATE-IOS-004` | Open | UGC filtering, report, block and support contact if comments are exposed | UGC is not exposed; safeguards must exist before implementation is released. |
-| `GATE-IOS-005` | Open | Substantial native utility, universal links, metadata, screenshots and review resources | No WebView wrapper exists, but the app is still a foundation shell without device parity or reviewer resources. |
-| `GATE-AND-001` | Open | Data Safety and Financial Features declarations | SDK/API data inventory and Play Console declarations are not complete. |
-| `GATE-AND-002` | Open | In-app deletion plus public web deletion URL | Native flow, provider reauthentication, public URL and Console evidence are missing. |
-| `GATE-AND-003` | Blocked | Submission-date target API, merged manifest and cleartext behavior | No production artifact exists; API 36 timing must be rechecked at submission. |
-| `GATE-AND-004` | Blocked | Production AAB, Play App Signing, 16 KB compatibility, App Links and review rollout | No signed AAB or native-library scan exists; Asset Links and rollout evidence are missing. |
-| `GATE-BOTH-001` | Open | Correct physical-goods payment classification and truthful cashback claims | Physical-goods policy is documented; end-to-end marketplace flow, copy and terms are unverified. |
-| `GATE-BOTH-002` | Partial | Minimal permissions, HTTPS, credential hygiene and dependency/test quality | Source permissions/ATS and tracked secret scan pass at `8b81b53`; signed artifacts, npm remediation and Linux PHPUnit warning resolution remain open. |
-| `GATE-BOTH-003` | Open | No fake earnings, hidden features, incentivized reviews or dynamic native code | No prohibited behavior is present in the foundation; full product, metadata and remote-config audit remain open. |
+| `GATE-IOS-001` | Blocked | Sign in with Apple when Google/social login is offered | Laravel Apple exchange and verification are implemented with flags OFF; native Apple/Google client packages, owner credentials, staging test, and review evidence are missing. |
+| `GATE-IOS-002` | Blocked | In-app account deletion and public deletion resource | Native deletion UI exists, but public deletion URL, provider reauthentication on device, Apple grant revocation for password/Google-confirmed deletion, financial-ledger retention/anonymization, retained-data disclosure, and device evidence are missing. |
+| `GATE-IOS-003` | Blocked | Privacy Policy, App Privacy, Privacy Manifest, Required Reason APIs, permissions, and ATS | The public privacy page is reachable and source HTTPS/ATS safeguards exist, but in-app legal links, a dedicated public support/deletion resource, app Privacy Manifest, generated `Info.plist`/archive inspection, and declarations are incomplete. |
+| `GATE-IOS-004` | Open | UGC filtering, report, block, and support contact if comments are exposed | Comments/likes/shares are not yet released. Moderation, report/block/contact controls must be verified before UGC exposure. |
+| `GATE-IOS-005` | Blocked | Native utility, universal links, metadata, screenshots, and reviewer resources | Native MVP tabs/screens exist, but no device screenshots, AASA evidence, signed build, metadata, push setup, or review account is available. |
+| `GATE-AND-001` | Blocked | Data Safety and Financial Features declarations | API/SDK data inventory and Play Console declarations are incomplete; wallet/withdrawal scope requires an explicit Financial Features review. |
+| `GATE-AND-002` | Blocked | In-app deletion plus public web deletion URL | Native account deletion UI exists; public URL, provider reauthentication/disconnect evidence, financial-ledger retention/anonymization, retained-data disclosure, and Console evidence are missing. |
+| `GATE-AND-003` | Blocked | Submission-date target API, merged manifest, and cleartext behavior | No signed production artifact exists. Target API (API 35/36 deadline), merged manifest, and network-security evidence must be inspected at build time. |
+| `GATE-AND-004` | Blocked | Production AAB, Play App Signing, 16 KB compatibility, App Links, and rollout | No signed AAB, Play App Signing evidence, native-library 16 KB scan, verified `assetlinks.json`, or staged rollout evidence exists. |
+| `GATE-BOTH-001` | Open | Physical-goods payment classification and truthful cashback claims | Marketplace handoff is native and concerns physical goods; copy, terms, attribution, and end-to-end evidence remain unverified. |
+| `GATE-BOTH-002` | Partial | Minimal permissions, HTTPS, credential hygiene, and dependency/test quality | Local source checks, 60/606 Laravel tests, 30/30 mobile tests, typecheck, Expo Doctor 18/18, exports, and secret hygiene pass. Strict replay preflight, admin credential-reset token revocation, and payment-account log masking pass locally; 22 npm advisories, remote CI, signed artifacts, and device checks remain open. |
+| `GATE-BOTH-003` | Open | No fake earnings, hidden features, incentivized reviews, or dynamic native code | No prohibited behavior is present in the current source; complete product, metadata, remote-config, and reviewer-path audit remains open. |
 
-Open cross-cutting evidence also includes reviewer-accessible staging/production service, stable API envelopes/request IDs/pagination, complete OAuth, physical-device loading/offline/retry/session/accessibility tests, screenshot regression, performance measurements, support/review accounts and production monitoring/rollback.
+## Required Release Evidence
+
+- Reviewer-reachable staging or production API with feature flags, auth, throttle, logging, request IDs, rollback, and monitoring verified.
+- Native Google and Sign in with Apple clients, server verification, account linking, revoked-credential handling, and owner credentials.
+- In-app and public account deletion, Apple/provider disconnect behavior, financial-ledger retention/anonymization, privacy/support/legal links, data-retention disclosure, and support response process.
+- Push transport decision and evidence: use FCM for both platforms or approve an APNs bridge; provide Firebase/APNs/EAS configuration and verify registration/unregistration on physical devices.
+- iOS Privacy Manifest/Required Reason APIs, App Privacy answers, Android Data Safety/Financial Features answers, current target API, and minimal permissions.
+- AASA/Asset Links, push/APNs/Firebase setup, signed IPA/AAB, Play App Signing, 16 KB compatibility, and release metadata.
+- Physical iOS/Android screenshots for parity states, accessibility/font scaling, offline/retry/expired-session checks, performance baseline, and reviewer accounts.
