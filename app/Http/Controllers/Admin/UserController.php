@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\ActivityLog;
+use App\Models\ApiToken;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -584,9 +585,12 @@ class UserController extends Controller
             $user->email_verified_at = null;
         }
 
+        $shouldRevokeApiTokens = false;
+
         // Cập nhật mật khẩu nếu có nhập mới
         if ($request->filled('password')) {
             $user->password = \Illuminate\Support\Facades\Hash::make($request->password);
+            $shouldRevokeApiTokens = true;
             ActivityLog::log(__("Admin đặt lại mật khẩu mới cho User ID :id (:email)", ['id' => $user->id, 'email' => $user->email]), auth()->id());
         }
 
@@ -597,12 +601,17 @@ class UserController extends Controller
         if ($request->has('reset_2fa')) {
             $user->google2fa_enabled = false;
             $user->google2fa_secret = null;
+            $shouldRevokeApiTokens = true;
             ActivityLog::log(__("Admin xoá khoá bí mật 2FA của User ID :id (:email)", ['id' => $user->id, 'email' => $user->email]), auth()->id());
         } else {
             $user->google2fa_enabled = $request->has('google2fa_enabled');
         }
 
         $user->save();
+
+        if ($user->status === 'suspended' || $shouldRevokeApiTokens) {
+            ApiToken::where('user_id', $user->id)->delete();
+        }
 
         ActivityLog::log(__("Cập nhật thông tin chi tiết User ID :id (:email)", ['id' => $user->id, 'email' => $user->email]), auth()->id());
 
@@ -1062,6 +1071,7 @@ class UserController extends Controller
 
                 // Xóa các session đang hoạt động của người dùng này
                 DB::table('sessions')->where('user_id', $userModel->id)->delete();
+                ApiToken::where('user_id', $userModel->id)->delete();
 
                 // 4. Thực hiện xóa bản ghi người dùng (DB sẽ tự động cascade xóa cashback_histories, withdrawals, referrals, referral_commissions, daily_checkins, notifications, balance_logs, short_links...)
                 $userModel->delete();
@@ -1128,6 +1138,7 @@ class UserController extends Controller
 
                     // Xóa các session đang hoạt động của người dùng này
                     DB::table('sessions')->where('user_id', $userModel->id)->delete();
+                    ApiToken::where('user_id', $userModel->id)->delete();
 
                     // Thực hiện xóa bản ghi người dùng
                     $userModel->delete();

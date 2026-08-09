@@ -25,6 +25,10 @@ function loadTypeScriptModule(filePath) {
 
 const parserPath = path.resolve(__dirname, "../src/api/authContract.ts");
 const { AuthContractError, parseLoginResult, requireAuthenticated } = loadTypeScriptModule(parserPath);
+const apiContractPath = path.resolve(__dirname, "../src/api/contract.ts");
+const { normalizeApiFailure, normalizeApiSuccess } = loadTypeScriptModule(apiContractPath);
+const idempotencyPath = path.resolve(__dirname, "../src/api/idempotency.ts");
+const { createIdempotentVariables, idempotencyHeaders } = loadTypeScriptModule(idempotencyPath);
 const now = Date.parse("2026-08-09T00:00:00.000Z");
 const futureExpiry = "2026-08-10T00:00:00.000Z";
 const user = { id: 42, name: "Member", email: "member@example.test" };
@@ -95,4 +99,64 @@ test("rejects missing tokens, expired tokens, and malformed continuations", () =
     challenge_token: "challenge",
     methods: ["email_otp"]
   }, now), AuthContractError);
+});
+
+test("normalizes API success envelopes without dropping server metadata", () => {
+  assert.deepEqual(normalizeApiSuccess({
+    success: true,
+    message: "Saved",
+    code: "SAVED",
+    request_id: "req-42",
+    data: { id: 42 }
+  }), {
+    success: true,
+    message: "Saved",
+    code: "SAVED",
+    requestId: "req-42",
+    data: { id: 42 }
+  });
+
+  assert.deepEqual(normalizeApiSuccess({ success: true, message: "Done" }), {
+    success: true,
+    message: "Done",
+    code: undefined,
+    requestId: undefined,
+    data: undefined
+  });
+});
+
+test("normalizes Laravel field errors", () => {
+  assert.deepEqual(normalizeApiFailure({
+    message: "Invalid data",
+    code: "VALIDATION_ERROR",
+    request_id: "req-43",
+    errors: {
+      email: ["Email is required"],
+      password: "Password is too short",
+      ignored: [42]
+    }
+  }, "Fallback"), {
+    message: "Invalid data",
+    code: "VALIDATION_ERROR",
+    requestId: "req-43",
+    errors: {
+      email: ["Email is required"],
+      password: ["Password is too short"]
+    }
+  });
+});
+
+test("creates idempotent mutation variables whose key survives retries", () => {
+  const variables = createIdempotentVariables("withdrawal.create", { amount: 50000 });
+  const retryVariables = variables;
+
+  assert.equal(retryVariables.idempotencyKey, variables.idempotencyKey);
+  assert.match(variables.idempotencyKey, /^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/);
+  assert.deepEqual(idempotencyHeaders(variables.idempotencyKey), {
+    "Idempotency-Key": variables.idempotencyKey
+  });
+  assert.notEqual(
+    createIdempotentVariables("withdrawal.create", { amount: 50000 }).idempotencyKey,
+    variables.idempotencyKey
+  );
 });

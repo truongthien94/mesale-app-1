@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Exceptions\NativeOAuthVerificationException;
 use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\ApiToken;
 use App\Models\CashbackHistory;
+use App\Models\Currency;
+use App\Models\Language;
 use App\Models\Setting;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Services\NativeOAuthTokenVerifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,6 +51,7 @@ class AccountController extends ApiController
             'referral_code' => $user->referral_code,
             'status' => $user->status,
             'email_verified' => ! is_null($user->email_verified_at),
+            'preferences' => $this->preferencesFor($user),
             'wallet' => [
                 // Số dư khả dụng có thể rút
                 'balance' => (int) MoneyHelper::round($user->balance),
@@ -65,6 +70,75 @@ class AccountController extends ApiController
             ],
             'created_at' => optional($user->created_at)->toIso8601String(),
         ]);
+    }
+
+    /**
+     * POST /api/v1/openapi/account/preferences
+     * Persist the member's display preferences without changing wallet accounting currency.
+     */
+    public function updatePreferences(Request $request): JsonResponse
+    {
+        if ($request->exists('locale') && is_string($request->input('locale'))) {
+            $request->merge(['locale' => trim($request->input('locale'))]);
+        }
+
+        if ($request->exists('currency') && is_string($request->input('currency'))) {
+            $request->merge(['currency' => strtoupper(trim($request->input('currency')))]);
+        }
+
+        try {
+            $validated = $request->validate([
+                'locale' => 'required_without:currency|string|max:10',
+                'currency' => 'required_without:locale|string|max:10',
+            ]);
+
+            $language = null;
+            if (array_key_exists('locale', $validated)) {
+                $language = Language::query()
+                    ->where('code', $validated['locale'])
+                    ->where('is_active', true)
+                    ->first();
+
+                if (! $language) {
+                    throw ValidationException::withMessages([
+                        'locale' => [__('Ngôn ngữ đã chọn hiện không khả dụng.')],
+                    ]);
+                }
+            }
+
+            $currency = null;
+            if (array_key_exists('currency', $validated)) {
+                $currency = Currency::query()
+                    ->where('code', $validated['currency'])
+                    ->where('is_active', true)
+                    ->first();
+
+                if (! $currency) {
+                    throw ValidationException::withMessages([
+                        'currency' => [__('Tiền tệ đã chọn hiện không khả dụng.')],
+                    ]);
+                }
+            }
+        } catch (ValidationException $e) {
+            return $this->fail(__('Dữ liệu tùy chọn không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
+        }
+
+        $user = $this->apiUser($request);
+
+        if ($language) {
+            $user->locale = $language->code;
+        }
+
+        if ($currency) {
+            $user->currency = $currency->code;
+        }
+
+        $user->save();
+
+        return $this->ok(
+            $this->preferencesFor($user->refresh()),
+            __('Cập nhật tùy chọn hiển thị thành công!')
+        );
     }
 
     /**
@@ -147,7 +221,7 @@ class AccountController extends ApiController
      * Thành viên tự xóa vĩnh viễn tài khoản (yêu cầu bắt buộc của App Store / Google Play).
      * Cho phép xóa dù còn số dư; audit sau xóa chỉ giữ mã đối soát, không giữ email hay số dư.
      */
-    public function deleteAccount(Request $request): JsonResponse
+    public function deleteAccount(Request $request, NativeOAuthTokenVerifier $oauthVerifier): JsonResponse
     {
         if (config('app.demo')) {
             return $this->fail(__('Chức năng này bị vô hiệu hóa trong chế độ Demo.'), 403, 'DEMO_DISABLED');
@@ -160,9 +234,33 @@ class AccountController extends ApiController
 
         $user = $this->apiUser($request);
 
-        $confirmationFailure = $this->validateDeletionConfirmation($request, $user);
+        $confirmationFailure = $this->validateDeletionConfirmation($request, $user, $oauthVerifier);
         if ($confirmationFailure !== null) {
             return $confirmationFailure;
+        }
+
+        $appleRefreshToken = $request->attributes->get('apple_refresh_token');
+        if (is_string($appleRefreshToken) && $appleRefreshToken !== '') {
+            try {
+                $oauthVerifier->revokeAppleRefreshToken(
+                    $appleRefreshToken,
+                    $request->attributes->get('apple_oauth_audience')
+                );
+            } catch (NativeOAuthVerificationException $e) {
+                Log::warning('Apple provider disconnect failed before account deletion.', [
+                    'user_id' => $user->id,
+                    'error_code' => $e->errorCode,
+                ]);
+
+                return $this->fail(
+                    __('Không thể ngắt liên kết Sign in with Apple vào lúc này. Tài khoản chưa bị xóa; vui lòng thử lại sau.'),
+                    503,
+                    'APPLE_PROVIDER_DISCONNECT_FAILED'
+                );
+            } finally {
+                $request->attributes->remove('apple_refresh_token');
+                $request->attributes->remove('apple_oauth_audience');
+            }
         }
 
         $deletionReference = (string) Str::uuid();
@@ -214,16 +312,26 @@ class AccountController extends ApiController
     }
 
     /**
-     * Password accounts always require their password. Passwordless/provider-only
-     * accounts remain blocked until a server-verified provider re-auth proof exists.
+     * Require either the local password or a fresh credential for a linked provider.
      */
-    private function validateDeletionConfirmation(Request $request, User $user): ?JsonResponse
-    {
+    private function validateDeletionConfirmation(
+        Request $request,
+        User $user,
+        NativeOAuthTokenVerifier $oauthVerifier
+    ): ?JsonResponse {
         $passwordHash = $user->getRawOriginal('password');
         $hasLocalPassword = is_string($passwordHash) && trim($passwordHash) !== '';
 
         if ($hasLocalPassword) {
-            if (! $request->filled('password') && ! empty($user->google_id)) {
+            if (! $request->filled('password') && $request->filled('google_id_token')) {
+                return $this->validateGoogleDeletionCredential($request, $user, $oauthVerifier);
+            }
+
+            if (! $request->filled('password') && $request->filled('apple_identity_token')) {
+                return $this->validateAppleDeletionCredential($request, $user, $oauthVerifier);
+            }
+
+            if (! $request->filled('password') && (! empty($user->google_id) || ! empty($user->apple_id))) {
                 return $this->fail(
                     __('Vui lòng nhập mật khẩu hiện tại hoặc đăng nhập lại bằng nhà cung cấp danh tính đã liên kết trước khi xóa tài khoản.'),
                     403,
@@ -246,12 +354,171 @@ class AccountController extends ApiController
             return null;
         }
 
-        // Provider proof validation is intentionally not guessed here. The native OAuth
-        // re-authentication endpoint must issue a server-verifiable proof before this path can delete.
+        if ($request->filled('google_id_token')) {
+            return $this->validateGoogleDeletionCredential($request, $user, $oauthVerifier);
+        }
+
+        if ($request->filled('apple_identity_token')) {
+            return $this->validateAppleDeletionCredential($request, $user, $oauthVerifier);
+        }
+
         return $this->fail(
             __('Vui lòng đăng nhập lại bằng nhà cung cấp danh tính đã liên kết trước khi xóa tài khoản.'),
             403,
             'PROVIDER_REAUTHENTICATION_REQUIRED'
         );
+    }
+
+    private function validateGoogleDeletionCredential(
+        Request $request,
+        User $user,
+        NativeOAuthTokenVerifier $oauthVerifier
+    ): ?JsonResponse {
+        if (empty($user->google_id)) {
+            return $this->fail(
+                __('Tài khoản này chưa liên kết với Google.'),
+                403,
+                'OAUTH_IDENTITY_NOT_LINKED'
+            );
+        }
+
+        try {
+            $validated = $request->validate([
+                'google_id_token' => 'required|string|max:10000',
+            ]);
+        } catch (ValidationException $e) {
+            return $this->fail(__('Dữ liệu xác minh Google không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
+        }
+
+        try {
+            $identity = $oauthVerifier->verifyGoogle($validated['google_id_token']);
+        } catch (NativeOAuthVerificationException $e) {
+            $message = $e->httpStatus === 503
+                ? __('Không thể xác minh Google vào lúc này. Vui lòng thử lại sau.')
+                : __('Thông tin xác minh Google không hợp lệ hoặc đã hết hạn.');
+
+            return $this->fail($message, $e->httpStatus, $e->errorCode);
+        }
+
+        if (! hash_equals((string) $user->google_id, $identity['sub'])) {
+            return $this->fail(
+                __('Tài khoản Google xác minh không khớp với tài khoản đang đăng nhập.'),
+                403,
+                'OAUTH_IDENTITY_MISMATCH'
+            );
+        }
+
+        if (User::where('google_id', $identity['sub'])->where('id', '!=', $user->id)->exists()) {
+            return $this->fail(
+                __('Danh tính Google này đang liên kết không nhất quán. Vui lòng liên hệ hỗ trợ.'),
+                409,
+                'OAUTH_IDENTITY_AMBIGUOUS'
+            );
+        }
+
+        return null;
+    }
+
+    private function validateAppleDeletionCredential(
+        Request $request,
+        User $user,
+        NativeOAuthTokenVerifier $oauthVerifier
+    ): ?JsonResponse {
+        if (empty($user->apple_id)) {
+            return $this->fail(
+                __('Tài khoản này chưa liên kết với Apple.'),
+                403,
+                'OAUTH_IDENTITY_NOT_LINKED'
+            );
+        }
+
+        try {
+            $validated = $request->validate([
+                'apple_identity_token' => 'required|string|max:10000',
+                'apple_authorization_code' => 'required|string|max:2048',
+                'apple_nonce' => 'required|string|min:16|max:512',
+            ]);
+        } catch (ValidationException $e) {
+            return $this->fail(__('Dữ liệu xác minh Apple không hợp lệ.'), 422, 'VALIDATION_ERROR', $e->errors());
+        }
+
+        try {
+            $identity = $oauthVerifier->verifyApple(
+                $validated['apple_identity_token'],
+                $validated['apple_nonce'],
+                $validated['apple_authorization_code']
+            );
+        } catch (NativeOAuthVerificationException $e) {
+            $message = $e->httpStatus === 503
+                ? __('Không thể xác minh Apple vào lúc này. Vui lòng thử lại sau.')
+                : __('Thông tin xác minh Apple không hợp lệ, đã hết hạn hoặc đã được sử dụng.');
+
+            return $this->fail($message, $e->httpStatus, $e->errorCode);
+        }
+
+        if (! hash_equals((string) $user->apple_id, $identity['sub'])) {
+            return $this->fail(
+                __('Tài khoản Apple xác minh không khớp với tài khoản đang đăng nhập.'),
+                403,
+                'OAUTH_IDENTITY_MISMATCH'
+            );
+        }
+
+        if (User::where('apple_id', $identity['sub'])->where('id', '!=', $user->id)->exists()) {
+            return $this->fail(
+                __('Danh tính Apple này đang liên kết không nhất quán. Vui lòng liên hệ hỗ trợ.'),
+                409,
+                'OAUTH_IDENTITY_AMBIGUOUS'
+            );
+        }
+
+        $refreshToken = $identity['provider_refresh_token'] ?? null;
+        if (! is_string($refreshToken) || trim($refreshToken) === '') {
+            return $this->fail(
+                __('Không thể chuẩn bị ngắt liên kết Sign in with Apple. Tài khoản chưa bị xóa; vui lòng thử lại.'),
+                503,
+                'APPLE_PROVIDER_DISCONNECT_FAILED'
+            );
+        }
+
+        $request->attributes->set('apple_refresh_token', trim($refreshToken));
+        $request->attributes->set('apple_oauth_audience', $identity['audience'] ?? null);
+
+        return null;
+    }
+
+    /**
+     * Return active stored preferences, falling back to the same dynamic defaults as the web app.
+     *
+     * @return array{locale: string, currency: string}
+     */
+    private function preferencesFor(User $user): array
+    {
+        $locale = null;
+        if (is_string($user->locale) && $user->locale !== '') {
+            $locale = Language::query()
+                ->where('code', $user->locale)
+                ->where('is_active', true)
+                ->value('code');
+        }
+
+        $currency = null;
+        if (is_string($user->currency) && $user->currency !== '') {
+            $currency = Currency::query()
+                ->where('code', $user->currency)
+                ->where('is_active', true)
+                ->value('code');
+        }
+
+        return [
+            'locale' => $locale ?: Language::query()
+                ->where('is_active', true)
+                ->where('is_default', true)
+                ->value('code') ?: config('app.locale', 'vi'),
+            'currency' => $currency ?: Currency::query()
+                ->where('is_active', true)
+                ->where('is_default', true)
+                ->value('code') ?: 'VND',
+        ];
     }
 }

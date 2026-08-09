@@ -4,6 +4,31 @@ export type User = {
   id: number;
   name?: string | null;
   email?: string | null;
+  phone?: string | null;
+  avatar?: string | null;
+  referral_code?: string | null;
+  status?: string | null;
+  email_verified?: boolean;
+  preferences?: {
+    locale: string;
+    currency: string;
+  };
+  wallet?: {
+    balance: number;
+    total_cashback: number;
+    total_referral_earned: number;
+    total_withdrawn: number;
+    currency: string;
+  };
+  stats?: {
+    orders_total: number;
+    orders_pending: number;
+    orders_approved: number;
+    orders_rejected: number;
+    referrals_count: number;
+    withdrawals_pending: number;
+  };
+  created_at?: string | null;
 };
 
 export type AuthenticatedAuthResult = {
@@ -53,11 +78,18 @@ function parseUser(value: unknown): User {
   if (value.email !== undefined && value.email !== null && typeof value.email !== "string") {
     throw new AuthContractError("The authentication response included an invalid user email.");
   }
-  return {
+  const user: User = {
     id: value.id,
     name: value.name as string | null | undefined,
     email: value.email as string | null | undefined
   };
+  if (typeof value.phone === "string" || value.phone === null) user.phone = value.phone;
+  if (typeof value.avatar === "string" || value.avatar === null) user.avatar = value.avatar;
+  if (typeof value.referral_code === "string" || value.referral_code === null) user.referral_code = value.referral_code;
+  if (typeof value.status === "string" || value.status === null) user.status = value.status;
+  if (typeof value.email_verified === "boolean") user.email_verified = value.email_verified;
+  if (typeof value.created_at === "string" || value.created_at === null) user.created_at = value.created_at;
+  return user;
 }
 
 function parseExpiry(value: unknown, now: number): string | undefined {

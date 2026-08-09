@@ -24,7 +24,6 @@ class CouponController extends ApiController
         }
 
         $query = Coupon::query()
-            ->where('platform', 'shopee')
             ->where(function ($q) {
                 $q->whereNull('expired_at')->orWhere('expired_at', '>=', now());
             });
@@ -46,11 +45,17 @@ class CouponController extends ApiController
         $perPage = max(1, min((int) $request->query('per_page', 12), 50));
         $coupons = $query->orderByDesc('created_at')->paginate($perPage);
 
-        // Danh mục coupon Shopee còn hiệu lực để App dựng bộ lọc
-        $categories = Coupon::where('platform', 'shopee')
+        // Danh mục coupon còn hiệu lực theo sàn đang chọn
+        $categoryQuery = Coupon::query()
             ->where(function ($q) {
                 $q->whereNull('expired_at')->orWhere('expired_at', '>=', now());
-            })
+            });
+
+        if ($platform && $platform !== 'all') {
+            $categoryQuery->where('platform', $platform);
+        }
+
+        $categories = $categoryQuery
             ->whereNotNull('category')->where('category', '!=', '')
             ->distinct()->pluck('category')->values();
 

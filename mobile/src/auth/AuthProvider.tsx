@@ -1,17 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
+  register as registerRequest,
   resendEmailVerification as resendEmailVerificationRequest,
   resendTwoFactorOtp as resendTwoFactorOtpRequest,
   verifyEmail as verifyEmailRequest,
   verifyTwoFactor as verifyTwoFactorRequest,
   type AuthContinuation,
+  type RegisterPayload,
   type TwoFactorCodes,
   type User
 } from "@/api/auth";
 import type { AuthenticatedAuthResult } from "@/api/authContract";
+import { clearAppQueryCache } from "@/api/queryClient";
 import { clearSession, clearSessionIfTokenMatches, loadSession, onSessionInvalidated, saveSession, type Session } from "@/auth/session";
 
 type AuthContextValue = {
@@ -20,17 +24,21 @@ type AuthContextValue = {
   session: Session | null;
   user: User | null;
   login(email: string, password: string): Promise<void>;
+  register(payload: RegisterPayload): Promise<void>;
   verifyEmail(otpCode: string): Promise<void>;
   resendEmailVerification(): Promise<void>;
   verifyTwoFactor(codes: TwoFactorCodes): Promise<void>;
   resendTwoFactorOtp(): Promise<void>;
   cancelAuthContinuation(): void;
+  refreshUser(): Promise<void>;
+  completeAccountDeletion(): Promise<void>;
   logout(): Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const queryClient = useQueryClient();
   const [isLoading, setLoading] = useState(true);
   const [pendingAuth, setPendingAuth] = useState<AuthContinuation | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -69,14 +77,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => onSessionInvalidated(() => {
+    clearAppQueryCache(queryClient);
     authRevision.current += 1;
     setPendingAuth(null);
     setSession(null);
     setUser(null);
-  }), []);
+  }), [queryClient]);
 
   const acceptAuthenticated = useCallback(async (result: AuthenticatedAuthResult, revision: number) => {
     if (authRevision.current !== revision) return;
+    clearAppQueryCache(queryClient);
     await saveSession(result.session);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(result.session.accessToken);
@@ -86,12 +96,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setSession(result.session);
     setUser(result.user);
     setLoading(false);
-  }, []);
+  }, [queryClient]);
 
   const login = useCallback(async (email: string, password: string) => {
     const revision = ++authRevision.current;
     setPendingAuth(null);
     const result = await loginRequest(email, password);
+    if (authRevision.current !== revision) return;
+    if (result.kind === "authenticated") {
+      await acceptAuthenticated(result, revision);
+      return;
+    }
+    setPendingAuth(result);
+    setLoading(false);
+  }, [acceptAuthenticated]);
+
+  const register = useCallback(async (payload: RegisterPayload) => {
+    const revision = ++authRevision.current;
+    setPendingAuth(null);
+    const result = await registerRequest(payload);
     if (authRevision.current !== revision) return;
     if (result.kind === "authenticated") {
       await acceptAuthenticated(result, revision);
@@ -132,13 +155,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setPendingAuth(null);
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const revision = authRevision.current;
+    const refreshedUser = await getCurrentUser();
+    if (authRevision.current === revision) setUser(refreshedUser);
+  }, []);
+
+  const completeAccountDeletion = useCallback(async () => {
+    authRevision.current += 1;
+    clearAppQueryCache(queryClient);
+    await clearSession();
+    setPendingAuth(null);
+    setSession(null);
+    setUser(null);
+    setLoading(false);
+  }, [queryClient]);
+
   const logout = useCallback(async () => {
     const logoutRevision = ++authRevision.current;
+    clearAppQueryCache(queryClient);
     try {
       if (session) await logoutRequest();
     } finally {
       if (authRevision.current === logoutRevision) {
         try {
+          clearAppQueryCache(queryClient);
           await clearSession();
         } finally {
           setPendingAuth(null);
@@ -148,7 +189,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       }
     }
-  }, [session]);
+  }, [queryClient, session]);
 
   const value = useMemo(() => ({
     isLoading,
@@ -156,11 +197,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     user,
     login,
+    register,
     verifyEmail,
     resendEmailVerification,
     verifyTwoFactor,
     resendTwoFactorOtp,
     cancelAuthContinuation,
+    refreshUser,
+    completeAccountDeletion,
     logout
   }), [
     isLoading,
@@ -168,11 +212,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     session,
     user,
     login,
+    register,
     verifyEmail,
     resendEmailVerification,
     verifyTwoFactor,
     resendTwoFactorOtp,
     cancelAuthContinuation,
+    refreshUser,
+    completeAccountDeletion,
     logout
   ]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

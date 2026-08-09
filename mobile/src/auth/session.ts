@@ -27,7 +27,9 @@ function isSession(value: unknown): value is Session {
 
 export async function loadSession(): Promise<Session | null> {
   if (Platform.OS === "web") return null;
+  const observedRevision = sessionStorageRevision;
   const raw = await SecureStore.getItemAsync(sessionStorageKey);
+  if (sessionStorageRevision !== observedRevision) return loadSession();
   if (!raw) return null;
   try {
     const value: unknown = JSON.parse(raw);
@@ -36,8 +38,20 @@ export async function loadSession(): Promise<Session | null> {
     // The invalid value is removed below so it cannot break every app launch.
   }
 
-  await clearSession();
+  await invalidateStoredSession(observedRevision);
   return null;
+}
+
+async function invalidateStoredSession(observedRevision: number): Promise<boolean> {
+  if (sessionStorageRevision !== observedRevision) return false;
+
+  sessionStorageRevision += 1;
+  const invalidationRevision = sessionStorageRevision;
+  await SecureStore.deleteItemAsync(sessionStorageKey);
+  if (sessionStorageRevision !== invalidationRevision) return false;
+
+  notifySessionInvalidated();
+  return true;
 }
 
 export async function saveSession(session: Session): Promise<void> {

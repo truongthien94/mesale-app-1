@@ -56,6 +56,9 @@ class ConfigController extends ApiController
                 'tiktok_enabled' => Setting::getVal('tiktok_status', '1') === '1',
                 'tiktok_rate' => (float) Setting::getVal('tiktok_cashback_rate', 0),
                 'tiktok_notice' => Setting::getVal('hp_cashback_notice_tiktok', ''),
+                'lazada_enabled' => Setting::getVal('lazada_status', '0') === '1',
+                'lazada_rate' => (float) Setting::getVal('lazada_cashback_rate', 0),
+                'lazada_notice' => Setting::getVal('hp_cashback_notice_lazada', ''),
             ],
             'withdraw' => [
                 'enabled' => Setting::getVal('withdrawal_enabled', '1') === '1',
@@ -90,6 +93,8 @@ class ConfigController extends ApiController
                 'tasks_enabled' => Setting::getVal('tasks_enabled', '0') === '1',
                 // Cờ bật/tắt từng nhóm Open API để App ẩn tính năng chưa mở
                 'api_auth' => Setting::getVal('openapi_auth_status', '1') === '1',
+                'api_auth_oauth_google' => Setting::getVal('openapi_auth_oauth_google_status', '0') === '1',
+                'api_auth_oauth_apple' => Setting::getVal('openapi_auth_oauth_apple_status', '0') === '1',
                 'api_cashback_link' => Setting::getVal('openapi_cashback_link_status', '1') === '1',
                 'api_orders' => Setting::getVal('openapi_orders_status', '1') === '1',
                 'api_withdraw' => Setting::getVal('openapi_withdraw_status', '1') === '1',

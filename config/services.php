@@ -39,6 +39,28 @@ return [
         'api_key' => env('RIOHUB_API_KEY'),
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI'),
+        'jwks_url' => 'https://www.googleapis.com/oauth2/v3/certs',
+    ],
+
+    'apple' => [
+        'client_ids' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('APPLE_OAUTH_AUDIENCES', ''))
+        ))),
+        'team_id' => env('APPLE_TEAM_ID'),
+        'key_id' => env('APPLE_KEY_ID'),
+        'private_key' => env('APPLE_PRIVATE_KEY'),
+        'private_key_path' => env('APPLE_PRIVATE_KEY_PATH'),
+        'redirect_uri' => env('APPLE_REDIRECT_URI'),
+        'jwks_url' => 'https://appleid.apple.com/auth/keys',
+        'token_url' => 'https://appleid.apple.com/auth/token',
+        'revoke_url' => env('APPLE_REVOKE_URL', 'https://appleid.apple.com/auth/revoke'),
+    ],
+
     'lazada' => [
         'user_token' => env('LAZADA_USER_TOKEN'),
         'api_url' => env('LAZADA_API_URL', 'https://api.lazada.vn/rest'),

@@ -7,6 +7,7 @@ use App\Models\BalanceLog;
 use App\Models\Setting;
 use App\Models\Task;
 use App\Models\UserTask;
+use App\Services\FinancialIdempotencyService;
 use App\Services\TaskService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -130,8 +131,20 @@ class TaskController extends ApiController
      * POST /api/v1/openapi/tasks/{task}/claim
      * Nhận thưởng sau khi hoàn thành nhiệm vụ (chạy trong giao dịch khóa dòng).
      */
-    public function claim(Request $request, Task $task): JsonResponse
+    public function claim(Request $request, Task $task, FinancialIdempotencyService $idempotency): JsonResponse
     {
+        $user = $this->apiUser($request);
+        $idempotencyPayload = ['task_id' => (int) $task->id];
+        $existingResult = $idempotency->replayIfPresent(
+            (int) $user->id,
+            'task.claim',
+            (string) $request->attributes->get('idempotency_key'),
+            $idempotencyPayload
+        );
+        if ($existingResult !== null) {
+            return $this->claimResponse($existingResult);
+        }
+
         if ($resp = $this->ensureFeatureEnabled()) {
             return $resp;
         }
@@ -140,15 +153,54 @@ class TaskController extends ApiController
             return $this->fail(__('Nhiệm vụ này không còn hoạt động.'), 404, 'TASK_UNAVAILABLE');
         }
 
-        $result = $this->taskService->claimReward($this->apiUser($request), $task);
+        $claimMessage = null;
 
-        if (! ($result['success'] ?? false)) {
-            return $this->fail($result['message'] ?? __('Không thể nhận thưởng.'), 400, 'CLAIM_FAILED');
+        $result = $idempotency->execute(
+            (int) $user->id,
+            'task.claim',
+            (string) $request->attributes->get('idempotency_key'),
+            $idempotencyPayload,
+            function () use ($user, $task, &$claimMessage): array {
+                $claim = $this->taskService->claimReward($user, $task);
+                $claimMessage = $claim['message'] ?? null;
+
+                return [
+                    'status' => ($claim['success'] ?? false) ? 200 : 400,
+                    'data' => [
+                        'amount' => (int) MoneyHelper::round($claim['amount'] ?? 0),
+                        '_claim_error' => ($claim['success'] ?? false)
+                            ? null
+                            : ($claim['message'] ?? __('Không thể nhận thưởng.')),
+                    ],
+                ];
+            }
+        );
+
+        return $this->claimResponse($result, $claimMessage);
+    }
+
+    private function claimResponse(array $result, ?string $claimMessage = null): JsonResponse
+    {
+        if ($result['outcome'] === FinancialIdempotencyService::OUTCOME_CONFLICT) {
+            return $this->fail(__('Idempotency-Key đã được sử dụng với dữ liệu khác.'), 409, 'IDEMPOTENCY_KEY_REUSED');
+        }
+        if ($result['outcome'] === FinancialIdempotencyService::OUTCOME_IN_PROGRESS) {
+            return $this->fail(__('Yêu cầu cùng Idempotency-Key đang được xử lý.'), 409, 'IDEMPOTENCY_REQUEST_IN_PROGRESS');
+        }
+
+        $claimError = $result['data']['_claim_error'] ?? null;
+        unset($result['data']['_claim_error']);
+
+        if (is_string($claimError) && $claimError !== '') {
+            return $this->fail($claimError, $result['status'], 'CLAIM_FAILED');
         }
 
         return $this->ok(
-            ['amount' => (int) MoneyHelper::round($result['amount'] ?? 0)],
-            $result['message'] ?? null
+            $result['data'],
+            $claimMessage ?? __('Nhận thưởng thành công! +:amount đ đã được cộng vào ví.', [
+                'amount' => number_format($result['data']['amount']),
+            ]),
+            $result['status']
         );
     }
 

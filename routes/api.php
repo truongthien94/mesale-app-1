@@ -3,8 +3,8 @@
 use App\Http\Controllers\Api\V1\AccountController;
 use App\Http\Controllers\Api\V1\ActivityLogController;
 use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\Bot\OrderController as BotOrderController;
 use App\Http\Controllers\Api\V1\BalanceLogController;
+use App\Http\Controllers\Api\V1\Bot\OrderController as BotOrderController;
 use App\Http\Controllers\Api\V1\CashbackController;
 use App\Http\Controllers\Api\V1\CheckinController;
 use App\Http\Controllers\Api\V1\ConfigController;
@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\GiftCodeController;
 use App\Http\Controllers\Api\V1\GiftController;
+use App\Http\Controllers\Api\V1\NativeOAuthController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
 use App\Http\Controllers\Api\V1\PageController;
@@ -60,6 +61,10 @@ Route::prefix('v1/openapi')
                 // Siết chặt tần suất cho các endpoint nhạy cảm về bảo mật
                 Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
                 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+                Route::post('oauth/google', [NativeOAuthController::class, 'google'])
+                    ->middleware(['api.enabled:auth_oauth_google', 'throttle:10,1']);
+                Route::post('oauth/apple', [NativeOAuthController::class, 'apple'])
+                    ->middleware(['api.enabled:auth_oauth_apple', 'throttle:10,1']);
                 // Bước 2 cho tài khoản bật bảo mật 2 lớp (2FA)
                 Route::post('login/2fa', [AuthController::class, 'loginTwoFactor'])->middleware('throttle:10,1');
                 Route::post('login/2fa/resend', [AuthController::class, 'resendTwoFactorOtp'])->middleware('throttle:5,1');
@@ -72,8 +77,6 @@ Route::prefix('v1/openapi')
                 Route::post('logout', [AuthController::class, 'logout'])->middleware('api.auth');
             });
 
-
-
         // === Các endpoint yêu cầu xác thực token Bearer của phiên đăng nhập ===
         Route::middleware('api.auth')->group(function () {
 
@@ -81,6 +84,7 @@ Route::prefix('v1/openapi')
             Route::middleware('api.enabled:profile')->group(function () {
                 Route::get('account', [AccountController::class, 'show']);
                 Route::post('account/profile', [AccountController::class, 'updateProfile']);
+                Route::post('account/preferences', [AccountController::class, 'updatePreferences']);
                 Route::post('account/password', [AccountController::class, 'changePassword'])->middleware('throttle:10,1');
                 Route::post('account/delete', [AccountController::class, 'deleteAccount'])->middleware('throttle:5,1');
             });
@@ -134,7 +138,7 @@ Route::prefix('v1/openapi')
 
             // Nhập Giftcode nhận thưởng
             Route::middleware('api.enabled:giftcode')->group(function () {
-                Route::post('giftcode/redeem', [GiftCodeController::class, 'redeem'])->middleware('throttle:10,1');
+                Route::post('giftcode/redeem', [GiftCodeController::class, 'redeem'])->middleware(['idempotency.key', 'throttle:10,1']);
             });
 
             // Sản phẩm đã lưu (mua sau)
@@ -189,7 +193,7 @@ Route::prefix('v1/openapi')
             // Sổ tài khoản nhận tiền (lưu, liệt kê, đặt mặc định, xóa)
             Route::middleware('api.enabled:payment_accounts')->group(function () {
                 Route::get('payment-accounts', [PaymentAccountController::class, 'index']);
-                Route::post('payment-accounts', [PaymentAccountController::class, 'store'])->middleware('throttle:20,1');
+                Route::post('payment-accounts', [PaymentAccountController::class, 'store'])->middleware(['idempotency.key', 'throttle:20,1']);
                 Route::post('payment-accounts/{id}/default', [PaymentAccountController::class, 'setDefault'])->whereNumber('id');
                 Route::delete('payment-accounts/{id}', [PaymentAccountController::class, 'destroy'])->whereNumber('id');
             });
@@ -198,7 +202,7 @@ Route::prefix('v1/openapi')
             Route::middleware('api.enabled:tasks')->group(function () {
                 Route::get('tasks', [TaskController::class, 'index']);
                 Route::get('tasks/{task}/sync', [TaskController::class, 'sync'])->whereNumber('task')->middleware('throttle:30,1');
-                Route::post('tasks/{task}/claim', [TaskController::class, 'claim'])->whereNumber('task')->middleware('throttle:20,1');
+                Route::post('tasks/{task}/claim', [TaskController::class, 'claim'])->whereNumber('task')->middleware(['idempotency.key', 'throttle:20,1']);
                 // Gửi yêu cầu xác nhận đã hoàn thành nhiệm vụ thủ công để chờ Admin duyệt
                 Route::post('tasks/{task}/submit', [TaskController::class, 'submit'])->whereNumber('task')->middleware('throttle:10,1');
             });

@@ -7,10 +7,13 @@ use App\Models\ApiLog;
 use App\Models\ApiToken;
 use App\Models\Setting;
 use App\Models\User;
+use Firebase\JWT\JWT;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -176,6 +179,8 @@ class AuthTokenResponseContractTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.id', $user->id)
             ->assertJsonPath('data.email', $user->email)
+            ->assertJsonPath('data.preferences.locale', 'vi')
+            ->assertJsonPath('data.preferences.currency', 'VND')
             ->assertJsonPath('data.wallet.currency', 'VND');
 
         $wallet = $response->json('data.wallet');
@@ -190,6 +195,128 @@ class AuthTokenResponseContractTest extends TestCase
             $this->assertIsInt($wallet[$field], "{$field} must be restored as integer VND");
             $this->assertSame($amount, $wallet[$field]);
         }
+    }
+
+    public function test_account_preferences_normalize_and_persist_active_codes_without_changing_wallet_currency(): void
+    {
+        $user = $this->createUser();
+        [$plainToken] = ApiToken::generateFor($user, 'Preference Persistence Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/preferences', [
+                'locale' => ' en ',
+                'currency' => 'usd',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.locale', 'en')
+            ->assertJsonPath('data.currency', 'USD');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'locale' => 'en',
+            'currency' => 'USD',
+        ]);
+
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.preferences.locale', 'en')
+            ->assertJsonPath('data.preferences.currency', 'USD')
+            ->assertJsonPath('data.wallet.currency', 'VND');
+    }
+
+    public function test_account_preferences_partial_update_preserves_the_omitted_preference(): void
+    {
+        $user = $this->createUser([
+            'locale' => 'en',
+            'currency' => 'USD',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Preference Partial Update Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/preferences', ['locale' => 'vi'])
+            ->assertOk()
+            ->assertJsonPath('data.locale', 'vi')
+            ->assertJsonPath('data.currency', 'USD');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'locale' => 'vi',
+            'currency' => 'USD',
+        ]);
+    }
+
+    public function test_account_preferences_fall_back_when_stored_codes_are_inactive(): void
+    {
+        $user = $this->createUser([
+            'locale' => 'en',
+            'currency' => 'USD',
+        ]);
+        DB::table('languages')->where('code', 'en')->update(['is_active' => false]);
+        DB::table('currencies')->where('code', 'USD')->update(['is_active' => false]);
+        [$plainToken] = ApiToken::generateFor($user, 'Preference Fallback Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.preferences.locale', 'vi')
+            ->assertJsonPath('data.preferences.currency', 'VND');
+
+        $this->assertDatabaseHas('users', [
+            'id' => $user->id,
+            'locale' => 'en',
+            'currency' => 'USD',
+        ]);
+    }
+
+    public function test_account_preferences_reject_empty_unknown_and_inactive_values_without_mutation(): void
+    {
+        $user = $this->createUser([
+            'locale' => 'vi',
+            'currency' => 'VND',
+        ]);
+        DB::table('languages')->where('code', 'en')->update(['is_active' => false]);
+        DB::table('currencies')->where('code', 'USD')->update(['is_active' => false]);
+        [$plainToken] = ApiToken::generateFor($user, 'Preference Validation Test', 30, '127.0.0.1');
+
+        foreach ([
+            [[], 'locale'],
+            [['locale' => 'unknown'], 'locale'],
+            [['locale' => 'en'], 'locale'],
+            [['currency' => 'unknown'], 'currency'],
+            [['currency' => 'usd'], 'currency'],
+        ] as [$payload, $errorField]) {
+            $this->withToken($plainToken)
+                ->postJson('/api/v1/openapi/account/preferences', $payload)
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR')
+                ->assertJsonStructure(['errors' => [$errorField]]);
+
+            $this->assertDatabaseHas('users', [
+                'id' => $user->id,
+                'locale' => 'vi',
+                'currency' => 'VND',
+            ]);
+        }
+    }
+
+    public function test_account_preferences_require_authentication_and_respect_the_profile_feature_flag(): void
+    {
+        $this->postJson('/api/v1/openapi/account/preferences', ['locale' => 'vi'])
+            ->assertUnauthorized()
+            ->assertJsonPath('code', 'UNAUTHENTICATED');
+
+        $user = $this->createUser();
+        [$plainToken] = ApiToken::generateFor($user, 'Preference Feature Flag Test', 30, '127.0.0.1');
+        Setting::setVal('openapi_profile_status', '0');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/preferences', ['locale' => 'vi'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'ENDPOINT_DISABLED');
+
+        $this->assertNull($user->fresh()->locale);
     }
 
     public function test_two_factor_login_defers_token_issuance_until_the_challenge_is_verified(): void
@@ -321,6 +448,614 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }
 
+    public function test_google_reauthentication_deletes_a_linked_provider_account(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $user = $this->createUser([
+            'google_id' => 'google-subject-123',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Google Deletion Test', 30, '127.0.0.1');
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'google-subject-123',
+            'email' => $user->email,
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ]);
+        Http::fake([
+            'https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks),
+        ]);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['google_id_token' => $idToken])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        $apiLog = ApiLog::query()->latest('id')->firstOrFail();
+        $this->assertSame(
+            '[REDACTED]',
+            data_get(json_decode($apiLog->request_data, true, flags: JSON_THROW_ON_ERROR), 'google_id_token')
+        );
+        $this->assertStringNotContainsString($idToken, (string) $apiLog->request_data);
+    }
+
+    public function test_google_reauthentication_cannot_delete_a_different_linked_identity(): void
+    {
+        Setting::setVal('allow_self_delete_account', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $user = $this->createUser([
+            'password' => null,
+            'google_id' => 'expected-google-subject',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Google Mismatch Test', 30, '127.0.0.1');
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'different-google-subject',
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ]);
+        Http::fake([
+            'https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks),
+        ]);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/delete', ['google_id_token' => $idToken])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'OAUTH_IDENTITY_MISMATCH');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
+    public function test_native_oauth_feature_flags_are_default_off(): void
+    {
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => 'not-evaluated'])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'ENDPOINT_DISABLED');
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => 'not-evaluated',
+            'authorization_code' => 'not-evaluated',
+            'nonce' => str_repeat('n', 16),
+        ])->assertForbidden()
+            ->assertJsonPath('code', 'ENDPOINT_DISABLED');
+    }
+
+    public function test_google_native_exchange_returns_the_canonical_token_for_an_existing_subject(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $user = $this->createUser(['google_id' => 'existing-google-subject']);
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'existing-google-subject',
+            'email' => $user->email,
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ]);
+        Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks)]);
+
+        $response = $this->postJson('/api/v1/openapi/auth/oauth/google', [
+            'id_token' => $idToken,
+            'device_name' => 'Native Google Test',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.token_type', 'Bearer')
+            ->assertJsonPath('data.user.id', $user->id)
+            ->assertJsonMissingPath('data.user.google_id');
+        $this->assertSame($response->json('data.access_token'), $response->json('data.token'));
+    }
+
+    public function test_google_native_exchange_never_auto_merges_an_email_only_match(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $user = $this->createUser();
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'unlinked-google-subject',
+            'email' => $user->email,
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ]);
+        Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks)]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])
+            ->assertConflict()
+            ->assertJsonPath('code', 'ACCOUNT_LINK_REQUIRED');
+
+        $this->assertNull($user->fresh()->google_id);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_google_native_exchange_fails_closed_for_duplicate_provider_subjects(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $this->createUser([
+            'email' => 'duplicate-google-one@example.test',
+            'referral_code' => 'REFGOOG1',
+            'google_id' => 'duplicate-google-subject',
+        ]);
+        $this->createUser([
+            'email' => 'duplicate-google-two@example.test',
+            'referral_code' => 'REFGOOG2',
+            'google_id' => 'duplicate-google-subject',
+        ]);
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'duplicate-google-subject',
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ]);
+        Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks)]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])
+            ->assertConflict()
+            ->assertJsonPath('code', 'OAUTH_IDENTITY_AMBIGUOUS');
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_google_native_exchange_refreshes_a_stale_jwks_once_for_a_rotated_key(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $user = $this->createUser(['google_id' => 'rotated-google-subject']);
+        [, $staleJwks] = $this->signedProviderToken([], 'stale-key');
+        [$idToken, $freshJwks] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'rotated-google-subject',
+            'email' => $user->email,
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'rotated-key');
+        Cache::put('oauth_jwks:google', $staleJwks, now()->addHours(6));
+        Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($freshJwks)]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])->assertOk();
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_google_native_exchange_rejects_invalid_issuer_audience_and_expiry(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        $baseClaims = [
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'strict-google-subject',
+            'email' => 'strict-google@example.test',
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ];
+        $invalidClaims = [
+            array_merge($baseClaims, ['iss' => 'https://untrusted.example.test']),
+            array_merge($baseClaims, ['aud' => 'different-client.test']),
+            array_merge($baseClaims, ['exp' => now()->subMinute()->timestamp]),
+        ];
+
+        foreach ($invalidClaims as $index => $claims) {
+            Cache::forget('oauth_jwks:google');
+            [$idToken, $jwks] = $this->signedProviderToken($claims, "strict-google-key-{$index}");
+            Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks)]);
+
+            $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'OAUTH_CREDENTIAL_INVALID');
+        }
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_native_oauth_registration_respects_the_existing_registration_flag(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        Setting::setVal('registration_enabled', '0');
+        [$idToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'registration-disabled-subject',
+            'email' => 'registration-disabled@example.test',
+            'email_verified' => true,
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'registration-disabled-key');
+        Http::fake(['https://www.googleapis.com/oauth2/v3/certs' => Http::response($jwks)]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'REGISTRATION_DISABLED');
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_google_native_exchange_maps_jwks_connection_failure_to_retryable_503(): void
+    {
+        Setting::setVal('openapi_auth_oauth_google_status', '1');
+        Setting::setVal('google_client_id', 'google-mobile-client.test');
+        [$idToken] = $this->signedProviderToken([
+            'iss' => 'https://accounts.google.com',
+            'aud' => 'google-mobile-client.test',
+            'sub' => 'google-provider-outage-subject',
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'google-provider-outage-key');
+        Http::fake([
+            'https://www.googleapis.com/oauth2/v3/certs' => fn () => throw new ConnectionException('JWKS timeout'),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/google', ['id_token' => $idToken])
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'OAUTH_PROVIDER_UNAVAILABLE');
+    }
+
+    public function test_apple_native_exchange_maps_transient_token_provider_failure_to_retryable_503(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $nonce = 'apple-provider-outage-nonce-12345';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-provider-outage-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-provider-outage-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['error' => 'temporarily_unavailable'], 429),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-provider-outage-code',
+            'nonce' => $nonce,
+        ])->assertStatus(503)
+            ->assertJsonPath('code', 'OAUTH_PROVIDER_UNAVAILABLE');
+    }
+
+    public function test_apple_native_exchange_supports_private_relay_and_rejects_replay(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $nonce = 'apple-native-nonce-123456789';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-private-relay-subject',
+            'email' => 'relay@privaterelay.appleid.com',
+            'email_verified' => 'true',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-test-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['id_token' => $identityToken]),
+        ]);
+
+        $payload = [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-one-time-code',
+            'nonce' => $nonce,
+            'device_name' => 'Native Apple Test',
+        ];
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', $payload)
+            ->assertOk()
+            ->assertJsonPath('data.user.email', 'relay@privaterelay.appleid.com')
+            ->assertJsonPath('data.token_type', 'Bearer');
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', $payload)
+            ->assertConflict()
+            ->assertJsonPath('code', 'OAUTH_CREDENTIAL_REPLAYED');
+
+        $this->assertDatabaseHas('users', [
+            'apple_id' => 'apple-private-relay-subject',
+            'email' => 'relay@privaterelay.appleid.com',
+        ]);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://appleid.apple.com/auth/token'
+            && $request['client_id'] === 'apple-services.test'
+            && $request['code'] === 'apple-one-time-code'
+            && $request['grant_type'] === 'authorization_code'
+            && $request['redirect_uri'] === 'https://mobile.example.test/auth/apple/callback'
+            && count(explode('.', (string) $request['client_secret'])) === 3);
+    }
+
+    public function test_apple_native_exchange_supports_a_missing_email_without_duplicate_accounts(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $nonce = 'apple-null-email-nonce-12345';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-null-email-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-null-email-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['id_token' => $identityToken]),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-null-email-code',
+            'nonce' => $nonce,
+        ])->assertOk()
+            ->assertJsonPath('data.user.email', null);
+
+        $this->assertDatabaseHas('users', ['apple_id' => 'apple-null-email-subject', 'email' => null]);
+        $this->assertDatabaseCount('users', 1);
+    }
+
+    public function test_apple_native_exchange_never_auto_merges_an_email_only_match(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $user = $this->createUser();
+        $nonce = 'apple-email-collision-nonce-123';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'unlinked-apple-subject',
+            'email' => $user->email,
+            'email_verified' => true,
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-email-collision-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['id_token' => $identityToken]),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-email-collision-code',
+            'nonce' => $nonce,
+        ])->assertConflict()
+            ->assertJsonPath('code', 'ACCOUNT_LINK_REQUIRED');
+
+        $this->assertNull($user->fresh()->apple_id);
+        $this->assertDatabaseCount('users', 1);
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_apple_native_exchange_rejects_nonce_mismatch_and_redacts_reauth_fields(): void
+    {
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-invalid-nonce-subject',
+            'nonce' => hash('sha256', 'the-correct-apple-nonce'),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-invalid-nonce-key');
+        Http::fake(['https://appleid.apple.com/auth/keys' => Http::response($jwks)]);
+
+        $authorizationCode = 'apple-sensitive-authorization-code';
+        $nonce = 'different-apple-nonce-12345';
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => $authorizationCode,
+            'nonce' => $nonce,
+        ])->assertUnprocessable()
+            ->assertJsonPath('code', 'OAUTH_CREDENTIAL_INVALID');
+
+        $apiLog = ApiLog::query()->latest('id')->firstOrFail();
+        $logged = json_decode($apiLog->request_data, true, flags: JSON_THROW_ON_ERROR);
+        $this->assertSame('[REDACTED]', $logged['identity_token']);
+        $this->assertSame('[REDACTED]', $logged['authorization_code']);
+        $this->assertSame('[REDACTED]', $logged['nonce']);
+        $this->assertStringNotContainsString($authorizationCode, (string) $apiLog->request_data);
+        $this->assertStringNotContainsString($nonce, (string) $apiLog->request_data);
+    }
+
+    public function test_apple_native_exchange_fails_closed_when_server_exchange_config_is_missing(): void
+    {
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        config()->set([
+            'services.apple.team_id' => null,
+            'services.apple.key_id' => null,
+            'services.apple.private_key' => null,
+            'services.apple.private_key_path' => null,
+        ]);
+        $nonce = 'apple-missing-config-nonce-123';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-missing-config-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-missing-config-key');
+        Http::fake(['https://appleid.apple.com/auth/keys' => Http::response($jwks)]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-missing-config-code',
+            'nonce' => $nonce,
+        ])->assertStatus(503)
+            ->assertJsonPath('code', 'OAUTH_PROVIDER_UNAVAILABLE');
+
+        Http::assertSentCount(1);
+        $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_apple_native_exchange_requires_the_exchanged_subject_to_match(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $nonce = 'apple-subject-match-nonce-1234';
+        [$identityToken, $identityJwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-original-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-original-key');
+        [$exchangedToken, $exchangeJwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-different-subject',
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-exchange-key');
+        $jwks = ['keys' => array_merge($identityJwks['keys'], $exchangeJwks['keys'])];
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['id_token' => $exchangedToken]),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'apple-subject-mismatch-code',
+            'nonce' => $nonce,
+        ])->assertUnprocessable()
+            ->assertJsonPath('code', 'OAUTH_CREDENTIAL_INVALID');
+
+        $this->assertDatabaseCount('users', 0);
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_apple_native_exchange_fails_closed_for_duplicate_provider_subjects(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $this->createUser([
+            'email' => 'duplicate-apple-one@example.test',
+            'referral_code' => 'REFAPPL1',
+            'apple_id' => 'duplicate-apple-subject',
+        ]);
+        $this->createUser([
+            'email' => 'duplicate-apple-two@example.test',
+            'referral_code' => 'REFAPPL2',
+            'apple_id' => 'duplicate-apple-subject',
+        ]);
+        $nonce = 'duplicate-apple-nonce-12345';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'duplicate-apple-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'duplicate-apple-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response(['id_token' => $identityToken]),
+        ]);
+
+        $this->postJson('/api/v1/openapi/auth/oauth/apple', [
+            'identity_token' => $identityToken,
+            'authorization_code' => 'duplicate-apple-code',
+            'nonce' => $nonce,
+        ])->assertConflict()
+            ->assertJsonPath('code', 'OAUTH_IDENTITY_AMBIGUOUS');
+        $this->assertDatabaseCount('api_tokens', 0);
+    }
+
+    public function test_apple_reauthentication_deletes_the_linked_account(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('allow_self_delete_account', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $user = $this->createUser(['apple_id' => 'apple-deletion-subject']);
+        [$plainToken] = ApiToken::generateFor($user, 'Apple Deletion Test', 30, '127.0.0.1');
+        $nonce = 'apple-deletion-nonce-123456';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-deletion-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-deletion-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response([
+                'id_token' => $identityToken,
+                'refresh_token' => 'apple-deletion-refresh-token',
+            ]),
+            'https://appleid.apple.com/auth/revoke' => Http::response([], 200),
+        ]);
+
+        $this->withToken($plainToken)->postJson('/api/v1/openapi/account/delete', [
+            'apple_identity_token' => $identityToken,
+            'apple_authorization_code' => 'apple-deletion-code',
+            'apple_nonce' => $nonce,
+        ])->assertOk();
+
+        $this->assertDatabaseMissing('users', ['id' => $user->id]);
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://appleid.apple.com/auth/revoke'
+            && $request['token'] === 'apple-deletion-refresh-token'
+            && $request['token_type_hint'] === 'refresh_token'
+            && $request['client_id'] === 'apple-services.test');
+    }
+
+    public function test_apple_reauthentication_does_not_delete_when_provider_disconnect_fails(): void
+    {
+        $this->configureAppleExchange();
+        Setting::setVal('allow_self_delete_account', '1');
+        Setting::setVal('apple_services_id', 'apple-services.test');
+        $user = $this->createUser(['apple_id' => 'apple-disconnect-outage-subject']);
+        [$plainToken] = ApiToken::generateFor($user, 'Apple Disconnect Outage Test', 30, '127.0.0.1');
+        $nonce = 'apple-disconnect-outage-nonce-123456';
+        [$identityToken, $jwks] = $this->signedProviderToken([
+            'iss' => 'https://appleid.apple.com',
+            'aud' => 'apple-services.test',
+            'sub' => 'apple-disconnect-outage-subject',
+            'nonce' => hash('sha256', $nonce),
+            'iat' => now()->timestamp,
+            'exp' => now()->addMinutes(5)->timestamp,
+        ], 'apple-disconnect-outage-key');
+        Http::fake([
+            'https://appleid.apple.com/auth/keys' => Http::response($jwks),
+            'https://appleid.apple.com/auth/token' => Http::response([
+                'id_token' => $identityToken,
+                'refresh_token' => 'apple-disconnect-outage-refresh-token',
+            ]),
+            'https://appleid.apple.com/auth/revoke' => Http::response(['error' => 'temporarily_unavailable'], 503),
+        ]);
+
+        $this->withToken($plainToken)->postJson('/api/v1/openapi/account/delete', [
+            'apple_identity_token' => $identityToken,
+            'apple_authorization_code' => 'apple-disconnect-outage-code',
+            'apple_nonce' => $nonce,
+        ])->assertStatus(503)
+            ->assertJsonPath('code', 'APPLE_PROVIDER_DISCONNECT_FAILED');
+
+        $this->assertDatabaseHas('users', ['id' => $user->id]);
+    }
+
     public function test_account_deletion_removes_related_auth_data_without_logging_raw_email_or_balance(): void
     {
         Setting::setVal('allow_self_delete_account', '1');
@@ -425,6 +1160,64 @@ class AuthTokenResponseContractTest extends TestCase
         return $user;
     }
 
+    private function signedProviderToken(array $claims, string $keyId = 'test-oauth-key'): array
+    {
+        $options = [
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ];
+        $portableConfig = dirname(PHP_BINARY).'/extras/ssl/openssl.cnf';
+        if (is_file($portableConfig)) {
+            $options['config'] = $portableConfig;
+        }
+
+        $key = openssl_pkey_new($options);
+        $this->assertNotFalse($key);
+
+        $privateKey = '';
+        $this->assertTrue(openssl_pkey_export($key, $privateKey, null, $options));
+        $details = openssl_pkey_get_details($key);
+        $this->assertIsArray($details);
+
+        $jwks = ['keys' => [[
+            'kty' => 'RSA',
+            'kid' => $keyId,
+            'use' => 'sig',
+            'alg' => 'RS256',
+            'n' => JWT::urlsafeB64Encode($details['rsa']['n']),
+            'e' => JWT::urlsafeB64Encode($details['rsa']['e']),
+        ]]];
+
+        return [JWT::encode($claims, $privateKey, 'RS256', $keyId), $jwks];
+    }
+
+    private function configureAppleExchange(): void
+    {
+        $options = [
+            'curve_name' => 'prime256v1',
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+        ];
+        $portableConfig = dirname(PHP_BINARY).'/extras/ssl/openssl.cnf';
+        if (is_file($portableConfig)) {
+            $options['config'] = $portableConfig;
+        }
+
+        $key = openssl_pkey_new($options);
+        $this->assertNotFalse($key);
+        $privateKey = '';
+        $this->assertTrue(openssl_pkey_export($key, $privateKey, null, $options));
+
+        config()->set([
+            'services.apple.team_id' => 'TESTTEAM123',
+            'services.apple.key_id' => 'TESTKEY123',
+            'services.apple.private_key' => $privateKey,
+            'services.apple.private_key_path' => null,
+            'services.apple.redirect_uri' => 'https://mobile.example.test/auth/apple/callback',
+            'services.apple.token_url' => 'https://appleid.apple.com/auth/token',
+            'services.apple.revoke_url' => 'https://appleid.apple.com/auth/revoke',
+        ]);
+    }
+
     private function createIsolatedAuthSchema(): void
     {
         Schema::create('users', function (Blueprint $table): void {
@@ -432,6 +1225,8 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('name');
             $table->string('email')->nullable()->unique();
             $table->string('phone')->nullable()->unique();
+            $table->string('locale', 10)->nullable();
+            $table->string('currency', 10)->nullable();
             $table->string('avatar')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
@@ -450,6 +1245,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('otp_code')->nullable();
             $table->timestamp('otp_expires_at')->nullable();
             $table->string('google_id')->nullable();
+            $table->string('apple_id')->nullable();
             $table->string('utm_source')->nullable();
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
@@ -461,6 +1257,67 @@ class AuthTokenResponseContractTest extends TestCase
             $table->rememberToken();
             $table->timestamps();
         });
+
+        Schema::create('languages', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('code', 10)->unique();
+            $table->string('flag')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_default')->default(false);
+            $table->integer('order')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('currencies', function (Blueprint $table): void {
+            $table->id();
+            $table->string('name');
+            $table->string('code', 10)->unique();
+            $table->string('symbol', 10);
+            $table->decimal('exchange_rate', 15, 4)->default(1);
+            $table->string('symbol_position')->default('after');
+            $table->boolean('is_active')->default(true);
+            $table->boolean('is_default')->default(false);
+            $table->timestamps();
+        });
+
+        DB::table('languages')->insert([
+            [
+                'name' => 'Tiếng Việt',
+                'code' => 'vi',
+                'is_active' => true,
+                'is_default' => true,
+                'order' => 0,
+            ],
+            [
+                'name' => 'English',
+                'code' => 'en',
+                'is_active' => true,
+                'is_default' => false,
+                'order' => 1,
+            ],
+        ]);
+
+        DB::table('currencies')->insert([
+            [
+                'name' => 'Vietnamese Dong',
+                'code' => 'VND',
+                'symbol' => 'VND',
+                'exchange_rate' => 1,
+                'symbol_position' => 'after',
+                'is_active' => true,
+                'is_default' => true,
+            ],
+            [
+                'name' => 'US Dollar',
+                'code' => 'USD',
+                'symbol' => '$',
+                'exchange_rate' => 25000,
+                'symbol_position' => 'before',
+                'is_active' => true,
+                'is_default' => false,
+            ],
+        ]);
 
         Schema::create('settings', function (Blueprint $table): void {
             $table->id();

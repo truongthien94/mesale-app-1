@@ -7,9 +7,12 @@ use App\Models\ApiToken;
 use App\Models\BalanceLog;
 use App\Models\CashbackHistory;
 use App\Models\Gift;
+use App\Models\GiftCode;
 use App\Models\GiftRedemption;
 use App\Models\Setting;
+use App\Models\Task;
 use App\Models\User;
+use App\Models\UserTask;
 use App\Models\Withdrawal;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
@@ -49,13 +52,31 @@ class FinancialIdempotencyContractTest extends TestCase
             ->assertStatus(400)
             ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REQUIRED');
 
+        $giftCode = $this->createGiftCode();
+        $this->postGiftCodeRedemption($giftCode, null)
+            ->assertStatus(400)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REQUIRED');
+
+        $task = $this->createCompletedTask('Missing key task', 1000);
+        $this->postTaskClaim($task, null)
+            ->assertStatus(400)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REQUIRED');
+
+        $this->postPaymentAccount(null)
+            ->assertStatus(400)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REQUIRED');
+
         $this->assertSame(100000, (int) $this->user->fresh()->balance);
         $this->assertDatabaseCount('withdrawals', 0);
         $this->assertDatabaseCount('gift_redemptions', 0);
+        $this->assertDatabaseCount('gift_code_redemptions', 0);
+        $this->assertDatabaseCount('user_payment_accounts', 0);
         $this->assertDatabaseCount('balance_logs', 0);
         $this->assertDatabaseCount('notifications', 0);
         $this->assertDatabaseCount('idempotency_keys', 0);
         $this->assertSame(3, $gift->fresh()->stock);
+        $this->assertSame(0, $giftCode->fresh()->used_count);
+        $this->assertSame('completed', UserTask::where('task_id', $task->id)->value('status'));
     }
 
     public function test_invalid_idempotency_key_is_rejected_without_side_effects(): void
@@ -159,6 +180,176 @@ class FinancialIdempotencyContractTest extends TestCase
         $this->assertSame(2, $gift->fresh()->stock);
         $this->assertDatabaseCount('gift_redemptions', 1);
         $this->assertDatabaseCount('balance_logs', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_giftcode_replay_is_side_effect_free_and_a_different_key_creates_a_new_redemption(): void
+    {
+        $giftCode = $this->createGiftCode();
+
+        $first = $this->postGiftCodeRedemption($giftCode, 'giftcode-replay-0001');
+        $first->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        $this->postGiftCodeRedemption($giftCode, 'giftcode-replay-0001')
+            ->assertOk()
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $this->postGiftCodeRedemption($giftCode, 'giftcode-replay-0002')
+            ->assertOk()
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        $this->assertSame(102000, (int) $this->user->fresh()->balance);
+        $this->assertSame(2, $giftCode->fresh()->used_count);
+        $this->assertDatabaseCount('gift_code_redemptions', 2);
+        $this->assertDatabaseCount('balance_logs', 2);
+        $this->assertDatabaseCount('notifications', 2);
+        $this->assertDatabaseCount('activity_logs', 2);
+        $this->assertDatabaseCount('idempotency_keys', 2);
+    }
+
+    public function test_giftcode_replay_precedes_changed_feature_state_and_still_rejects_payload_conflicts(): void
+    {
+        $giftCode = $this->createGiftCode();
+        $key = 'giftcode-state-replay-0001';
+
+        $this->postGiftCodeRedemption($giftCode, $key)
+            ->assertOk()
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        Setting::setVal('gift_code_enabled', '0');
+        $giftCode->forceFill(['status' => false])->save();
+
+        $this->postGiftCodeRedemption($giftCode, $key)
+            ->assertOk()
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $this->postGiftCodeRedemption($giftCode, $key, 'DIFFERENTCODE')
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+
+        $this->assertSame(101000, (int) $this->user->fresh()->balance);
+        $this->assertDatabaseCount('gift_code_redemptions', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_task_claim_replay_is_side_effect_free_and_a_different_key_claims_another_task(): void
+    {
+        $firstTask = $this->createCompletedTask('First task', 1000);
+        $secondTask = $this->createCompletedTask('Second task', 2000);
+
+        $first = $this->postTaskClaim($firstTask, 'task-claim-replay-0001');
+        $first->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        $this->postTaskClaim($firstTask, 'task-claim-replay-0001')
+            ->assertOk()
+            ->assertJsonPath('data.amount', 1000)
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $this->postTaskClaim($secondTask, 'task-claim-replay-0002')
+            ->assertOk()
+            ->assertJsonPath('data.amount', 2000)
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        $this->assertSame(103000, (int) $this->user->fresh()->balance);
+        $this->assertSame('claimed', UserTask::where('task_id', $firstTask->id)->value('status'));
+        $this->assertSame('claimed', UserTask::where('task_id', $secondTask->id)->value('status'));
+        $this->assertDatabaseCount('balance_logs', 2);
+        $this->assertDatabaseCount('notifications', 2);
+        $this->assertDatabaseCount('activity_logs', 2);
+        $this->assertDatabaseCount('idempotency_keys', 2);
+    }
+
+    public function test_task_claim_replay_precedes_changed_task_and_feature_state(): void
+    {
+        $task = $this->createCompletedTask('State-changing task', 1500);
+        $key = 'task-state-replay-0001';
+
+        $this->postTaskClaim($task, $key)
+            ->assertOk()
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        Setting::setVal('tasks_enabled', '0');
+        $task->forceFill(['is_active' => false])->save();
+
+        $this->postTaskClaim($task, $key)
+            ->assertOk()
+            ->assertJsonPath('data.amount', 1500)
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $otherTask = $this->createCompletedTask('Conflicting task', 500);
+        $this->postTaskClaim($otherTask, $key)
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+
+        $this->assertSame(101500, (int) $this->user->fresh()->balance);
+        $this->assertDatabaseCount('balance_logs', 1);
+        $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_payment_account_replay_is_side_effect_free_and_a_different_key_creates_a_new_account(): void
+    {
+        $first = $this->postPaymentAccount('payment-account-replay-0001');
+        $first->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.idempotent_replay', false)
+            ->assertJsonPath('data.is_default', true);
+
+        $this->postPaymentAccount('payment-account-replay-0001')
+            ->assertOk()
+            ->assertJsonPath('data.id', $first->json('data.id'))
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $second = $this->postPaymentAccount('payment-account-replay-0002', [
+            'account_number' => '0987654321',
+        ]);
+        $second->assertOk()
+            ->assertJsonPath('data.idempotent_replay', false)
+            ->assertJsonPath('data.is_default', false);
+
+        $this->assertNotSame($first->json('data.id'), $second->json('data.id'));
+        $this->assertDatabaseCount('user_payment_accounts', 2);
+        $this->assertDatabaseCount('activity_logs', 2);
+        $this->assertDatabaseCount('idempotency_keys', 2);
+    }
+
+    public function test_payment_account_replay_precedes_changed_settings_and_activity_logs_mask_account_numbers(): void
+    {
+        $key = 'payment-account-state-replay-0001';
+        $first = $this->postPaymentAccount($key)
+            ->assertOk()
+            ->assertJsonPath('data.idempotent_replay', false);
+
+        Setting::setVal('withdraw_saved_accounts_enabled', '0');
+        Setting::setVal('withdraw_bank_enabled', '0');
+        Setting::setVal('allowed_banks', 'Techcombank');
+
+        $this->postPaymentAccount($key)
+            ->assertOk()
+            ->assertJsonPath('data.id', $first->json('data.id'))
+            ->assertJsonPath('data.idempotent_replay', true);
+
+        $this->postPaymentAccount($key, ['account_number' => '0987654321'])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'IDEMPOTENCY_KEY_REUSED');
+
+        Setting::setVal('withdraw_saved_accounts_enabled', '1');
+        $this->withToken($this->plainToken)
+            ->deleteJson('/api/v1/openapi/payment-accounts/'.$first->json('data.id'))
+            ->assertOk();
+
+        $activities = DB::table('activity_logs')->pluck('activity')->implode("\n");
+        $this->assertStringNotContainsString('0123456789', $activities);
+        $this->assertStringContainsString('******6789', $activities);
+        $this->assertDatabaseCount('user_payment_accounts', 0);
         $this->assertDatabaseCount('idempotency_keys', 1);
     }
 
@@ -323,6 +514,44 @@ class FinancialIdempotencyContractTest extends TestCase
         ], $overrides));
     }
 
+    private function postGiftCodeRedemption(GiftCode $giftCode, ?string $key, ?string $code = null): TestResponse
+    {
+        $request = $this->withToken($this->plainToken);
+        if ($key !== null) {
+            $request = $request->withHeader('Idempotency-Key', $key);
+        }
+
+        return $request->postJson('/api/v1/openapi/giftcode/redeem', [
+            'code' => $code ?? $giftCode->code,
+        ]);
+    }
+
+    private function postTaskClaim(Task $task, ?string $key): TestResponse
+    {
+        $request = $this->withToken($this->plainToken);
+        if ($key !== null) {
+            $request = $request->withHeader('Idempotency-Key', $key);
+        }
+
+        return $request->postJson('/api/v1/openapi/tasks/'.$task->id.'/claim');
+    }
+
+    private function postPaymentAccount(?string $key, array $overrides = []): TestResponse
+    {
+        $request = $this->withToken($this->plainToken);
+        if ($key !== null) {
+            $request = $request->withHeader('Idempotency-Key', $key);
+        }
+
+        return $request->postJson('/api/v1/openapi/payment-accounts', array_merge([
+            'payment_method' => 'bank',
+            'bank_name' => 'Vietcombank',
+            'account_number' => '0123456789',
+            'account_name' => 'Mobile Contract User',
+            'is_default' => false,
+        ], $overrides));
+    }
+
     private function getFinancial(string $uri): TestResponse
     {
         return $this->withToken($this->plainToken)->getJson($uri);
@@ -346,6 +575,50 @@ class FinancialIdempotencyContractTest extends TestCase
             'type' => 'voucher',
             'status' => true,
         ], $attributes));
+    }
+
+    private function createGiftCode(): GiftCode
+    {
+        return GiftCode::create([
+            'code' => 'MOBILEP0',
+            'title' => 'Mobile P0 contract gift code',
+            'reward_type' => 'fixed',
+            'reward_amount' => '1000.00',
+            'reward_min' => '0.00',
+            'reward_max' => '0.00',
+            'max_uses' => 10,
+            'used_count' => 0,
+            'per_user_limit' => 2,
+            'require_verified_email' => true,
+            'min_total_cashback' => '0.00',
+            'min_account_age_days' => 0,
+            'status' => true,
+        ]);
+    }
+
+    private function createCompletedTask(string $title, int $reward): Task
+    {
+        $task = Task::create([
+            'title' => $title,
+            'type' => 'one_time',
+            'action' => 'custom',
+            'target_count' => 1,
+            'reward_amount' => $reward,
+            'reward_type' => 'balance',
+            'is_active' => true,
+            'sort_order' => 0,
+        ]);
+
+        UserTask::create([
+            'user_id' => $this->user->id,
+            'task_id' => $task->id,
+            'progress' => 1,
+            'status' => 'completed',
+            'period_key' => null,
+            'completed_at' => now(),
+        ]);
+
+        return $task;
     }
 
     private function createUser(): User
@@ -375,6 +648,9 @@ class FinancialIdempotencyContractTest extends TestCase
             'openapi_status' => '1',
             'openapi_withdraw_status' => '1',
             'openapi_gifts_status' => '1',
+            'openapi_giftcode_status' => '1',
+            'openapi_tasks_status' => '1',
+            'openapi_payment_accounts_status' => '1',
             'openapi_balance_logs_status' => '1',
             'openapi_orders_status' => '1',
             'withdrawal_enabled' => '1',
@@ -388,6 +664,9 @@ class FinancialIdempotencyContractTest extends TestCase
             'allowed_banks' => 'Vietcombank,Techcombank',
             'allowed_wallets' => 'Momo,ZaloPay',
             'gift_redemption_enabled' => '1',
+            'gift_code_enabled' => '1',
+            'tasks_enabled' => '1',
+            'withdraw_saved_accounts_enabled' => '1',
             'smtp_status' => '0',
             'telegram_status' => '0',
             'fcm_service_account' => '',
@@ -492,6 +771,96 @@ class FinancialIdempotencyContractTest extends TestCase
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
             $table->unique(['user_id', 'operation', 'key_hash'], 'idempotency_user_operation_key_unique');
+        });
+
+        Schema::create('gift_codes', function (Blueprint $table): void {
+            $table->id();
+            $table->string('code')->unique();
+            $table->string('title')->nullable();
+            $table->text('description')->nullable();
+            $table->string('reward_type')->default('fixed');
+            $table->decimal('reward_amount', 15, 2)->default(0);
+            $table->decimal('reward_min', 15, 2)->default(0);
+            $table->decimal('reward_max', 15, 2)->default(0);
+            $table->unsignedInteger('max_uses')->nullable();
+            $table->unsignedInteger('used_count')->default(0);
+            $table->unsignedInteger('per_user_limit')->default(1);
+            $table->timestamp('starts_at')->nullable();
+            $table->timestamp('expires_at')->nullable();
+            $table->boolean('require_verified_email')->default(false);
+            $table->decimal('min_total_cashback', 15, 2)->default(0);
+            $table->unsignedInteger('min_account_age_days')->default(0);
+            $table->unsignedInteger('new_user_within_days')->nullable();
+            $table->boolean('status')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('gift_code_redemptions', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('gift_code_id');
+            $table->unsignedBigInteger('user_id');
+            $table->string('code');
+            $table->decimal('amount', 15, 2);
+            $table->string('ip_address', 64)->nullable();
+            $table->timestamps();
+            $table->foreign('gift_code_id')->references('id')->on('gift_codes')->cascadeOnDelete();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
+
+        Schema::create('tasks', function (Blueprint $table): void {
+            $table->id();
+            $table->string('title');
+            $table->text('description')->nullable();
+            $table->text('guide')->nullable();
+            $table->string('type')->default('one_time');
+            $table->string('action')->default('custom');
+            $table->boolean('referral_require_order')->default(false);
+            $table->unsignedInteger('target_count')->default(1);
+            $table->decimal('min_order_amount', 15, 2)->default(0);
+            $table->decimal('reward_amount', 15, 2)->default(0);
+            $table->string('reward_type')->default('balance');
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('start_at')->nullable();
+            $table->timestamp('end_at')->nullable();
+            $table->string('icon')->nullable();
+            $table->string('badge_color')->nullable();
+            $table->unsignedInteger('sort_order')->default(0);
+            $table->unsignedBigInteger('created_by')->nullable();
+            $table->timestamps();
+            $table->foreign('created_by')->references('id')->on('users')->nullOnDelete();
+        });
+
+        Schema::create('user_tasks', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('task_id');
+            $table->unsignedInteger('progress')->default(0);
+            $table->string('status')->default('in_progress');
+            $table->string('period_key', 50)->nullable();
+            $table->timestamp('completed_at')->nullable();
+            $table->timestamp('claimed_at')->nullable();
+            $table->timestamp('submitted_at')->nullable();
+            $table->text('submit_note')->nullable();
+            $table->text('reject_reason')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->unsignedBigInteger('reviewed_by')->nullable();
+            $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+            $table->foreign('task_id')->references('id')->on('tasks')->cascadeOnDelete();
+            $table->foreign('reviewed_by')->references('id')->on('users')->nullOnDelete();
+            $table->unique(['user_id', 'task_id', 'period_key'], 'unique_user_task_period');
+        });
+
+        Schema::create('user_payment_accounts', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('payment_method', 20)->default('bank');
+            $table->string('bank_name', 100);
+            $table->string('account_number', 50);
+            $table->string('account_name', 100);
+            $table->boolean('is_default')->default(false);
+            $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
 
         Schema::create('withdrawals', function (Blueprint $table): void {

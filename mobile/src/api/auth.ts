@@ -1,4 +1,4 @@
-import { request } from "@/api/client";
+import { request, requestEnvelope, type ApiResponse } from "@/api/client";
 import {
   parseLoginResult,
   requireAuthenticated,
@@ -9,6 +9,22 @@ import {
 
 export type { AuthContinuation, LoginResult, TwoFactorMethod, User } from "@/api/authContract";
 
+export type RegisterPayload = {
+  name?: string;
+  email: string;
+  phone?: string;
+  password: string;
+  passwordConfirmation: string;
+  referralCode?: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
+  email: string;
+  password: string;
+  passwordConfirmation: string;
+};
+
 const mobileDeviceName = "Mesale Mobile";
 
 export async function login(email: string, password: string): Promise<LoginResult> {
@@ -18,6 +34,44 @@ export async function login(email: string, password: string): Promise<LoginResul
     body: { email, password, device_name: mobileDeviceName }
   });
   return parseLoginResult(response);
+}
+
+export async function register(payload: RegisterPayload): Promise<LoginResult> {
+  const response = await request<unknown>("auth/register", {
+    method: "POST",
+    authenticated: false,
+    body: {
+      name: payload.name?.trim() || undefined,
+      email: payload.email.trim().toLowerCase(),
+      phone: payload.phone?.trim() || undefined,
+      password: payload.password,
+      password_confirmation: payload.passwordConfirmation,
+      referral_code: payload.referralCode?.trim() || undefined,
+      device_name: mobileDeviceName
+    }
+  });
+  return parseLoginResult(response);
+}
+
+export async function forgotPassword(email: string): Promise<ApiResponse<null>> {
+  return requestEnvelope<null>("auth/forgot-password", {
+    method: "POST",
+    authenticated: false,
+    body: { email: email.trim().toLowerCase() }
+  });
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<ApiResponse<null>> {
+  return requestEnvelope<null>("auth/reset-password", {
+    method: "POST",
+    authenticated: false,
+    body: {
+      token: payload.token.trim(),
+      email: payload.email.trim().toLowerCase(),
+      password: payload.password,
+      password_confirmation: payload.passwordConfirmation
+    }
+  });
 }
 
 export async function verifyEmail(email: string, otpCode: string): Promise<AuthenticatedAuthResult> {

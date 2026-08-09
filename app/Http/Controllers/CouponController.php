@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Coupon;
 use App\Models\Setting;
+use Illuminate\Http\Request;
 
 /**
  * Controller xử lý hiển thị danh sách mã giảm giá ở frontend cho khách hàng.
@@ -13,7 +13,7 @@ class CouponController extends Controller
 {
     /**
      * Hiển thị danh sách mã giảm giá đa sàn.
-     * Giải thích: 
+     * Giải thích:
      * - Kiểm tra cấu hình ON/OFF của chức năng từ Admin. Nếu tắt, trả về trang 404 để bảo mật và ngăn truy cập.
      * - Lấy danh sách mã giảm giá đang hoạt động (chưa hết hạn hoặc expired_at là null).
      * - Hỗ trợ lọc theo sàn (platform) và tìm kiếm từ khoá.
@@ -26,12 +26,11 @@ class CouponController extends Controller
             abort(404, __('Chức năng mã giảm giá hiện tại đang tạm khóa.'));
         }
 
-        // 2. Xây dựng truy vấn lấy mã giảm giá chưa hết hạn của sàn Shopee
+        // 2. Xây dựng truy vấn lấy mã giảm giá chưa hết hạn
         $query = Coupon::query()
-            ->where('platform', 'shopee')
             ->where(function ($q) {
                 $q->whereNull('expired_at')
-                  ->orWhere('expired_at', '>=', now());
+                    ->orWhere('expired_at', '>=', now());
             });
 
         // Lọc theo sàn (Platform)
@@ -49,8 +48,8 @@ class CouponController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('code', 'like', "%{$search}%")
-                  ->orWhere('title', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
             });
         }
 
@@ -63,12 +62,18 @@ class CouponController extends Controller
             ->pluck('platform')
             ->toArray();
 
-        // Lấy danh sách các danh mục độc nhất của sàn Shopee để làm thanh trượt lọc danh mục
-        $categories = Coupon::where('platform', 'shopee')
+        // Lấy danh mục theo sàn đang chọn, hoặc toàn bộ sàn khi không lọc
+        $categoryQuery = Coupon::query()
             ->where(function ($q) {
                 $q->whereNull('expired_at')
-                  ->orWhere('expired_at', '>=', now());
-            })
+                    ->orWhere('expired_at', '>=', now());
+            });
+
+        if ($request->filled('platform') && $request->platform !== 'all') {
+            $categoryQuery->where('platform', $request->platform);
+        }
+
+        $categories = $categoryQuery
             ->whereNotNull('category')
             ->where('category', '!=', '')
             ->select('category')

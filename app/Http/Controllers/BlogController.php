@@ -13,6 +13,7 @@ use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
@@ -277,12 +278,26 @@ class BlogController extends Controller implements HasMiddleware
     public function share(Request $request, $id)
     {
         $post = Post::findOrFail($id);
-        // Lọc sạch tên mạng xã hội được chia sẻ để tránh tấn công chèn mã độc
-        $platform = trim(strip_tags($request->input('platform', 'copy')));
+        $request->merge([
+            'platform' => strtolower(trim((string) $request->input('platform', 'copy'))),
+        ]);
+        $validated = $request->validate([
+            'platform' => 'required|string|max:32|in:facebook,twitter,telegram,copy',
+        ]);
+
+        $throttleKey = 'blog-share:'.$request->ip();
+        if (RateLimiter::tooManyAttempts($throttleKey, 20)) {
+            return response()->json([
+                'success' => false,
+                'message' => __('Bạn đã ghi nhận quá nhiều lượt chia sẻ. Vui lòng thử lại sau.'),
+                'retry_after' => RateLimiter::availableIn($throttleKey),
+            ], 429);
+        }
+        RateLimiter::hit($throttleKey, 60);
 
         PostShare::create([
             'post_id' => $post->id,
-            'platform' => $platform,
+            'platform' => $validated['platform'],
             'ip_address' => $request->ip(),
         ]);
 

@@ -22,6 +22,8 @@ use Illuminate\Notifications\Notifiable;
     'email',
     'password',
     'phone',
+    'locale',
+    'currency',
     'avatar',
     'referral_code',
     'referred_by',
@@ -31,6 +33,7 @@ use Illuminate\Notifications\Notifiable;
     'email_verified_at',
     // google_id liên kết với tài khoản đăng nhập Google
     'google_id',
+    'apple_id',
     // google2fa_secret lưu khoá bí mật 2FA của Google Authenticator
     'google2fa_secret',
     // google2fa_enabled lưu trạng thái bật/tắt xác thực 2FA Google
@@ -56,7 +59,7 @@ use Illuminate\Notifications\Notifiable;
     // bot_telegram_chat_id liên kết tài khoản với Telegram Bot
     'bot_telegram_chat_id',
 ])]
-#[Hidden(['password', 'remember_token', 'google2fa_secret', 'otp_code'])]
+#[Hidden(['password', 'remember_token', 'google_id', 'apple_id', 'google2fa_secret', 'otp_code'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -327,7 +330,7 @@ class User extends Authenticatable
         }
 
         $os = __('OS không xác định');
-        
+
         // Nhận diện hệ điều hành phổ biến
         if (preg_match('/iphone/i', $userAgent)) {
             $os = 'iPhone (iOS)';

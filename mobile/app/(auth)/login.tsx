@@ -5,6 +5,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { AuthKeyboardScreen } from "@/auth/AuthKeyboardScreen";
 import { getDeviceLocale, t } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
+import { AuthLink } from "@/features/auth/components";
 
 export default function LoginScreen() {
   const locale = getDeviceLocale();
@@ -86,6 +87,10 @@ export default function LoginScreen() {
     >
       {isSubmitting ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.buttonText}>{t(locale, "signIn")}</Text>}
     </Pressable>
+    <View style={styles.links}>
+      <AuthLink href="/forgot-password">{locale === "vi" ? "Quên mật khẩu?" : "Forgot password?"}</AuthLink>
+      <AuthLink href="/register">{locale === "vi" ? "Chưa có tài khoản? Đăng ký" : "New here? Create an account"}</AuthLink>
+    </View>
   </AuthKeyboardScreen>;
 }
 
@@ -100,5 +105,6 @@ const styles = StyleSheet.create({
   buttonText: { color: colors.surface, fontSize: 16, fontWeight: "700" },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8 },
-  error: { color: colors.danger }
+  error: { color: colors.danger },
+  links: { gap: spacing.md, paddingTop: spacing.xs }
 });

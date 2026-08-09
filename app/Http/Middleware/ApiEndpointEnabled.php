@@ -16,6 +16,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ApiEndpointEnabled
 {
+    private const DEFAULT_DISABLED_GROUPS = [
+        'auth_oauth_google',
+        'auth_oauth_apple',
+    ];
+
     public function handle(Request $request, Closure $next, ?string $group = null): Response
     {
         // 1. Công tắc tổng của toàn bộ hệ thống Open API
@@ -29,7 +34,8 @@ class ApiEndpointEnabled
 
         // 2. Công tắc riêng của từng nhóm endpoint (nếu có khai báo)
         if ($group !== null) {
-            if (Setting::getVal("openapi_{$group}_status", '1') !== '1') {
+            $default = in_array($group, self::DEFAULT_DISABLED_GROUPS, true) ? '0' : '1';
+            if (Setting::getVal("openapi_{$group}_status", $default) !== '1') {
                 return response()->json([
                     'success' => false,
                     'code' => 'ENDPOINT_DISABLED',

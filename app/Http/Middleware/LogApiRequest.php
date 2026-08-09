@@ -163,6 +163,8 @@ class LogApiRequest
             'session_id',
             'api_key',
             'private_key',
+            'authorization_code',
+            'nonce',
             'google2fa_code',
             'two_factor_code',
             '2fa_code',
@@ -178,7 +180,9 @@ class LogApiRequest
         if (str_contains($normalized, 'password')
             || str_contains($normalized, 'token')
             || str_contains($normalized, 'secret')
-            || str_contains($normalized, 'otp')) {
+            || str_contains($normalized, 'otp')
+            || str_contains($normalized, 'authorization_code')
+            || str_ends_with($normalized, '_nonce')) {
             return true;
         }
 

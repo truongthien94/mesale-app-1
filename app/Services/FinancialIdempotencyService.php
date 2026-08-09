@@ -18,6 +18,30 @@ class FinancialIdempotencyService
     public const OUTCOME_IN_PROGRESS = 'in_progress';
 
     /**
+     * Return a prior result before controllers evaluate mutable feature or entity state.
+     *
+     * @return array{outcome: string, status?: int, data?: array<string, mixed>}|null
+     */
+    public function replayIfPresent(
+        int $userId,
+        string $operation,
+        string $rawKey,
+        array $payload
+    ): ?array {
+        $record = IdempotencyKey::query()
+            ->where('user_id', $userId)
+            ->where('operation', $operation)
+            ->where('key_hash', hash('sha256', $rawKey))
+            ->first();
+
+        if (! $record) {
+            return null;
+        }
+
+        return $this->outcomeForExistingRecord($record, $this->payloadHash($payload));
+    }
+
+    /**
      * @param  Closure(): array{status: int, data: array<string, mixed>}  $callback
      * @return array{outcome: string, status?: int, data?: array<string, mixed>}
      */
@@ -55,22 +79,7 @@ class FinancialIdempotencyService
             }
 
             if ($inserted === 0) {
-                if (! hash_equals($record->request_hash, $requestHash)) {
-                    return ['outcome' => self::OUTCOME_CONFLICT];
-                }
-
-                if ($record->status !== IdempotencyKey::STATUS_COMPLETED || ! is_array($record->response_body)) {
-                    return ['outcome' => self::OUTCOME_IN_PROGRESS];
-                }
-
-                $data = $record->response_body;
-                $data['idempotent_replay'] = true;
-
-                return [
-                    'outcome' => self::OUTCOME_REPLAY,
-                    'status' => $record->response_status ?? 200,
-                    'data' => $data,
-                ];
+                return $this->outcomeForExistingRecord($record, $requestHash);
             }
 
             $result = $callback();
@@ -94,6 +103,29 @@ class FinancialIdempotencyService
                 'data' => $data,
             ];
         }, 3);
+    }
+
+    /**
+     * @return array{outcome: string, status?: int, data?: array<string, mixed>}
+     */
+    private function outcomeForExistingRecord(IdempotencyKey $record, string $requestHash): array
+    {
+        if (! hash_equals($record->request_hash, $requestHash)) {
+            return ['outcome' => self::OUTCOME_CONFLICT];
+        }
+
+        if ($record->status !== IdempotencyKey::STATUS_COMPLETED || ! is_array($record->response_body)) {
+            return ['outcome' => self::OUTCOME_IN_PROGRESS];
+        }
+
+        $data = $record->response_body;
+        $data['idempotent_replay'] = true;
+
+        return [
+            'outcome' => self::OUTCOME_REPLAY,
+            'status' => $record->response_status ?? 200,
+            'data' => $data,
+        ];
     }
 
     private function payloadHash(array $payload): string

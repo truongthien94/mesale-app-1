@@ -46,6 +46,7 @@ mobile/.expo/
 mobile/node_modules/
 mobile/dist/
 mobile/dist-review/
+mobile/dist-verify-*/
 mobile/.eas/
 mobile/android/.gradle/
 mobile/android/local.properties

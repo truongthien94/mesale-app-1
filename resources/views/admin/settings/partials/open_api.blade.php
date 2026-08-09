@@ -39,6 +39,32 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div x-data="{ enabled: {{ ($settings['openapi_auth_oauth_google_status'] ?? '0') === '1' ? 'true' : 'false' }} }" class="flex items-center justify-between gap-3 bg-white dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl p-4">
+                <div class="min-w-0">
+                    <span class="block text-sm font-bold text-gray-800 dark:text-slate-200">{{ __('Native Google login API') }}</span>
+                    <span class="text-[10px] text-gray-400">{{ __('Mặc định tắt. Chỉ bật sau khi client ID và quy trình xác minh token đã được kiểm thử trên staging.') }}</span>
+                </div>
+                <input type="hidden" name="openapi_auth_oauth_google_status" :value="enabled ? '1' : '0'">
+                <button type="button" @click="enabled = !enabled" :class="enabled ? 'bg-shopee' : 'bg-gray-300 dark:bg-slate-600'"
+                    class="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors" title="{{ __('Bật/Tắt Native Google login API') }}">
+                    <span :class="enabled ? 'translate-x-5.5' : 'translate-x-0.5'" class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"></span>
+                </button>
+            </div>
+
+            <div x-data="{ enabled: {{ ($settings['openapi_auth_oauth_apple_status'] ?? '0') === '1' ? 'true' : 'false' }} }" class="flex items-center justify-between gap-3 bg-white dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl p-4">
+                <div class="min-w-0">
+                    <span class="block text-sm font-bold text-gray-800 dark:text-slate-200">{{ __('Sign in with Apple API') }}</span>
+                    <span class="text-[10px] text-gray-400">{{ __('Mặc định tắt. Chỉ bật sau khi Services ID, redirect URI và khóa ký server-side đã được kiểm thử trên staging.') }}</span>
+                </div>
+                <input type="hidden" name="openapi_auth_oauth_apple_status" :value="enabled ? '1' : '0'">
+                <button type="button" @click="enabled = !enabled" :class="enabled ? 'bg-shopee' : 'bg-gray-300 dark:bg-slate-600'"
+                    class="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors" title="{{ __('Bật/Tắt Sign in with Apple API') }}">
+                    <span :class="enabled ? 'translate-x-5.5' : 'translate-x-0.5'" class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"></span>
+                </button>
+            </div>
+        </div>
+
         <!-- Ghi chú bảo mật cơ chế xác thực -->
         <div class="bg-shopee/5 dark:bg-shopee/10 rounded-xl p-4 border border-shopee/20 text-xs leading-relaxed text-gray-600 dark:text-slate-300 space-y-2">
             <p class="font-semibold text-gray-700 dark:text-slate-200 flex items-center gap-1.5">

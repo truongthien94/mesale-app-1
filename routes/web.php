@@ -144,6 +144,9 @@ Route::prefix('blog')->name('blog.')->group(function () {
     Route::get('/feed', [\App\Http\Controllers\BlogController::class, 'feed'])->name('feed');
     Route::get('/{slug}', [\App\Http\Controllers\BlogController::class, 'show'])->name('show');
     Route::post('/{post}/like', [\App\Http\Controllers\BlogController::class, 'like'])->name('like');
+    Route::post('/{post}/share', [\App\Http\Controllers\BlogController::class, 'share'])
+        ->middleware('throttle:30,1')
+        ->name('share');
     Route::post('/{post}/comment', [\App\Http\Controllers\BlogController::class, 'comment'])->name('comment');
 });
 
