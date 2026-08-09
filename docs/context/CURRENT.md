@@ -1,6 +1,6 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260809-006`
+- Latest checkpoint: `CKP-20260809-007`
 - Session: `SES-20260809-002`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 auth contract implementation + M1 Expo foundation verification
@@ -14,6 +14,7 @@
 - GitHub Issues: migration labels and Issues #1-#5 created
 - GitHub branch: `codex/migration-20260809` pushed to origin
 - GitHub PR: blocked because the previously empty repository has no distinct base branch
+- README: full redacted project, development, security, API, milestone, and release guide added
 - GitHub Project: blocked because CLI token lacks `read:project` scope
 - Current blocker: production Open API returns `503 API_DISABLED`
 - Verification blocker: PHP CLI is unavailable in PATH (`BLK-TOOL-001`)
@@ -22,4 +23,4 @@
 
 ## Next Action
 
-Choose a safe base-branch strategy for Pull Requests, then continue Laravel contract tests, Apple/Google/staging API work, and representative device authentication verification. Do not merge automatically.
+Create the approved empty `main` base and open the Pull Request, then continue Laravel contract tests, Apple/Google/staging API work, and representative device authentication verification. Do not merge automatically.
