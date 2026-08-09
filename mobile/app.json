@@ -9,7 +9,12 @@
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-localization"
     ],
     "experiments": {
@@ -17,10 +22,21 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "vn.mesale.app"
+      "bundleIdentifier": "vn.mesale.app",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false,
+          "NSExceptionDomains": {}
+        }
+      }
     },
     "android": {
       "package": "vn.mesale.app",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       }

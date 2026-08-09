@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
+import { Redirect } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { getDeviceLocale, t } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
 
 export default function LoginScreen() {
   const locale = getDeviceLocale();
-  const { login } = useAuth();
+  const { isLoading: isAuthLoading, session, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,13 +18,15 @@ export default function LoginScreen() {
     setSubmitting(true);
     try {
       await login(email.trim(), password);
-      router.replace("/home");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to sign in");
     } finally {
       setSubmitting(false);
     }
   }
+
+  if (isAuthLoading) return <View style={styles.loading}><ActivityIndicator color={colors.primary} /></View>;
+  if (session) return <Redirect href="/home" />;
 
   return <View style={styles.container}>
     <Text style={styles.title}>{t(locale, "appName")}</Text>
@@ -39,6 +41,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: colors.background },
   container: { flex: 1, justifyContent: "center", padding: spacing.lg, gap: spacing.md, backgroundColor: colors.background },
   title: { color: colors.primary, fontSize: 34, fontWeight: "800" },
   subtitle: { color: colors.text, fontSize: 20, fontWeight: "700", marginBottom: spacing.sm },

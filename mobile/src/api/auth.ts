@@ -33,6 +33,10 @@ export async function login(email: string, password: string): Promise<AuthResult
   };
 }
 
+export async function getCurrentUser(): Promise<User> {
+  return request<User>("account");
+}
+
 export async function logout(): Promise<void> {
   await request<void>("auth/logout", { method: "POST" });
 }

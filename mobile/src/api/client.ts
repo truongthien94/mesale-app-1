@@ -1,4 +1,4 @@
-import { clearSession, loadSession, notifySessionInvalidated } from "@/auth/session";
+import { clearSessionIfTokenMatches, loadSession, notifySessionInvalidated } from "@/auth/session";
 import { env } from "@/config/env";
 
 export type ApiEnvelope<T> = {
@@ -54,8 +54,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       signal: controller.signal
     });
     const payload = await readJson(response);
-    if (response.status === 401) {
-      await clearSession();
+    if (response.status === 401 && session && await clearSessionIfTokenMatches(session.accessToken)) {
       notifySessionInvalidated();
     }
     if (!response.ok) {
