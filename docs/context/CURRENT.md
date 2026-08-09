@@ -9,8 +9,8 @@
 - Push gate: received for the current migration branch; merge is not authorized
 - Repository: `thichmmo/mesale-app`, currently a Laravel + Expo monorepo pending explicit scope confirmation (`BLK-SCOPE-001`)
 - GitHub default branch: `main` restored to the reviewed migration baseline at `6854dec`
-- GitHub branch: `codex/migration-20260809` contains verified code head `8b81b53` and restored-`main` synchronization commit `3d809e5`; this checkpoint documentation is the next bounded push
-- GitHub PR: draft PR #6 remains open and unmerged; push run `31309033939` and PR run `31309035268` both pass context/secret, Laravel, and mobile jobs
+- GitHub branch: `codex/migration-20260809` is pushed with verified code head `8b81b53`, checkpoint commit `9d475f3`, and restored-`main` synchronization commit `3d809e5`
+- GitHub PR: draft PR #6 is updated, open and unmerged; push run `31310086133` and PR run `31310087406` both pass context/secret, Laravel, and mobile jobs for `9d475f3`
 - GitHub Issues: #12 tracks the bounded P0 correction and remains open for warning cleanup; #13 is the current API blocker candidate while duplicate #1 awaits owner-directed reconciliation; #14-#17 track data lifecycle, financial concurrency, UI contrast, and Linux test warnings
 - Operational log: Google Sheet is synchronized through `CKP-20260809-012`, `DEC-20260809-007`, `CHG-20260809-010`, and `TST-20260809-011`
 - Production API: `GET /api/v1/openapi/config` returns `503 API_DISABLED`

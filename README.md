@@ -115,7 +115,7 @@ Current measured foundation evidence:
 - A tracked-file secret scan finds no credential filenames or private-key/service-account patterns. No production mutation was performed.
 - `npm audit --omit=dev` still reports 22 advisories: 7 high and 15 moderate. Do not apply `npm audit fix --force`; remediation must follow an Expo-compatible upgrade path with regression testing.
 
-GitHub Actions now enforces context/secret checks, Laravel tests, mobile parser tests, TypeScript, Expo Doctor, and iOS/Android exports. Both the push run and the Pull Request run for code commit `8b81b53` pass all three jobs. The Linux PHPUnit summary nevertheless classifies the 22 tests as warnings while retaining 235 successful assertions; this environment-specific warning state is tracked by `BLK-TEST-001`, while the non-failing Node 20 action deprecations are noted for workflow maintenance.
+GitHub Actions now enforces context/secret checks, Laravel tests, mobile parser tests, TypeScript, Expo Doctor, and iOS/Android exports. Push run `31310086133` and Pull Request run `31310087406` pass all three jobs for checkpoint commit `9d475f3`. The Linux PHPUnit summary nevertheless classifies the 22 tests as warnings while retaining 235 successful assertions; this environment-specific warning state is tracked by `BLK-TEST-001`, while the non-failing Node 20 action deprecations are noted for workflow maintenance.
 
 ## Laravel API Readiness
 
