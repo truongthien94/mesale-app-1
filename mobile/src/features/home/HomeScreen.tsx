@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,9 +17,18 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Clipboard from "expo-clipboard";
+import {
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Copy,
+  Ticket
+} from "lucide-react-native";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { getDeviceLocale } from "@/i18n";
+import { useTheme } from "@/theme/ThemeProvider";
 import { colors, spacing } from "@/theme/tokens";
 import { isSafeAffiliateUrl, normalizeBannerLink, normalizeProductUrl } from "@/features/home/api";
 import { useAccountSummary, useCreateCashbackLink, useHomeConfig } from "@/features/home/hooks";
@@ -368,6 +377,239 @@ function ProductResult({ product, language, notice, strings }: {
   );
 }
 
+// Round C uses the live homepage snapshot because the Page Builder has no
+// mobile JSON contract. Keep volatile coupon/blog records clearly isolated so
+// a future API-backed block can replace this data without touching the tool.
+const roundCStaticCoupons = [
+  {
+    code: "YOUTUBEAPR210105",
+    discount: "24%",
+    maximum: "Tối đa 100,000đ",
+    minimum: "ĐƠN TỪ 150k",
+    title: "Giảm 24% Đơn Tối Thiểu ₫300K Giảm tối đa ₫150K",
+    used: "Đã dùng 20%",
+    expires: "CÒN 143 NGÀY"
+  },
+  {
+    code: "YOUTUBEMAR200108",
+    discount: "22%",
+    maximum: "Tối đa 2,000,000đ",
+    minimum: "ĐƠN TỪ 1,250k",
+    title: "Giảm 22% Đơn Tối Thiểu ₫1500K Giảm tối đa ₫3Tr",
+    used: "Đã dùng 20%",
+    expires: "CÒN 4180 NGÀY"
+  },
+  {
+    code: "METAPAR2MARD22750",
+    discount: "22%",
+    maximum: "Tối đa 500,000đ",
+    minimum: "ĐƠN TỪ 50k",
+    title: "Giảm 22% Đơn Tối Thiểu ₫50K Giảm tối đa ₫500K",
+    used: "Đã dùng 10%",
+    expires: "CÒN 1604 NGÀY"
+  }
+] as const;
+
+const roundCStaticTimeline = [
+  {
+    badge: "Bước 1: Mua hàng",
+    title: "Ngày mua",
+    tag: "Hôm nay",
+    description: "Bạn copy link Shopee dán vào hệ thống, nhận link rút gọn và tiến hành đặt mua hàng."
+  },
+  {
+    badge: "Bước 2: Đối soát",
+    title: "Ghi nhận",
+    tag: "Ngày mai",
+    description: "Shopee ghi nhận đơn hàng tạm tính và tự động đồng bộ hiển thị trong lịch sử ví của bạn."
+  },
+  {
+    badge: "Bước 3: Thực nhận",
+    title: "Có thể rút",
+    tag: "7 ngày",
+    description: "Sau khi Shopee đối soát kỳ hoàn thành (khoảng 7 ngày khi nhận hàng), tiền khả dụng sẽ được cộng vào ví và có thể rút ngay."
+  }
+] as const;
+
+const roundCStaticBlogPosts = [
+  {
+    title: "Đồ gia dụng cồng kềnh và hoàn tiền TikTok Shop: đọc phí giao trước",
+    summary: "Đồ gia dụng cồng kềnh và hoàn tiền TikTok Shop: đọc phí giao trước. Bài viết tập trung vào tính tổng chi phí thay vì chỉ nhìn giá sau ưu đãi, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
+    image: "https://mesale.vn/uploads/blog/1786356052_qjKQzzz2er.jpg",
+    views: "21 lượt xem"
+  },
+  {
+    title: "Đồ bếp theo set và hoàn tiền TikTok Shop: kiểm tra vật liệu, số món",
+    summary: "Đồ bếp theo set và hoàn tiền TikTok Shop: kiểm tra vật liệu, số món. Bài viết tập trung vào so sánh thành phần bộ sản phẩm thay vì chỉ nhìn ảnh minh họa, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
+    image: "https://mesale.vn/uploads/blog/1786342549_oUKtjV1b79.jpg",
+    views: "16 lượt xem"
+  },
+  {
+    title: "Văn phòng phẩm theo combo và hoàn tiền TikTok Shop: có thật sự tiết kiệm?",
+    summary: "Văn phòng phẩm theo combo và hoàn tiền TikTok Shop: có thật sự tiết kiệm? Bài viết tập trung vào so sánh giá theo đơn vị và số lượng thực sự cần, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
+    image: "https://mesale.vn/uploads/blog/1786333251_9lVQyVGtPj.jpg",
+    views: "22 lượt xem"
+  }
+] as const;
+
+function RoundCSectionShell({
+  children,
+  tone = "orange"
+}: {
+  children: ReactNode;
+  tone?: "orange" | "blue";
+}) {
+  const { colors, spacing, radius } = useTheme();
+  const accent = tone === "blue" ? "#2563eb" : colors.primary;
+  return (
+    <View
+      style={{
+        backgroundColor: colors.surface,
+        borderColor: `${accent}35`,
+        borderRadius: radius.lg,
+        borderWidth: 1,
+        gap: spacing.md,
+        padding: spacing.lg
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+function RoundCCouponSection() {
+  const { colors, spacing } = useTheme();
+  return (
+    <RoundCSectionShell>
+      <View style={{ gap: spacing.xs }}>
+        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: `${colors.primary}18`, borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Ticket color={colors.primary} size={14} />
+          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900" }}>Ưu đãi hot hôm nay</Text>
+        </View>
+        <Text style={{ color: colors.text, fontSize: 24, fontWeight: "900", lineHeight: 30 }}>
+          Mã khuyến mãi <Text style={{ color: colors.primary }}>Shopee</Text>
+        </Text>
+      </View>
+      <ScrollView contentContainerStyle={{ gap: spacing.md }} horizontal showsHorizontalScrollIndicator={false}>
+        {roundCStaticCoupons.map((coupon) => (
+          <View key={coupon.code} style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", minHeight: 158, overflow: "hidden", width: 300 }}>
+            <View style={{ alignItems: "center", backgroundColor: colors.primary, justifyContent: "center", padding: spacing.sm, width: 104 }}>
+              <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "900", letterSpacing: 1 }}>ƯU ĐÃI</Text>
+              <Text style={{ color: "#ffffff", fontSize: 27, fontWeight: "900", marginTop: 4 }}>{coupon.discount}</Text>
+              <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "700", marginTop: 3, textAlign: "center" }}>{coupon.maximum}</Text>
+              <Text style={{ borderTopColor: "rgba(255,255,255,0.35)", borderTopWidth: 1, color: "#ffffff", fontSize: 8, fontWeight: "900", marginTop: 8, paddingTop: 7, textAlign: "center" }}>{coupon.minimum}</Text>
+            </View>
+            <View style={{ flex: 1, gap: 8, justifyContent: "space-between", padding: spacing.md }}>
+              <View style={{ gap: 6 }}>
+                <Text numberOfLines={2} style={{ color: colors.text, fontSize: 12, fontWeight: "800", lineHeight: 17 }}>{coupon.title}</Text>
+                <Text style={{ color: colors.mutedText, fontSize: 10, fontWeight: "700" }}>{coupon.used}</Text>
+                <View style={{ backgroundColor: colors.border, borderRadius: 4, height: 5, overflow: "hidden" }}>
+                  <View style={{ backgroundColor: colors.primary, borderRadius: 4, height: "100%", width: coupon.used === "Đã dùng 10%" ? "10%" : "20%" }} />
+                </View>
+              </View>
+              <View style={{ alignItems: "flex-end", flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+                <View style={{ gap: 4 }}>
+                  <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
+                    <Clock3 color={colors.mutedText} size={12} />
+                    <Text style={{ color: colors.mutedText, fontSize: 9, fontWeight: "800" }}>{coupon.expires}</Text>
+                  </View>
+                  <Text style={{ backgroundColor: `${colors.primary}18`, borderRadius: 6, color: colors.primary, fontSize: 9, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 3 }}>Toàn Sàn</Text>
+                </View>
+                <Pressable
+                  accessibilityHint="Mở bảng chia sẻ để chọn sao chép mã"
+                  accessibilityLabel={`Sao chép mã ${coupon.code}`}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void Clipboard.setStringAsync(coupon.code);
+                  }}
+                  style={({ pressed }) => [{ alignItems: "center", backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40`, borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 7 }, pressed && { opacity: 0.72 }]}
+                >
+                  <Copy color={colors.primary} size={13} />
+                  <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900" }}>Sao chép</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+    </RoundCSectionShell>
+  );
+}
+
+function RoundCTimelineSection() {
+  const { colors, spacing } = useTheme();
+  return (
+    <RoundCSectionShell>
+      <View style={{ alignItems: "center", gap: spacing.xs }}>
+        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900", textTransform: "uppercase" }}>Lộ trình hoàn tiền Shopee</Text>
+        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29, textAlign: "center" }}>Quy Trình Nhận Hoàn Tiền Siêu Tốc</Text>
+        <Text style={{ color: colors.mutedText, fontSize: 13, lineHeight: 20, textAlign: "center" }}>Hiểu rõ quy trình ghi nhận đơn hàng và thời gian tiền hoàn về tài khoản của bạn.</Text>
+      </View>
+      <View style={{ gap: spacing.md }}>
+        {roundCStaticTimeline.map((step, index) => (
+          <View key={step.title} style={{ flexDirection: "row", gap: spacing.md }}>
+            <View style={{ alignItems: "center", width: 28 }}>
+              <View style={{ alignItems: "center", backgroundColor: colors.primary, borderRadius: 999, height: 28, justifyContent: "center", width: 28 }}>
+                <CheckCircle2 color="#ffffff" size={17} />
+              </View>
+              {index < roundCStaticTimeline.length - 1 ? <View style={{ backgroundColor: `${colors.primary}45`, flex: 1, marginVertical: 5, width: 2 }} /> : null}
+            </View>
+            <View style={{ flex: 1, gap: 4, paddingBottom: index < roundCStaticTimeline.length - 1 ? spacing.sm : 0 }}>
+              <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900", textTransform: "uppercase" }}>{step.badge}</Text>
+              <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
+                <Text style={{ color: colors.text, flex: 1, fontSize: 17, fontWeight: "900" }}>{step.title}</Text>
+                <Text style={{ backgroundColor: `${colors.primary}18`, borderRadius: 999, color: colors.primary, fontSize: 10, fontWeight: "900", paddingHorizontal: 8, paddingVertical: 4 }}>{step.tag}</Text>
+              </View>
+              <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 19 }}>{step.description}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </RoundCSectionShell>
+  );
+}
+
+function RoundCBlogSection() {
+  const { colors, spacing } = useTheme();
+  return (
+    <RoundCSectionShell tone="blue">
+      <View style={{ gap: spacing.xs }}>
+        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: "#2563eb18", borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <BookOpen color="#2563eb" size={14} />
+          <Text style={{ color: "#2563eb", fontSize: 11, fontWeight: "900" }}>Cẩm nang mua sắm</Text>
+        </View>
+        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29 }}>Tin Tức & Bí Quyết Săn Sale Mới Nhất</Text>
+      </View>
+      <View style={{ gap: spacing.md }}>
+        {roundCStaticBlogPosts.map((post) => (
+          <View key={post.title} style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, overflow: "hidden" }}>
+            <Image accessibilityLabel={post.title} resizeMode="cover" source={{ uri: post.image }} style={{ backgroundColor: colors.border, height: 150, width: "100%" }} />
+            <View style={{ gap: 7, padding: spacing.md }}>
+              <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
+                <Text style={{ backgroundColor: "#2563eb18", borderRadius: 999, color: "#2563eb", fontSize: 9, fontWeight: "900", paddingHorizontal: 7, paddingVertical: 4 }}>Mẹo hoàn tiền & Tiết kiệm</Text>
+                <Text style={{ color: colors.mutedText, flex: 1, fontSize: 10, fontWeight: "700", textAlign: "right" }}>10/08/2026 · {post.views}</Text>
+              </View>
+              <Text numberOfLines={3} style={{ color: colors.text, fontSize: 15, fontWeight: "900", lineHeight: 21 }}>{post.title}</Text>
+              <Text numberOfLines={4} style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>{post.summary}</Text>
+              {/* Website-only blog routes are intentionally omitted on mobile. */}
+            </View>
+          </View>
+        ))}
+      </View>
+    </RoundCSectionShell>
+  );
+}
+
+function RoundCHomeBlocks() {
+  return (
+    <View style={{ gap: spacing.md }}>
+      <RoundCCouponSection />
+      <RoundCTimelineSection />
+      <RoundCBlogSection />
+    </View>
+  );
+}
+
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const language = getDeviceLocale();
@@ -625,6 +867,8 @@ export function HomeScreen() {
             <Text style={styles.resultEmptyText}>{strings.resultEmpty}</Text>
           </View>
         )}
+
+        <RoundCHomeBlocks />
       </ScrollView>
     </KeyboardAvoidingView>
   );

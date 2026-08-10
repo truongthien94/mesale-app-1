@@ -1,223 +1,257 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Eye, EyeOff, History, Receipt, Sparkles, WalletCards } from "lucide-react-native";
+import { useState } from "react";
+import {
+  Image,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LoadingState } from "@/components/AsyncState";
-import { Card, PageFrame, QueryFailure, SectionTitle } from "@/features/wallet/components";
-import { formatVnd } from "@/features/wallet/format";
-import { useAccountSummary, useAppConfig } from "@/features/wallet/api";
-import { colors, spacing, theme } from "@/theme/tokens";
+import { QueryFailure } from "@/features/wallet/components";
+import { useAccountSummary, useOrders } from "@/features/wallet/api";
+import { formatDate, formatVnd } from "@/features/wallet/format";
+import type { Order, OrderStatus } from "@/features/wallet/types";
+import { useTheme } from "@/theme/ThemeProvider";
+
+const statusBorder: Record<OrderStatus, string> = {
+  pending: "#facc15",
+  approved: "#10b981",
+  rejected: "#f43f5e"
+};
+
+const statusCopy: Record<OrderStatus, string> = {
+  pending: "Chờ duyệt",
+  approved: "Đã cộng tiền",
+  rejected: "Từ chối"
+};
 
 export default function WalletRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const account = useAccountSummary();
-  const config = useAppConfig();
+  const { colors, spacing, radius } = useTheme();
+  const accountQuery = useAccountSummary();
+  const ordersQuery = useOrders();
+  const [showBalance, setShowBalance] = useState(true);
 
-  if (account.isPending || config.isPending) return <LoadingState label="Đang tải ví..." />;
-  if (account.isError) return <QueryFailure error={account.error} onRetry={() => void account.refetch()} />;
-  if (config.isError) return <QueryFailure error={config.error} onRetry={() => void config.refetch()} />;
+  if (accountQuery.isPending) return <LoadingState label="Đang tải ví..." />;
+  if (accountQuery.isError || !accountQuery.data) {
+    return <QueryFailure error={accountQuery.error} onRetry={() => void accountQuery.refetch()} />;
+  }
 
-  const wallet = account.data.wallet;
-  const stats = account.data.stats;
-  const features = config.data.features;
+  const { wallet, stats } = accountQuery.data;
+  const recentOrders = (ordersQuery.data?.pages.flatMap((page) => page.items) ?? []).slice(0, 5);
+  const balanceText = showBalance ? formatVnd(wallet.balance) : "••••••";
 
   return (
-    <PageFrame>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: spacing.xl + insets.bottom }]}
+        contentContainerStyle={{ gap: spacing.lg, padding: spacing.md, paddingBottom: spacing.xl + insets.bottom }}
         contentInsetAdjustmentBehavior="automatic"
+        refreshControl={(
+          <RefreshControl
+            onRefresh={() => {
+              void accountQuery.refetch();
+              void ordersQuery.refetch();
+            }}
+            refreshing={accountQuery.isRefetching || ordersQuery.isRefetching}
+            tintColor={colors.primary}
+          />
+        )}
       >
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceEyebrow}>SỐ DƯ KHẢ DỤNG</Text>
-          <Text accessibilityLabel={`Số dư ${formatVnd(wallet.balance)}`} style={styles.balanceValue}>
-            {formatVnd(wallet.balance)}
-          </Text>
-          <View style={styles.balanceDivider} />
-          <View style={styles.balanceStats}>
-            <BalanceStat label="Đã tích lũy" value={formatVnd(wallet.total_cashback)} tone="#4ade80" />
-            <BalanceStat label="Đã giải ngân" value={formatVnd(wallet.total_withdrawn)} tone="#60a5fa" />
+        <LinearGradient
+          colors={["#FF5733", "#FF451A", "#E02F05"]}
+          end={{ x: 1, y: 1 }}
+          start={{ x: 0, y: 0 }}
+          style={[styles.balanceBanner, { borderRadius: radius.lg }]}
+        >
+          <View style={styles.bannerOrbLarge} />
+          <View style={styles.bannerOrbSmall} />
+          <View style={styles.bannerHeader}>
+            <View style={styles.bannerTitleWrap}>
+              <Text style={styles.bannerTitle}>Ví tiền của tôi</Text>
+              <Text style={styles.bannerEyebrow}>Số dư khả dụng</Text>
+            </View>
+            <WalletCards color="#ffffff" size={28} />
           </View>
+          <View style={styles.balanceRow}>
+            <Text accessibilityLabel={showBalance ? `Số dư ${formatVnd(wallet.balance)}` : "Số dư đang ẩn"} adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>
+              {balanceText}
+            </Text>
+            <Pressable
+              accessibilityLabel={showBalance ? "Ẩn số dư" : "Hiện số dư"}
+              accessibilityRole="button"
+              onPress={() => setShowBalance((value) => !value)}
+              style={styles.eyeButton}
+            >
+              {showBalance ? <Eye color="#ffffff" size={19} /> : <EyeOff color="#ffffff" size={19} />}
+            </Pressable>
+          </View>
+          <View style={styles.bannerActions}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/(tabs)/wallet/withdrawals")}
+              style={({ pressed }) => [styles.bannerAction, pressed && styles.pressed]}
+            >
+              <Text style={styles.bannerActionText}>Rút tiền</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push("/(tabs)/wallet/orders")}
+              style={({ pressed }) => [styles.bannerActionSecondary, pressed && styles.pressed]}
+            >
+              <History color="#ffffff" size={15} />
+              <Text style={styles.bannerActionSecondaryText}>Lịch sử</Text>
+            </Pressable>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.statsRow}>
+          <WalletStat colors={colors} iconColor="#10b981" label="Tổng Cashback" value={showBalance ? formatVnd(wallet.total_cashback) : "••••"} />
+          <WalletStat colors={colors} iconColor="#3b82f6" label="Đã rút" value={showBalance ? formatVnd(wallet.total_withdrawn) : "••••"} />
+          <WalletStat colors={colors} iconColor="#facc15" label="Chờ duyệt" value={String(stats.orders_pending)} />
         </View>
 
-        <SectionTitle title="Quản lý ví" caption="Mọi số dư và giao dịch được xác nhận trực tiếp bởi mesale.vn." />
-        <View style={styles.grid}>
-          <WalletAction
-            label="Đơn hoàn tiền"
-            meta={`${stats.orders_total} đơn`}
-            onPress={() => router.push("/(tabs)/wallet/orders")}
-            disabled={!features.api_orders}
-          />
-          <WalletAction
-            label="Biến động số dư"
-            meta="Lịch sử vào / ra"
-            onPress={() => router.push("/(tabs)/wallet/balance-logs")}
-            disabled={!features.api_balance_logs}
-          />
-          <WalletAction
-            label="Rút tiền"
-            meta={`${stats.withdrawals_pending} đang chờ`}
-            onPress={() => router.push("/(tabs)/wallet/withdrawals")}
-            disabled={!features.api_withdraw}
-          />
-          <WalletAction
-            label="Tài khoản nhận"
-            meta="Ngân hàng và ví"
-            onPress={() => router.push("/(tabs)/wallet/payment-accounts")}
-            disabled={!features.api_withdraw}
-          />
-        </View>
-
-        <Card>
-          <SectionTitle title="Tình trạng đơn" />
-          <View style={styles.orderStats}>
-            <OrderStat label="Chờ duyệt" value={stats.orders_pending} color="#d97706" />
-            <OrderStat label="Thành công" value={stats.orders_approved} color="#059669" />
-            <OrderStat label="Từ chối" value={stats.orders_rejected} color="#e11d48" />
+        <View style={[styles.recentCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg }]}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeadingWrap}>
+              <View style={[styles.sectionIcon, { backgroundColor: `${colors.primary}16` }]}>
+                <Receipt color={colors.primary} size={19} />
+                <Sparkles color={colors.primary} fill={colors.primary} size={9} style={styles.sparkle} />
+              </View>
+              <View>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>Đơn hoàn tiền gần đây</Text>
+                <Text style={[styles.sectionCaption, { color: colors.mutedText }]}>Giao dịch phát sinh gần đây</Text>
+              </View>
+            </View>
+            <Pressable accessibilityRole="button" onPress={() => router.push("/(tabs)/wallet/orders")}>
+              <Text style={[styles.seeAll, { color: colors.primary }]}>Xem tất cả</Text>
+            </Pressable>
           </View>
-        </Card>
+
+          {ordersQuery.isPending ? <Text style={[styles.stateText, { color: colors.mutedText }]}>Đang tải giao dịch...</Text> : null}
+          {ordersQuery.isError ? (
+            <View style={[styles.inlineError, { backgroundColor: colors.background, borderColor: colors.border }]}>
+              <Text style={[styles.stateText, { color: colors.mutedText }]}>Chưa thể tải giao dịch gần đây.</Text>
+              <Pressable accessibilityRole="button" onPress={() => void ordersQuery.refetch()}>
+                <Text style={[styles.retryText, { color: colors.primary }]}>Thử lại</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {!ordersQuery.isPending && !ordersQuery.isError && recentOrders.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Receipt color={colors.mutedText} size={26} />
+              <Text style={[styles.stateText, { color: colors.mutedText }]}>Bạn chưa có giao dịch hoàn tiền nào.</Text>
+            </View>
+          ) : null}
+          <View style={{ gap: spacing.sm }}>
+            {recentOrders.map((order) => (
+              <RecentOrder
+                colors={colors}
+                key={order.id}
+                onPress={() => router.push(`/(tabs)/wallet/orders/${order.id}`)}
+                order={order}
+                radius={radius}
+                showBalance={showBalance}
+              />
+            ))}
+          </View>
+        </View>
       </ScrollView>
-    </PageFrame>
-  );
-}
-
-function BalanceStat({ label, value, tone }: { label: string; value: string; tone: string }) {
-  return (
-    <View style={styles.balanceStat}>
-      <Text style={styles.balanceStatLabel}>{label}</Text>
-      <Text style={[styles.balanceStatValue, { color: tone }]}>{value}</Text>
     </View>
   );
 }
 
-function WalletAction({ label, meta, onPress, disabled }: { label: string; meta: string; onPress: () => void; disabled: boolean }) {
+function WalletStat({ colors, iconColor, label, value }: { colors: ReturnType<typeof useTheme>["colors"]; iconColor: string; label: string; value: string }) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <View style={[styles.statDot, { backgroundColor: iconColor }]} />
+      <Text numberOfLines={2} style={[styles.statLabel, { color: colors.mutedText }]}>{label}</Text>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+    </View>
+  );
+}
+
+function RecentOrder({ colors, onPress, order, radius, showBalance }: {
+  colors: ReturnType<typeof useTheme>["colors"];
+  onPress: () => void;
+  order: Order;
+  radius: ReturnType<typeof useTheme>["radius"];
+  showBalance: boolean;
+}) {
+  const borderColor = statusBorder[order.status];
+  const imageUri = order.product_image?.startsWith("http://")
+    ? order.product_image.replace(/^http:/, "https:")
+    : order.product_image;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
-      disabled={disabled}
+      accessibilityLabel={`Xem đơn ${order.order_id ?? order.id}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.action, disabled && styles.actionDisabled, pressed && styles.actionPressed]}
+      style={({ pressed }) => [styles.orderRow, { backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.md, borderLeftColor: borderColor }, pressed && styles.pressed]}
     >
-      <View style={styles.actionMark} />
-      <Text style={styles.actionLabel}>{label}</Text>
-      <Text style={styles.actionMeta}>{disabled ? "Đang tạm tắt" : meta}</Text>
+      {imageUri ? <Image accessibilityIgnoresInvertColors source={{ uri: imageUri }} style={[styles.orderImage, { borderRadius: radius.sm }]} /> : <View style={[styles.orderImage, styles.imageFallback, { backgroundColor: colors.border, borderRadius: radius.sm }]}><Receipt color={colors.mutedText} size={17} /></View>}
+      <View style={styles.orderCopy}>
+        <Text numberOfLines={1} style={[styles.orderTitle, { color: colors.text }]}>{order.product_name || "Đơn hàng hoàn tiền"}</Text>
+        <Text style={[styles.orderMeta, { color: colors.mutedText }]}>{order.platform?.toUpperCase() || "MARKETPLACE"} · #{order.order_id || order.id}</Text>
+        <View style={styles.orderFooter}>
+          <Text style={[styles.orderStatus, { backgroundColor: `${borderColor}1c`, color: borderColor }]}>{statusCopy[order.status]}</Text>
+          <Text style={[styles.orderDate, { color: colors.mutedText }]}>{formatDate(order.created_at, false)}</Text>
+        </View>
+      </View>
+      <Text style={[styles.orderCashback, { color: showBalance ? "#e11d48" : colors.mutedText }]}>{showBalance ? `+${formatVnd(order.cashback_amount)}` : "••••"}</Text>
     </Pressable>
   );
 }
 
-function OrderStat({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <View style={styles.orderStat}>
-      <Text style={[styles.orderStatValue, { color }]}>{value}</Text>
-      <Text style={styles.orderStatLabel}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  content: {
-    gap: spacing.lg,
-    padding: spacing.md
-  },
-  balanceCard: {
-    backgroundColor: "#0f172a",
-    borderRadius: 24,
-    overflow: "hidden",
-    padding: spacing.lg,
-    shadowColor: "#0f172a",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 6
-  },
-  balanceEyebrow: {
-    color: "#94a3b8",
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1.2
-  },
-  balanceValue: {
-    color: colors.surface,
-    fontSize: 32,
-    fontWeight: "900",
-    marginTop: spacing.sm
-  },
-  balanceDivider: {
-    backgroundColor: "#334155",
-    height: 1,
-    marginVertical: spacing.lg
-  },
-  balanceStats: {
-    flexDirection: "row",
-    gap: spacing.md
-  },
-  balanceStat: {
-    flex: 1,
-    gap: spacing.xs
-  },
-  balanceStatLabel: {
-    color: "#94a3b8",
-    fontSize: 11
-  },
-  balanceStatValue: {
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md
-  },
-  action: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
-    gap: spacing.sm,
-    minHeight: 126,
-    padding: spacing.md,
-    width: "47.5%"
-  },
-  actionDisabled: {
-    opacity: 0.5
-  },
-  actionPressed: {
-    opacity: 0.75
-  },
-  actionMark: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    height: 10,
-    width: 36
-  },
-  actionLabel: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "800",
-    marginTop: spacing.sm
-  },
-  actionMeta: {
-    color: colors.mutedText,
-    fontSize: 11,
-    lineHeight: 16
-  },
-  orderStats: {
-    flexDirection: "row",
-    marginTop: spacing.lg
-  },
-  orderStat: {
-    alignItems: "center",
-    borderRightColor: colors.border,
-    borderRightWidth: 1,
-    flex: 1,
-    gap: spacing.xs
-  },
-  orderStatValue: {
-    fontSize: 22,
-    fontWeight: "900"
-  },
-  orderStatLabel: {
-    color: colors.mutedText,
-    fontSize: 10
-  }
+  screen: { flex: 1 },
+  balanceBanner: { minHeight: 205, overflow: "hidden", padding: 22 },
+  bannerOrbLarge: { backgroundColor: "rgba(255,255,255,0.17)", borderRadius: 90, height: 170, position: "absolute", right: -55, top: -60, width: 170 },
+  bannerOrbSmall: { backgroundColor: "rgba(80,16,0,0.14)", borderRadius: 70, bottom: -55, height: 130, left: -30, position: "absolute", width: 130 },
+  bannerHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
+  bannerTitleWrap: { gap: 7 },
+  bannerTitle: { color: "#ffffff", fontSize: 19, fontWeight: "900" },
+  bannerEyebrow: { color: "rgba(255,255,255,0.86)", fontSize: 11, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
+  balanceRow: { alignItems: "center", flexDirection: "row", gap: 9, marginTop: 16 },
+  balanceValue: { color: "#ffffff", flex: 1, fontSize: 32, fontWeight: "900", letterSpacing: -1 },
+  eyeButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 9, height: 34, justifyContent: "center", width: 34 },
+  bannerActions: { flexDirection: "row", gap: 9, marginTop: 20 },
+  bannerAction: { alignItems: "center", backgroundColor: "#ffffff", borderRadius: 11, justifyContent: "center", minHeight: 40, paddingHorizontal: 17 },
+  bannerActionText: { color: "#e02f05", fontSize: 12, fontWeight: "900" },
+  bannerActionSecondary: { alignItems: "center", borderColor: "rgba(255,255,255,0.32)", borderRadius: 11, borderWidth: 1, flexDirection: "row", gap: 6, justifyContent: "center", minHeight: 40, paddingHorizontal: 15 },
+  bannerActionSecondaryText: { color: "#ffffff", fontSize: 12, fontWeight: "900" },
+  statsRow: { flexDirection: "row", gap: 10 },
+  statCard: { borderRadius: 16, borderWidth: 1, flex: 1, minHeight: 118, padding: 13 },
+  statDot: { borderRadius: 5, height: 8, marginBottom: 13, width: 28 },
+  statLabel: { fontSize: 10, fontWeight: "800", lineHeight: 14, textTransform: "uppercase" },
+  statValue: { fontSize: 15, fontWeight: "900", marginTop: 8 },
+  recentCard: { borderWidth: 1, gap: 18, padding: 18 },
+  sectionHeader: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
+  sectionHeadingWrap: { alignItems: "center", flex: 1, flexDirection: "row", gap: 10 },
+  sectionIcon: { alignItems: "center", borderRadius: 12, height: 40, justifyContent: "center", position: "relative", width: 40 },
+  sparkle: { bottom: 10, left: 21, position: "absolute" },
+  sectionTitle: { fontSize: 14, fontWeight: "900", textTransform: "uppercase" },
+  sectionCaption: { fontSize: 11, marginTop: 3 },
+  seeAll: { fontSize: 11, fontWeight: "900" },
+  orderRow: { alignItems: "center", borderLeftWidth: 4, borderWidth: 1, flexDirection: "row", gap: 10, minHeight: 76, padding: 10 },
+  orderImage: { backgroundColor: "#f1f5f9", height: 45, width: 45 },
+  imageFallback: { alignItems: "center", justifyContent: "center" },
+  orderCopy: { flex: 1, gap: 4, minWidth: 0 },
+  orderTitle: { fontSize: 12, fontWeight: "800" },
+  orderMeta: { fontSize: 9, fontWeight: "700" },
+  orderFooter: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  orderStatus: { borderRadius: 5, fontSize: 9, fontWeight: "800", overflow: "hidden", paddingHorizontal: 5, paddingVertical: 3 },
+  orderDate: { fontSize: 9 },
+  orderCashback: { fontSize: 12, fontWeight: "900" },
+  inlineError: { alignItems: "center", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 10, padding: 12 },
+  stateText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  retryText: { fontSize: 12, fontWeight: "900" },
+  emptyState: { alignItems: "center", gap: 9, paddingVertical: 22 },
+  pressed: { opacity: 0.76 }
 });

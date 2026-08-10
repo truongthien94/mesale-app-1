@@ -61,6 +61,30 @@ test("home banner links use safe native Linking handoff", () => {
   assert.match(source, /accessibilityRole=\{bannerLink \? "link"/);
 });
 
+test("Round C appends the observed homepage snapshot without website-only links", () => {
+  const source = read("../src/features/home/HomeScreen.tsx");
+  assert.match(source, /RoundCHomeBlocks/);
+  assert.match(source, /YOUTUBEAPR210105/);
+  assert.match(source, /YOUTUBEMAR200108/);
+  assert.match(source, /METAPAR2MARD22750/);
+  assert.match(source, /RoundCTimelineSection/);
+  assert.match(source, /RoundCBlogSection/);
+  assert.match(source, /useTheme/);
+  assert.doesNotMatch(source, /route\(['"]blog\./);
+});
+
+test("Round C wallet uses the orange dashboard, shared orders cache, and status borders", () => {
+  const source = read("../app/(tabs)/wallet/index.tsx");
+  assert.match(source, /LinearGradient/);
+  assert.match(source, /useOrders\(\)/);
+  assert.match(source, /\.slice\(0, 5\)/);
+  assert.match(source, /pending: "#facc15"/);
+  assert.match(source, /approved: "#10b981"/);
+  assert.match(source, /rejected: "#f43f5e"/);
+  assert.match(source, /useTheme/);
+  assert.doesNotMatch(source, /savings|chart|referral_count/i);
+});
+
 test("wallet histories use infinite queries and virtualized native lists", () => {
   const api = read("../src/features/wallet/api.ts");
   assert.match(api, /useInfiniteQuery/);
