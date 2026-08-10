@@ -15,7 +15,7 @@
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
 
-## Active Round 5 Work
+## Historical Round 5 Work
 
 - Move referral-code entry out of registration into a dedicated post-authentication screen.
 - Add an internal decision timestamp, backfill existing users, and add authenticated apply/skip behavior.
