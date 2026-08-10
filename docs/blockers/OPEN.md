@@ -18,6 +18,7 @@ Round 5 checkpoint `CKP-20260810-006`: local Laravel `77` tests / `702` assertio
 | `BLK-PUSH-001` | P1 | Push transport | The current Laravel push service sends through FCM HTTP v1 and cannot accept a raw iOS APNs token as an FCM registration token. Owner must choose FCM for both platforms or approve an APNs bridge, then supply Firebase/APNs/EAS configuration and tests. | Product/backend/release | Open |
 | `BLK-DEVICE-001` | P1 | QA | No physical iOS/Android verification, screenshot regression, font scaling, accessibility, keyboard, offline, retry, performance, or signed-artifact evidence exists. GitHub Issue #20. | Mobile/QA/release | Open |
 | `BLK-UI-001` | P1 | Accessibility/parity | Approved orange `#f97316` with white text measures about `2.80:1`; do not change the visual reference without product approval and screenshot evidence. | Product/design | Open |
+| `BLK-HOME-001` | P1 | Home content parity | Coupons and blog are live database-backed homepage blocks without a public mobile JSON contract. Round C uses the observed production snapshot; codes, expiry, view counts, thumbnails, and copy may become stale. GitHub Issue #24. | Product/backend/mobile | Open |
 | `BLK-TEST-001` | P2 | Test quality | Remote CI run `31325626880` passed for commit `62e6678`; device/store evidence remains outside CI. | Backend/CI | Resolved |
 
 Resolved in this checkpoint:

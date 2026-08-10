@@ -1,9 +1,9 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-010`
-- Session: `SES-20260810-004`
+- Latest checkpoint: `CKP-20260810-011`
+- Session: `SES-20260810-005`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round B bottom navigation and More sheet locally verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Round C Home snapshot and Wallet dashboard locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push gate: received and completed for Round B
@@ -44,6 +44,16 @@
 - Local tracking IDs: `TSK-MOB-014`, `DEC-20260810-005`, `CHG-20260810-004`, `TST-20260810-010`, `GATE-BOTH-010`; local checkpoint: `CKP-20260810-009`.
 - Round B implementation commit `c1b6581` and local context commit `6f34120` were fast-forwarded directly to `origin/main` without force-push.
 - Round B push checkpoint: `CKP-20260810-010`.
+
+## Round C Work
+
+- Task 0 could not query local PageBlock data because MariaDB at `127.0.0.1:3306` refused the connection. Production homepage HTML returned HTTP 200 and rendered `hero -> coupons -> timeline -> blog`.
+- A later direct shell recheck was denied by the live host with HTTP 403/406; no bypass or middleware change was attempted. The earlier 200 response is retained as snapshot evidence, and live availability remains open.
+- Appended native coupon, timeline, and blog snapshot blocks below the existing Home cashback tool. Website-only blog links, unsupported blocks, fake stats, leaderboard, and created-links data were not added.
+- Rebuilt Wallet with the orange/red gradient banner, balance visibility toggle, withdrawal/orders quick actions, three account stats, and up to five recent orders from the existing `useOrders()` cache.
+- Added native `expo-linear-gradient` and `expo-clipboard`; no Laravel/API/database changes were made.
+- Round C verification passed: TypeScript, mobile `45/45`, Expo Doctor `18/18`, iOS export, and Android export. `adb devices` is unavailable, so device and screenshot evidence remain open.
+- Round C tracking IDs: `SES-20260810-005`, `CKP-20260810-011`, `TSK-MOB-015`, `DEC-20260810-006`, `CHG-20260810-005`, `TST-20260810-011`, `BLK-HOME-001`, `GATE-BOTH-011`; GitHub Issues #25 and #24 contain matching redacted records.
 
 ## Verified Current State
 
@@ -87,6 +97,7 @@
 - `BLK-DEP-001`: no safe SDK 53 remediation for 22 npm advisories; execute the documented staged Expo 54-to-57 upgrade with native/device evidence.
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
+- `BLK-HOME-001`: coupon/blog static snapshot can become stale because the current site blocks are dynamic and no public mobile content API exists.
 - `BLK-TEST-001`: resolved for remote `bd1b802`; GitHub Actions run `31325812368` passed. Device/store evidence remains separate.
 
 ## Handoff

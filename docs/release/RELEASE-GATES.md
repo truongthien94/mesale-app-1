@@ -29,6 +29,7 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 | `GATE-BOTH-007` | Partial / blocked | Round 4 idempotency retention and dependency remediation | Local pruning/tests, dependency plan, direct push, and remote CI pass; production scheduler evidence, SDK upgrade, signed artifacts, devices, and store-console proof remain missing. |
 | `GATE-BOTH-008` | Partial / blocked | Round 5 one-time post-registration referral decision | Local backend/mobile implementation and test/export evidence pass; production API activation, staging OAuth, physical devices, signed artifacts, push, and store-console proof remain missing. |
 | `GATE-BOTH-010` | Partial / blocked | Round B website-parity bottom navigation and More sheet | Source is published to `main`; TypeScript, `43/43` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass. Physical tab/back click-through, screenshots, accessibility, signed artifacts, and store evidence remain missing. |
+| `GATE-BOTH-011` | Partial / blocked | Round C Home snapshot and Wallet dashboard | TypeScript, `45/45` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass locally. Dynamic coupon/blog freshness, physical screenshots, device interaction, signed artifacts, and store evidence remain missing. |
 
 ## Required Release Evidence
 
