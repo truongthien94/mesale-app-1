@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-009`
+- Latest checkpoint: `CKP-20260810-010`
 - Session: `SES-20260810-004`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Round B bottom navigation and More sheet locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: not received for Round B; no Round B push performed
+- Push gate: received and completed for Round B
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Round A and current baseline published at `fd3a152`
+- Remote `main`: Round B implementation and local context published through `6f34120`; final push-checkpoint commit follows this code head
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -42,7 +42,8 @@
 - Added the native More bottom sheet with account header, referral code, ten approved navigation rows, unread/task badges, theme controls, and logout. No backend/API changes were made.
 - Round B local verification passed: TypeScript, mobile tests `43/43`, Expo Doctor `18/18`, and iOS/Android exports. Physical device/manual navigation evidence is still pending because `adb` is unavailable in this environment.
 - Local tracking IDs: `TSK-MOB-014`, `DEC-20260810-005`, `CHG-20260810-004`, `TST-20260810-010`, `GATE-BOTH-010`; local checkpoint: `CKP-20260810-009`.
-- Round B implementation commit: `c1b6581`; it is local only and remains one commit ahead of `origin/main`.
+- Round B implementation commit `c1b6581` and local context commit `6f34120` were fast-forwarded directly to `origin/main` without force-push.
+- Round B push checkpoint: `CKP-20260810-010`.
 
 ## Verified Current State
 
