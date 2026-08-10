@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-006`
-- Session: `SES-20260810-002`
+- Latest checkpoint: `CKP-20260810-007`
+- Session: `SES-20260810-003`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round 5 referral prompt pushed and CI verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Round A theme/icon infrastructure locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for Round 5
+- Push gate: not received for Round A
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Round 5 published at `a9c7659`
+- Remote `main`: Round 5 published at `a9c7659`; Round A remains local
 - Round 5 implementation commit: `72a1f14`; context commit: `a9c7659`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` remains disabled; no production activation is authorized
@@ -21,6 +21,15 @@
 - Add an internal decision timestamp, backfill existing users, and add authenticated apply/skip behavior.
 - Preserve email-verification and 2FA priority before the new screen.
 - No production flag/data, referral-reporting, idempotency, OAuth, deletion, package, or Round 1-4 behavior change.
+
+## Round A Work
+
+- Added `lightColors`/`darkColors` token sets and retained the light-mode `colors` compatibility alias.
+- Added `ThemeProvider`, `useTheme()`, and SecureStore-backed `system`/`light`/`dark` preference persistence.
+- Added `lucide-react-native` and `react-native-svg`; no icon usage or visible UI redesign was made.
+- Android emulator persistence evidence passed across force-stop/relaunch; temporary debug files were removed.
+- Round A verification passed: TypeScript, `37/37` mobile tests, Expo Doctor `18/18`, iOS export, Android export, and native Android rebuild.
+- Local tracking IDs: `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, `GATE-BOTH-009`.
 
 ## Verified Current State
 
@@ -42,12 +51,13 @@
 - Backend native Google and Apple OAuth verification/exchange and native mobile provider flows are implemented locally, but feature flags are OFF and owner credentials are not yet supplied.
 - Expo MVP tabs/screens cover auth, home/cashback, wallet/orders/balance/withdrawal/payment accounts, earn/referrals/check-in/tasks/gifts/gift code, inbox notifications, and account/security/sessions/deletion UI.
 - SecureStore session expiry validation, `/account` restore, 401 invalidation, logout/account-switch cache clearing, idempotency-key retry stability, and native external handoff/share are implemented.
-- `npm audit --omit=dev` remains `22` findings (`7 high`, `15 moderate`, `0 critical`). No safe SDK 53 remediation exists; the staged SDK 54-to-57 plan is documented and no package/lockfile changed.
+- `npm audit --omit=dev` remains `22` findings (`7 high`, `15 moderate`, `0 critical`). No safe SDK 53 remediation exists; the staged SDK 54-to-57 plan is documented. Round A intentionally added only the approved icon dependencies and their lockfile entries.
 - No physical-device screenshots, signed IPA/AAB, production AASA/Asset Links deployment, or performance baseline exists. Source legal/deletion/support resources and association groundwork are present; Round 3 GitHub Actions runs `31325626880` and `31325812368` passed.
 - Redacted operational sync evidence was verified via API for `SES-20260809-004`, `CKP-20260809-014`, `TSK-MOB-008`, `DEC-20260809-008`, `CHG-20260809-012`, `TST-20260809-013`, `BLK-AUTH-003`, `BLK-DATA-002`, `BLK-PUSH-001`, and `GATE-BOTH-004`; each returned count `1`. No Sheet URL/ID, key path, or content is recorded.
 - Round 4 redacted operational sync was verified exactly once for `SES-20260810-001`, `CKP-20260810-001`, `CKP-20260810-002`, `TSK-MOB-011`, `DEC-20260810-001`, `DEC-20260810-002`, `CHG-20260810-001`, `TST-20260810-001` through `003`, `BLK-DATA-001`, `BLK-DEP-001`, and `GATE-BOTH-007`. GitHub Issues #14 and #7 contain matching local evidence and remain open.
 - Round 4 remote CI run `31328158427` passed all three jobs. It emitted a non-failing warning that Actions v4 JavaScript runtimes target deprecated Node.js 20 and are being forced to Node.js 24.
 - Round 5 operational IDs are `SES-20260810-002`, `CKP-20260810-004` through `006`, `TSK-MOB-012`, `DEC-20260810-003`, `CHG-20260810-002`, `TST-20260810-005` through `008`, and `GATE-BOTH-008`; redacted Sheet sync was verified exactly once for each ID.
+- Round A operational IDs are `SES-20260810-003`, `CKP-20260810-007`, `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, and `GATE-BOTH-009`; GitHub Markdown is updated, while Google Sheet synchronization is pending connector availability.
 
 ## Open Blockers
 
