@@ -42,6 +42,7 @@
 - Added the native More bottom sheet with account header, referral code, ten approved navigation rows, unread/task badges, theme controls, and logout. No backend/API changes were made.
 - Round B local verification passed: TypeScript, mobile tests `43/43`, Expo Doctor `18/18`, and iOS/Android exports. Physical device/manual navigation evidence is still pending because `adb` is unavailable in this environment.
 - Local tracking IDs: `TSK-MOB-014`, `DEC-20260810-005`, `CHG-20260810-004`, `TST-20260810-010`, `GATE-BOTH-010`; local checkpoint: `CKP-20260810-009`.
+- Round B implementation commit: `c1b6581`; it is local only and remains one commit ahead of `origin/main`.
 
 ## Verified Current State
 
