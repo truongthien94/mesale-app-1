@@ -4,7 +4,7 @@ Round 5 checkpoint `CKP-20260810-006`: local Laravel `77` tests / `702` assertio
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|
-| `BLK-API-001` | P0 | API | Production Open API config returns `503 API_DISABLED`; staging contract tests, security review, monitoring, rollback, reviewer access, and explicit activation approval are required. | Laravel/release | Open |
+| `BLK-API-001` | P0 | API | Production Open API config returned HTTP `200` on 2026-08-10; staging contract tests, security review, monitoring, rollback, reviewer access, and explicit activation approval are still required. | Laravel/release | Open |
 | `BLK-AUTH-001` | P0 | OAuth | Backend verification/exchange and native Google/Apple source flows are implemented with feature flags OFF, but provider credentials, safe account-linking rollout, staging, and physical-device evidence are missing. | Product/backend | Open |
 | `BLK-AUTH-002` | P1 | Identity data | Google provider identity is not protected by a database unique constraint. Perform a read-only duplicate audit and obtain an owner decision before adding a constraint or linking records. GitHub Issue #18. | Backend/database/product | Open |
 | `BLK-AUTH-003` | P0 | Apple account deletion | Policy option B is implemented locally: every Apple-linked deletion requires fresh Apple reauthentication, then revokes the grant before local deletion. Staging and physical-device provider evidence remain required. | Backend/product/release | Resolved locally; staging/device pending |

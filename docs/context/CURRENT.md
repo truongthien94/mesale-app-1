@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-008`
-- Session: `SES-20260810-003`
+- Latest checkpoint: `CKP-20260810-009`
+- Session: `SES-20260810-004`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round A theme/icon infrastructure locally verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Round B bottom navigation and More sheet locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for Round A
+- Push gate: not received for Round B; no Round B push performed
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Round A published at `7fdaf05` via fast-forward from `4f6f2bf`
+- Remote `main`: Round A and current baseline published at `fd3a152`
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -32,6 +32,16 @@
 - Round A verification passed: TypeScript, `40/40` mobile tests including three theme contracts, Expo Doctor `18/18`, iOS export, and Android export. Native Android rebuild passed before temporary-artifact cleanup; the final post-cleanup retry reached Gradle with an online emulator but timed out after 304 seconds without new APK/install evidence.
 - Round A intentionally keeps `StatusBar style="auto"` per the owner prompt. Resolved-scheme status-bar mapping and startup hydration-flash handling remain required before dark-themed screens are released.
 - Local tracking IDs: `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, `GATE-BOTH-009`; push checkpoint: `CKP-20260810-008`.
+
+## Round B Work
+
+- Replaced the five flat legacy tabs with the website's four visible destinations: Home, Wallet, Orders, and Withdraw, plus a non-navigating More button.
+- Added Lucide tab icons and switched the tab chrome to `useTheme()` colors.
+- Kept `earn`, `inbox`, and `account` routes registered but hidden with `href: null`; Expo Router 5.1.11 confirms this renders no tab button while preserving deep-link navigation.
+- Added direct-child alias routes for Orders and Withdraw because Expo Router does not register nested `wallet/orders` or `wallet/withdrawals` as direct tab children while `wallet/_layout.tsx` owns the nested stack. Canonical screens and deep-link paths remain unchanged.
+- Added the native More bottom sheet with account header, referral code, ten approved navigation rows, unread/task badges, theme controls, and logout. No backend/API changes were made.
+- Round B local verification passed: TypeScript, mobile tests `43/43`, Expo Doctor `18/18`, and iOS/Android exports. Physical device/manual navigation evidence is still pending because `adb` is unavailable in this environment.
+- Local tracking IDs: `TSK-MOB-014`, `DEC-20260810-005`, `CHG-20260810-004`, `TST-20260810-010`, `GATE-BOTH-010`; local checkpoint: `CKP-20260810-009`.
 
 ## Verified Current State
 

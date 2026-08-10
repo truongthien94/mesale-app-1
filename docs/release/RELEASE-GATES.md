@@ -5,7 +5,7 @@ Current verdicts:
 - [App Store current-state audit](APP-STORE-CURRENT-AUDIT.md): `NOT READY`
 - [Google Play current-state audit](PLAY-STORE-CURRENT-AUDIT.md): `NOT READY`
 - M0 and M1 remain open; passing local foundation checks is not milestone completion evidence.
-- Production Open API remains disabled and must not be bypassed.
+- Production Open API config returned HTTP `200` on 2026-08-10; activation provenance, auth/security validation, staging, monitoring, and rollback evidence remain open.
 - Round 5 referral prompt implementation is published and CI verified (`77/702` PHPUnit, `37/37` mobile, TypeScript, Expo Doctor `18/18`, and both exports in run `31330756601`); it does not change the store verdict.
 - Round 4 evidence: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed; remote CI run `31328158427` passed all jobs.
 
@@ -28,6 +28,7 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 | `GATE-BOTH-006` | Partial / blocked | Round 3 store-compliance source groundwork | Source groundwork and local checks pass; staging, owner inputs, signed artifacts, devices, and store-console evidence remain missing. |
 | `GATE-BOTH-007` | Partial / blocked | Round 4 idempotency retention and dependency remediation | Local pruning/tests, dependency plan, direct push, and remote CI pass; production scheduler evidence, SDK upgrade, signed artifacts, devices, and store-console proof remain missing. |
 | `GATE-BOTH-008` | Partial / blocked | Round 5 one-time post-registration referral decision | Local backend/mobile implementation and test/export evidence pass; production API activation, staging OAuth, physical devices, signed artifacts, push, and store-console proof remain missing. |
+| `GATE-BOTH-010` | Partial / blocked | Round B website-parity bottom navigation and More sheet | Local TypeScript, `43/43` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass; physical tab/back click-through, screenshots, accessibility, signed artifacts, and store evidence remain missing. |
 
 ## Required Release Evidence
 
