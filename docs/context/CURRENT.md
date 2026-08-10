@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-011`
+- Latest checkpoint: `CKP-20260810-012`
 - Session: `SES-20260810-005`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Round C Home snapshot and Wallet dashboard locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for Round B
+- Push gate: received and completed for Round C
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Round B implementation and local context published through `6f34120`; final push-checkpoint commit follows this code head
+- Remote `main`: Round C implementation and local context published through `2032b99`; final push-checkpoint commit follows this code head
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -54,6 +54,7 @@
 - Added native `expo-linear-gradient` and `expo-clipboard`; no Laravel/API/database changes were made.
 - Round C verification passed: TypeScript, mobile `45/45`, Expo Doctor `18/18`, iOS export, and Android export. `adb devices` is unavailable, so device and screenshot evidence remain open.
 - Round C tracking IDs: `SES-20260810-005`, `CKP-20260810-011`, `TSK-MOB-015`, `DEC-20260810-006`, `CHG-20260810-005`, `TST-20260810-011`, `BLK-HOME-001`, `GATE-BOTH-011`; GitHub Issues #25 and #24 contain matching redacted records.
+- Round C implementation commit `d02eb15` and context commit `2032b99` were fast-forwarded directly to `origin/main` without force-push; push checkpoint: `CKP-20260810-012`.
 
 ## Verified Current State
 
@@ -102,6 +103,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. Round 5 source/tests, direct push, and remote CI are verified. Continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Round C source/tests and direct push are verified. Continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.
