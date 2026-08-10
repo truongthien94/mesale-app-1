@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useColorScheme } from "react-native";
 import { darkColors, lightColors, radius, spacing } from "@/theme/tokens";
-import { loadThemePreference, saveThemePreference, type ThemePreference } from "@/theme/themePreference";
+import { createThemePreferenceCoordinator, loadThemePreference, type ThemePreference } from "@/theme/themePreference";
 
 type ColorScheme = "light" | "dark";
 
@@ -24,11 +24,19 @@ function resolveScheme(preference: ThemePreference, systemScheme: ColorScheme | 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
+  const coordinatorRef = useRef<ReturnType<typeof createThemePreferenceCoordinator> | null>(null);
+  coordinatorRef.current ??= createThemePreferenceCoordinator();
 
   useEffect(() => {
     let mounted = true;
+    const coordinator = coordinatorRef.current!;
+    const observedRevision = coordinator.currentRevision();
     void loadThemePreference().then((storedPreference) => {
-      if (mounted && storedPreference) setPreferenceState(storedPreference);
+      if (mounted && storedPreference && coordinator.isCurrentRevision(observedRevision)) {
+        setPreferenceState(storedPreference);
+      }
+    }).catch(() => {
+      // Storage failures fall back to the system preference without breaking launch.
     });
     return () => {
       mounted = false;
@@ -37,9 +45,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setPreference = useCallback((value: ThemePreference) => {
     setPreferenceState(value);
-    void saveThemePreference(value).catch(() => {
-      // Preference persistence should never block or crash the UI.
-    });
+    coordinatorRef.current!.persist(value);
   }, []);
 
   const scheme = resolveScheme(preference, systemScheme);
