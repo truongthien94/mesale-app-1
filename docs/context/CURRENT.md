@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-007`
+- Latest checkpoint: `CKP-20260810-008`
 - Session: `SES-20260810-003`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Round A theme/icon infrastructure locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: not received for Round A
+- Push gate: received and completed for Round A
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: `4f6f2bf`; Round A remains local
+- Remote `main`: Round A published at `7fdaf05` via fast-forward from `4f6f2bf`
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -31,7 +31,7 @@
 - Android emulator persistence evidence passed across force-stop/relaunch; temporary debug files were removed.
 - Round A verification passed: TypeScript, `40/40` mobile tests including three theme contracts, Expo Doctor `18/18`, iOS export, and Android export. Native Android rebuild passed before temporary-artifact cleanup; the final post-cleanup retry reached Gradle with an online emulator but timed out after 304 seconds without new APK/install evidence.
 - Round A intentionally keeps `StatusBar style="auto"` per the owner prompt. Resolved-scheme status-bar mapping and startup hydration-flash handling remain required before dark-themed screens are released.
-- Local tracking IDs: `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, `GATE-BOTH-009`.
+- Local tracking IDs: `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, `GATE-BOTH-009`; push checkpoint: `CKP-20260810-008`.
 
 ## Verified Current State
 
@@ -59,7 +59,7 @@
 - Round 4 redacted operational sync was verified exactly once for `SES-20260810-001`, `CKP-20260810-001`, `CKP-20260810-002`, `TSK-MOB-011`, `DEC-20260810-001`, `DEC-20260810-002`, `CHG-20260810-001`, `TST-20260810-001` through `003`, `BLK-DATA-001`, `BLK-DEP-001`, and `GATE-BOTH-007`. GitHub Issues #14 and #7 contain matching local evidence and remain open.
 - Round 4 remote CI run `31328158427` passed all three jobs. It emitted a non-failing warning that Actions v4 JavaScript runtimes target deprecated Node.js 20 and are being forced to Node.js 24.
 - Round 5 operational IDs are `SES-20260810-002`, `CKP-20260810-004` through `006`, `TSK-MOB-012`, `DEC-20260810-003`, `CHG-20260810-002`, `TST-20260810-005` through `008`, and `GATE-BOTH-008`; redacted Sheet sync was verified exactly once for each ID.
-- Round A operational IDs are `SES-20260810-003`, `CKP-20260810-007`, `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, and `GATE-BOTH-009`; GitHub Markdown and seven redacted Google Sheet records are synchronized, with each ID verified exactly once.
+- Round A operational IDs are `SES-20260810-003`, `CKP-20260810-007`/`008`, `TSK-MOB-013`, `DEC-20260810-004`, `CHG-20260810-003`, `TST-20260810-009`, and `GATE-BOTH-009`; GitHub Markdown and redacted Google Sheet records are synchronized, with each ID verified exactly once.
 
 ## Open Blockers
 
