@@ -1,7 +1,7 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260811-012](checkpoints/CKP-20260811-012.md)
+- Latest checkpoint: [CKP-20260811-013](checkpoints/CKP-20260811-013.md)
 - Latest session: [SES-20260811-009](sessions/SES-20260811-009.md)
 - Latest decision: [DEC-20260811-005](../decisions/DEC-20260811-005.md)
 - Plan: [migration-plan.md](../migration-plan.md)
