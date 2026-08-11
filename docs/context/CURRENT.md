@@ -1,6 +1,6 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-002`
+- Latest checkpoint: `CKP-20260811-003`
 - Session: `SES-20260811-001`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; native Home parity and animated phone walkthrough locally verified
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Home parity code/context published through `4fd81cf`; final push-checkpoint commit follows this head
+- Remote `main`: Home parity and push context published through `643f6ce`; final GitHub/Sheet synchronization checkpoint follows this head
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -26,6 +26,7 @@
 - Verification passed: TypeScript, mobile `46/46`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check, and staged sensitive-data scan.
 - Operational IDs: `SES-20260811-001`, `CKP-20260811-001`, `TSK-MOB-016`, `DEC-20260811-001`, `CHG-20260811-001`, `TST-20260811-001`, `BLK-UI-002`, and `GATE-BOTH-012`.
 - Code commit `88e2095` and context commit `4fd81cf` are published on `origin/main`; GitHub Issue #26 tracks `BLK-UI-002`.
+- Google Sheet records for the session, checkpoints, task, decision, change, test, blocker, and release gate were upserted and verified unique; `BLK-HOME-001` was updated in place.
 
 ## Historical Round 5 Work
 
