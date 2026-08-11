@@ -484,8 +484,8 @@ export default function AccountRoute() {
           icon={Tag}
           iconBackground={softRed}
           iconColor="#f05a3c"
-          onPress={() => showUnavailable("Săn mã giảm giá")}
-          subtitle="Tính năng sẽ mở khi nội dung sẵn sàng"
+          onPress={() => navigateTo("/(tabs)/home/coupons")}
+          subtitle="Mã hot cập nhật mỗi ngày"
           title="Săn mã giảm giá"
         />
         <AccountMenuRow

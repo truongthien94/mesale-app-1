@@ -113,10 +113,10 @@ test("maps Laravel confirmation fields and the mobile device name", () => {
   assert.match(source, /authenticated: false/);
 });
 
-test("gates auth continuations without forcing an authenticated referral prompt", () => {
+test("gates auth continuations and routes eligible sessions to referral onboarding", () => {
   assert.equal(resolveAuthGate({ kind: "email-verification", email: "member@example.test" }, true, true), "/verify-email");
   assert.equal(resolveAuthGate({ kind: "two-factor", challengeToken: "challenge", methods: ["email_otp"] }, true, true), "/two-factor");
-  assert.equal(resolveAuthGate(null, true, true), "/home");
+  assert.equal(resolveAuthGate(null, true, true), "/referral-code");
   assert.equal(resolveAuthGate(null, true, false), "/home");
   assert.equal(resolveAuthGate(null, false, true), null);
 

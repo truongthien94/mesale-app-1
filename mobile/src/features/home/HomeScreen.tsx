@@ -77,7 +77,6 @@ const copy = {
     tips: "Tips & Trick",
     support: "Hỗ trợ",
     supportError: "Không thể mở trang hỗ trợ lúc này.",
-    couponsUnavailable: "Tính năng Săn mã hiện chưa khả dụng trong ứng dụng.",
     configLoading: "Đang kiểm tra trạng thái các sàn...",
     configOffline: "Chưa thể kiểm tra trạng thái sàn vì thiết bị đang offline.",
     configError: "Chưa thể tải cấu hình sàn. Tính năng tạo link tạm khóa để bảo đảm an toàn.",
@@ -138,7 +137,6 @@ const copy = {
     tips: "Tips & Trick",
     support: "Support",
     supportError: "The support page cannot be opened right now.",
-    couponsUnavailable: "Coupon hunting is not available in the app yet.",
     configLoading: "Checking marketplace availability...",
     configOffline: "Marketplace availability cannot be checked while offline.",
     configError: "Marketplace configuration is unavailable. Link creation is locked for safety.",
@@ -309,7 +307,7 @@ function QuickAccessSection({ language, onTips, onSupport }: {
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fef2f2" }]}><Ticket color="#ef4444" size={23} strokeWidth={2.1} /></View>}
           label={strings.huntCoupons}
-          onPress={() => Alert.alert(strings.huntCoupons, strings.couponsUnavailable)}
+          onPress={() => router.push("/(tabs)/home/coupons")}
         />
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#eff6ff" }]}><CalendarDays color="#3b82f6" size={23} strokeWidth={2.1} /></View>}

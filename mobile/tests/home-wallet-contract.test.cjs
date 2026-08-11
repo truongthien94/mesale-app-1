@@ -195,7 +195,7 @@ test("home adds the approved cashback claim and live Quick Access actions before
   }
   assert.match(source, /router\.push\("\/\(tabs\)\/earn\/checkin"\)/);
   assert.match(source, /const SUPPORT_URL = "https:\/\/mesale\.vn\/support"/);
-  assert.match(source, /onPress=\{\(\) => Alert\.alert\(strings\.huntCoupons, strings\.couponsUnavailable\)\}/);
+  assert.match(source, /onPress=\{\(\) => router\.push\("\/\(tabs\)\/home\/coupons"\)\}/);
   assert.match(source, /onTips=\{\(\) => Alert\.alert\(strings\.usageCautionTitle, strings\.usageCautionMessage\)\}/);
   assert.doesNotMatch(source, /openCouponsQuickAccess|couponsSectionY|homeScrollRef|scrollToQuickContent|scrollToEnd/);
   assert.ok(quickAccessIndex > source.indexOf("styles.creatorCard"));
@@ -356,6 +356,23 @@ test("financial submissions retain one idempotency key until success", () => {
   const paymentAccount = read("../app/(tabs)/wallet/payment-accounts/create.tsx");
   assert.match(paymentAccount, /stableSubmission\.getVariables\(payload\)/);
   assert.match(paymentAccount, /stableSubmission\.reset\(\)/);
+});
+
+test("payment account destination uses a searchable native dropdown", () => {
+  const source = read("../app/(tabs)/wallet/payment-accounts/create.tsx");
+
+  assert.match(source, /const \[showDestinationPicker, setShowDestinationPicker\]/);
+  assert.match(source, /const \[destinationSearch, setDestinationSearch\]/);
+  assert.match(source, /filteredDestinations/);
+  assert.match(source, /toLocaleLowerCase\("vi-VN"\)/);
+  assert.match(source, /accessibilityState=\{\{ expanded: showDestinationPicker \}\}/);
+  assert.match(source, /Tìm ngân hàng hoặc ví điện tử/);
+  assert.match(source, /nestedScrollEnabled/);
+  assert.match(source, /setShowDestinationPicker\(false\)/);
+  assert.match(source, /accessibilityRole="radio"/);
+  assert.doesNotMatch(source, /options=\{destinations\.map/);
+  assert.match(source, /withdraw\.bank_enabled/);
+  assert.match(source, /withdraw\.wallet_enabled/);
 });
 
 test("wallet VND formatting emits rounded integer amounts and current order labels", () => {
