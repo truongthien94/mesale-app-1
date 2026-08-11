@@ -10,8 +10,8 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-029` / `CHG-20260812-014`; source `3dd93d2` is published directly to `origin/main`; local mobile `78/78`, TypeScript, Expo Doctor `18/18`, both exports, Android history/create/back click-through, diff checks, staged sensitive-pattern review, and Google Sheet ID read-back passed; context publication and GitHub Actions are pending; no Laravel, database, production migration, deployment, or production-data change
-- Remote `main`: source `3dd93d2`; context and CI evidence pending
+- Current batch: `TSK-MOB-029` / `CHG-20260812-014`; source `3dd93d2` and context `fa32fa3` are published directly to `origin/main`; local mobile `78/78`, TypeScript, Expo Doctor `18/18`, both exports, Android history/create/back click-through, diff checks, staged sensitive-pattern review, Google Sheet ID read-back, source run `31518925269`, and context run `31519331351` passed; no Laravel, database, production migration, deployment, or production-data change
+- Remote `main`: source `3dd93d2`, context `fa32fa3`; runs `31518925269` and `31519331351` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -23,7 +23,7 @@
 - Home, Wallet, Account, and history-create CTAs now follow the same route contract. Explicit history actions remain unchanged.
 - No withdrawal API, validation, OTP, idempotency, saved-account, fee, minimum, balance, database, or production behavior changed.
 - Verification passed: mobile `78/78`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator history/create/back click-through, diff checks, staged sensitive-pattern review, and unique Google Sheet ID read-back.
-- Source commit `3dd93d2` is published directly to `origin/main`; context publication and CI verification are pending.
+- Source commit `3dd93d2` and context commit `fa32fa3` are published directly to `origin/main`; GitHub Actions runs `31518925269` and `31519331351` passed all three jobs, including both exports.
 - Operational IDs: `SES-20260812-014`, `CKP-20260812-020`, `TSK-MOB-029`, `DEC-20260812-010`, `CHG-20260812-014`, `TST-20260812-014`, and `GATE-BOTH-019`; `BLK-DEVICE-001` was updated in place.
 - Physical devices, dark mode, full accessibility/keyboard/offline/performance matrices, signed artifacts, staging/API security, OAuth, privacy declarations, and store-console evidence remain open. Release remains `NOT READY`.
 
