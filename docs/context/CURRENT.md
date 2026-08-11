@@ -1,20 +1,29 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-018`
-- Session: `SES-20260811-012`
+- Latest checkpoint: `CKP-20260812-019`
+- Session: `SES-20260812-013`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; compact withdrawal source published and CI verified
+- Phase: M0 P0 remediation and M1 MVP foundation; bank search, native coupons, and referral gate published
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-027` / `CHG-20260811-012`; source `0548e23` and context `3be7c0b` are published directly to `origin/main`; runs `31511866617` and `31512308009` passed; no Laravel, database, production migration, deployment, or production-data change
-- Remote `main`: source `0548e23`, context `3be7c0b`; both Actions runs passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-028` / `CHG-20260812-013`; source `67311d7` is published directly to `origin/main`; local mobile `76/76`, TypeScript, Expo Doctor `18/18`, and both exports passed; context CI verification is pending; no Laravel, database, production migration, deployment, or production-data change
+- Remote `main`: source `67311d7`; the next context push must pass `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Bank Search, Native Coupons, And Referral Gate
+
+- Payment-account creation now uses a native searchable picker and scrollable server allow-list for banks and wallets; existing validation, idempotency, and mutation behavior remain intact.
+- Home Quick Access and Account `San ma giam gia` open a native coupon screen backed by Laravel `/coupons`, with category filters, pagination, clipboard copy, HTTPS-only handoff, and loading/empty/error/offline/retry states.
+- Authenticated sessions with Laravel `referral_prompt_pending` now route to referral onboarding; Laravel still enforces the 72-hour window and expiry.
+- Verification passed: mobile `76/76`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator live-coupon inspection, and staged diff check.
+- Source commit `67311d7` was fast-forwarded directly to `origin/main`; context and operational records are being synchronized in `CKP-20260812-019`.
+- No backend, database, production setting, credential, or member-data change was made. Physical device, staging, OAuth, signed-artifact, privacy, and store-console gates remain open.
 
 ## 2026-08-11 Compact Withdrawal Form Follow-up
 

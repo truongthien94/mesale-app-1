@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260811-018](checkpoints/CKP-20260811-018.md)
-- Latest session: [SES-20260811-012](sessions/SES-20260811-012.md)
-- Latest decision: [DEC-20260811-008](../decisions/DEC-20260811-008.md)
-- Current batch: `TSK-MOB-027` / `CHG-20260811-012` / `TST-20260811-012` / `GATE-BOTH-017`
-- Current source commit: `0548e23` (published directly to `origin/main`; CI verified)
-- Current context commit: `3be7c0b` (published directly to `origin/main`; CI verified)
-- Source GitHub Actions run: `31511866617` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
-- Context GitHub Actions run: `31512308009` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
+- Latest checkpoint: [CKP-20260812-019](checkpoints/CKP-20260812-019.md)
+- Latest session: [SES-20260812-013](sessions/SES-20260812-013.md)
+- Latest decision: [DEC-20260812-009](../decisions/DEC-20260812-009.md)
+- Current batch: `TSK-MOB-028` / `CHG-20260812-013` / `TST-20260812-013` / `GATE-BOTH-018`
+- Current source commit: `67311d7` (published directly to `origin/main`; context CI pending)
+- Current context commit: pending (will follow source publication)
+- Source GitHub Actions run: pending
+- Context GitHub Actions run: pending
 - Final context GitHub Actions run: `31501266934` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
