@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-008`
-- Session: `SES-20260811-005`
+- Latest checkpoint: `CKP-20260811-009`
+- Session: `SES-20260811-006`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Home summary and Quick Access parity update implemented and published
+- Phase: M0 P0 remediation and M1 MVP foundation; compact Home greeting header implemented and published
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Home summary and Quick Access source commit `142f265` is published; GitHub Actions run `31475087577` passed all jobs
+- Remote `main`: compact Home greeting header source commit `538f543` is published; GitHub Actions run `31476719324` passed all jobs
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -39,6 +39,19 @@
 - Source commit `142f265` was fast-forwarded directly to `origin/main`; GitHub Actions run `31475087577` passed Laravel, mobile/export and context/secret jobs.
 - Operational IDs: `SES-20260811-005`, `CKP-20260811-008`, `TSK-MOB-020`, `CHG-20260811-005`, and `TST-20260811-005`.
 - No Laravel route, API contract, database, production setting, credential or member data changed.
+
+## 2026-08-11 Compact Home Greeting Header
+
+- Removed the entire standalone brand/search/theme/menu bar above the Home greeting.
+- Moved the existing Mesale logo inline immediately before `Chào`, while preserving the notification button and inbox route on the right.
+- Kept search on the cashback action itself; theme and menu remain available through the bottom `Thêm` entry and More sheet.
+- Reduced the top layout to one safe-area-aware 8dp gap and removed the duplicated account-summary top padding.
+- Removed unused header imports, More-sheet hook usage, stale input focus ref and obsolete brand styles.
+- Android emulator visual verification passed with no status-bar overlap or horizontal overflow.
+- Local verification passed: mobile tests `51/51`, TypeScript, Expo Doctor `18/18`, diff check and staged credential-pattern scan.
+- Source commit `538f543` was fast-forwarded directly to `origin/main`; GitHub Actions run `31476719324` passed Laravel, mobile/export and context/secret jobs.
+- Operational IDs: `SES-20260811-006`, `CKP-20260811-009`, `TSK-MOB-021`, `CHG-20260811-006`, and `TST-20260811-006`.
+- No Laravel, API, database, production setting, credential or member data changed.
 
 ## 2026-08-11 Claude Code Handoff
 
