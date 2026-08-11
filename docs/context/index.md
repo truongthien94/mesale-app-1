@@ -6,7 +6,7 @@
 - Latest decision: [DEC-20260812-009](../decisions/DEC-20260812-009.md)
 - Current batch: `TSK-MOB-028` / `CHG-20260812-013` / `TST-20260812-013` / `GATE-BOTH-018`
 - Current source commit: `67311d7` (published directly to `origin/main`; context CI pending)
-- Current context commit: pending (will follow source publication)
+- Current context commit: `10c103e` (published directly to `origin/main`; operational-log sync follows)
 - Source GitHub Actions run: pending
 - Context GitHub Actions run: pending
 - Final context GitHub Actions run: `31501266934` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
