@@ -3,15 +3,14 @@
 - Latest checkpoint: `CKP-20260811-011`
 - Session: `SES-20260811-008`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; native Orders redesign and additive API contract verified locally
+- Phase: M0 P0 remediation and M1 MVP foundation; native Orders redesign and additive API contract published and CI verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Home phone-walkthrough cutoff source commit `4680f70` is published; GitHub Actions run `31477892613` passed all jobs
-- Local Orders source: commit `439c1da` is verified but not published by the operational logging task
+- Remote `main`: Orders source commit `439c1da` and context commit `c14a5ac` are published; GitHub Actions run `31482816055` passed all jobs
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -22,7 +21,7 @@
 - Unrecorded marketplace clicks remain explicitly labelled and appear only inside `Tất cả`; recorded pending, approved, and rejected filters remain server-side.
 - Laravel now returns an additive recorded/unrecorded union feed with stable pagination, integer VND fields, and a dedicated approved-order cashback amount. Bot API remains recorded-order-only.
 - Verification passed: mobile `54/54`, TypeScript, Laravel `66` tests / `646` assertions, diff check, staged sensitive-data scan, Android emulator visual inspection, and empty CTA routing.
-- Source commit `439c1da` is locally verified. This logging task does not stage, commit, push, deploy production, or change credentials/member data.
+- Source commit `439c1da` and context commit `c14a5ac` were fast-forwarded directly to `origin/main`; GitHub Actions run `31482816055` passed Laravel, mobile/export, context, and secret checks.
 - Operational IDs: `SES-20260811-008`, `CKP-20260811-011`, `TSK-MOB-023`, `DEC-20260811-004`, `CHG-20260811-008`, `TST-20260811-008`, and `GATE-BOTH-013`.
 - Production deployment, physical iOS/Android, signed artifacts, accessibility/performance matrices, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
 
@@ -189,6 +188,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. Round C source/tests and direct push are verified. Continue with staging/API readiness, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Native Orders source/tests, direct push, and remote CI are verified. Continue with staging/API deployment, OAuth owner inputs/device evidence, push transport, the staged Expo dependency upgrade, and device/screenshot/signed-artifact verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.
