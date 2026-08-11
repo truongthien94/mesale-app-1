@@ -10,8 +10,8 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-028` / `CHG-20260812-013`; source `67311d7`, context `10c103e`, and operational sync `a7515cf` are published directly to `origin/main`; local mobile `76/76`, TypeScript, Expo Doctor `18/18`, both exports, Google Sheet ID read-back, and GitHub Actions run `31515864087` passed; no Laravel, database, production migration, deployment, or production-data change
-- Remote `main`: source `67311d7`, context `10c103e`, operational sync `a7515cf`; run `31515864087` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-028` / `CHG-20260812-013`; source `67311d7`, context `10c103e`, operational sync `a7515cf`, and final docs sync `ae2ed14` are published directly to `origin/main`; local mobile `76/76`, TypeScript, Expo Doctor `18/18`, both exports, Google Sheet ID read-back, and GitHub Actions run `31516177892` passed; no Laravel, database, production migration, deployment, or production-data change
+- Remote `main`: source `67311d7`, context `10c103e`, operational sync `a7515cf`, final docs sync `ae2ed14`; run `31516177892` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -22,7 +22,7 @@
 - Home Quick Access and Account `San ma giam gia` open a native coupon screen backed by Laravel `/coupons`, with category filters, pagination, clipboard copy, HTTPS-only handoff, and loading/empty/error/offline/retry states.
 - Authenticated sessions with Laravel `referral_prompt_pending` now route to referral onboarding; Laravel still enforces the 72-hour window and expiry.
 - Verification passed: mobile `76/76`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator live-coupon inspection, and staged diff check.
-- Source commit `67311d7`, context commit `10c103e`, and operational sync `a7515cf` were fast-forwarded directly to `origin/main`; GitHub Actions run `31515864087` passed all three jobs. Operational rows for the session, checkpoint, task, decision, change, test, release gate, and the existing device blocker were read back with unique IDs.
+- Source commit `67311d7`, context commit `10c103e`, operational sync `a7515cf`, and final docs sync `ae2ed14` were fast-forwarded directly to `origin/main`; GitHub Actions run `31516177892` passed all three jobs. Operational rows for the session, checkpoint, task, decision, change, test, release gate, and the existing device blocker were read back with unique IDs.
 - No backend, database, production setting, credential, or member-data change was made. Physical device, staging, OAuth, signed-artifact, privacy, and store-console gates remain open.
 
 ## 2026-08-11 Compact Withdrawal Form Follow-up
