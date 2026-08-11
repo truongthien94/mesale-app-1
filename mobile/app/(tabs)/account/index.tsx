@@ -11,14 +11,11 @@ import {
   CreditCard,
   FileText,
   Gift,
-  History,
   Languages,
   Lightbulb,
   ListChecks,
   LogOut,
   ShieldCheck,
-  Sparkles,
-  SunMoon,
   Tag,
   Trash2,
   UserRound,
@@ -34,18 +31,20 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { applyReferralCode } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { useAccount } from "@/features/account/api";
 import { fetchReferrals } from "@/features/earn/api";
 import { formatAccountMoney } from "@/features/home/format";
 import { usePaymentAccounts, useWithdrawals } from "@/features/wallet/api";
 import { useTheme } from "@/theme/ThemeProvider";
-import type { ThemePreference } from "@/theme/themePreference";
 
 const EXTERNAL_LINKS = {
   privacy: "https://mesale.vn/privacy",
@@ -111,6 +110,39 @@ function formatRate(value: number): string {
   return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(value);
 }
 
+function referralDeadlineCopy(expiresAt: string | null | undefined): string {
+  if (!expiresAt) return "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi.";
+  const expiryTimestamp = Date.parse(expiresAt);
+  if (!Number.isFinite(expiryTimestamp)) return "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi.";
+
+  const deadline = new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(expiryTimestamp);
+  const remainingMilliseconds = expiryTimestamp - Date.now();
+  if (remainingMilliseconds <= 0) {
+    return `Hạn máy chủ cung cấp: ${deadline}. Máy chủ sẽ xác nhận lại thời hạn khi bạn gửi.`;
+  }
+
+  const remainingHours = Math.ceil(remainingMilliseconds / 3_600_000);
+  const days = Math.floor(remainingHours / 24);
+  const hours = remainingHours % 24;
+  const remaining = days > 0
+    ? `${days} ngày${hours > 0 ? ` ${hours} giờ` : ""}`
+    : `${remainingHours} giờ`;
+  return `Hạn máy chủ cung cấp: ${deadline} · còn khoảng ${remaining} theo giờ trên thiết bị.`;
+}
+
+const REFERRAL_STATE_MESSAGES: Record<string, string> = {
+  REFERRAL_WINDOW_EXPIRED: "Thời hạn nhập mã giới thiệu đã kết thúc.",
+  REFERRAL_NOT_ELIGIBLE: "Tài khoản hiện không đủ điều kiện nhập mã giới thiệu.",
+  REFERRAL_ALREADY_LINKED: "Tài khoản đã liên kết với người giới thiệu.",
+  REFERRAL_DISABLED: "Chương trình giới thiệu hiện đang tạm dừng."
+};
+
 function secureAvatarUri(value: string | null): string | null {
   if (!value?.trim()) return null;
   try {
@@ -124,8 +156,8 @@ function secureAvatarUri(value: string | null): string | null {
 export default function AccountRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout } = useAuth();
-  const { colors, preference, scheme, setPreference } = useTheme();
+  const { logout, refreshUser } = useAuth();
+  const { colors, scheme } = useTheme();
   const accountQuery = useAccount();
   const paymentAccountsQuery = usePaymentAccounts();
   const withdrawalsQuery = useWithdrawals();
@@ -135,6 +167,10 @@ export default function AccountRoute() {
   });
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInFlight = useRef(false);
+  const [referralEntryCode, setReferralEntryCode] = useState("");
+  const [referralEntryError, setReferralEntryError] = useState<ApiError | null>(null);
+  const [submittingReferral, setSubmittingReferral] = useState(false);
+  const referralEntryInFlight = useRef(false);
 
   if (accountQuery.isPending) return <LoadingState label="Đang tải tài khoản..." />;
   if (accountQuery.isError) {
@@ -153,20 +189,11 @@ export default function AccountRoute() {
   const displayName = account.name.trim() || "Thành viên Mê Sale";
   const initial = displayName.slice(0, 1).toUpperCase();
   const avatarUri = secureAvatarUri(account.avatar);
-  const accountLocale = account.preferences?.locale?.trim() || "vi";
-  const accountCurrency = account.preferences?.currency?.trim() || account.wallet?.currency?.trim() || "VND";
   const paymentAccountCount = paymentAccountsQuery.data?.total ?? 0;
-  const withdrawalCount = withdrawalsQuery.data?.pages[0]?.pagination.total;
   const hasConfirmedNoPaymentAccount = paymentAccountsQuery.isSuccess && paymentAccountCount === 0;
-  const paymentSubtitle = paymentAccountsQuery.isPending
-    ? "Đang kiểm tra liên kết..."
-    : paymentAccountsQuery.isError
-      ? "Chưa thể kiểm tra lúc này"
-      : paymentAccountCount > 0
-        ? `${paymentAccountCount} tài khoản đã liên kết`
-        : "Chưa liên kết";
   const referralRate = referralsQuery.data?.rates.f1_rate;
-  const currentThemeLabel = preference === "system" ? "Theo hệ thống" : preference === "dark" ? "Tối" : "Sáng";
+  const normalizedReferralEntryCode = referralEntryCode.trim();
+  const referralWindowCopy = referralDeadlineCopy(account.referral_code_expires_at);
   const screenBackground = scheme === "dark" ? "#08111f" : "#f2f7fc";
   const softBlue = scheme === "dark" ? "#102a44" : "#eaf5ff";
   const softGreen = scheme === "dark" ? "#0d3327" : "#eaf9f1";
@@ -191,22 +218,6 @@ export default function AccountRoute() {
     Alert.alert(title, "Tính năng này đang được hoàn thiện trên ứng dụng Mê Sale.");
   }
 
-  function chooseTheme() {
-    const options: Array<{ label: string; value: ThemePreference }> = [
-      { label: "Theo hệ thống", value: "system" },
-      { label: "Chế độ sáng", value: "light" },
-      { label: "Chế độ tối", value: "dark" }
-    ];
-    Alert.alert(
-      "Giao diện",
-      "Chọn chế độ hiển thị cho ứng dụng.",
-      [
-        ...options.map((option) => ({ text: option.label, onPress: () => setPreference(option.value) })),
-        { text: "Hủy", style: "cancel" as const }
-      ]
-    );
-  }
-
   async function signOut() {
     if (logoutInFlight.current) return;
     logoutInFlight.current = true;
@@ -221,10 +232,41 @@ export default function AccountRoute() {
     }
   }
 
+  async function refreshReferralState() {
+    await Promise.allSettled([accountQuery.refetch(), refreshUser()]);
+  }
+
+  async function submitReferralCode() {
+    if (referralEntryInFlight.current || !normalizedReferralEntryCode) return;
+    referralEntryInFlight.current = true;
+    setSubmittingReferral(true);
+    setReferralEntryError(null);
+    try {
+      await applyReferralCode(normalizedReferralEntryCode);
+      setReferralEntryCode("");
+      await refreshReferralState();
+      Alert.alert("Đã liên kết", "Mã giới thiệu đã được áp dụng thành công.");
+    } catch (reason) {
+      const error = reason instanceof ApiError
+        ? reason
+        : new ApiError(reason instanceof Error ? reason.message : "Không thể áp dụng mã giới thiệu.", 0);
+      if (error.code && REFERRAL_STATE_MESSAGES[error.code]) {
+        await refreshReferralState();
+        Alert.alert("Mã giới thiệu", REFERRAL_STATE_MESSAGES[error.code]);
+      } else {
+        setReferralEntryError(error);
+      }
+    } finally {
+      referralEntryInFlight.current = false;
+      setSubmittingReferral(false);
+    }
+  }
+
   return (
     <ScrollView
       contentContainerStyle={[styles.content, { backgroundColor: screenBackground, paddingBottom: insets.bottom + 32, paddingTop: insets.top + 18 }]}
       contentInsetAdjustmentBehavior="automatic"
+      keyboardShouldPersistTaps="handled"
       refreshControl={(
         <RefreshControl
           colors={[colors.primary]}
@@ -260,10 +302,6 @@ export default function AccountRoute() {
             <Text numberOfLines={1} style={[styles.profileEmail, { color: colors.mutedText }]}>{account.email}</Text>
           </View>
         </Pressable>
-        <View accessibilityLabel="Hoàn tiền Mê Sale" style={[styles.cashbackBadge, { backgroundColor: softBlue }]}>
-          <Sparkles color="#2f9af5" size={16} />
-          <Text style={styles.cashbackBadgeText}>Hoàn tiền Mê Sale</Text>
-        </View>
       </View>
 
       <LinearGradient
@@ -339,74 +377,102 @@ export default function AccountRoute() {
         <Gift color="#93c5fd" size={38} />
       </Pressable>
 
+      {account.referral_code_eligible === true ? (
+        <View style={[styles.referralEntryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <View style={styles.referralEntryHeader}>
+            <View style={[styles.menuIcon, { backgroundColor: softBlue }]}>
+              <UsersRound color="#2f9af5" size={21} />
+            </View>
+            <View style={styles.referralEntryHeading}>
+              <Text style={[styles.referralEntryTitle, { color: colors.text }]}>Nhập mã giới thiệu</Text>
+              <Text style={[styles.referralEntryLead, { color: colors.mutedText }]}>Chỉ áp dụng trong 3 ngày đầu sau khi đăng ký.</Text>
+            </View>
+          </View>
+          <Text style={[styles.referralEntryDeadline, { color: colors.mutedText }]}>{referralWindowCopy}</Text>
+          <View style={styles.referralEntryControls}>
+            <TextInput
+              accessibilityLabel="Mã giới thiệu"
+              autoCapitalize="characters"
+              autoComplete="off"
+              editable={!submittingReferral}
+              maxLength={50}
+              onChangeText={(value) => {
+                setReferralEntryCode(value);
+                setReferralEntryError(null);
+              }}
+              onSubmitEditing={() => void submitReferralCode()}
+              placeholder="REFXXXXXX"
+              placeholderTextColor={colors.mutedText}
+              returnKeyType="done"
+              style={[styles.referralEntryInput, { backgroundColor: screenBackground, borderColor: referralEntryError ? colors.danger : colors.border, color: colors.text }]}
+              value={referralEntryCode}
+            />
+            <Pressable
+              accessibilityLabel="Xác nhận mã giới thiệu"
+              accessibilityRole="button"
+              accessibilityState={{ busy: submittingReferral, disabled: submittingReferral || !normalizedReferralEntryCode }}
+              disabled={submittingReferral || !normalizedReferralEntryCode}
+              onPress={() => void submitReferralCode()}
+              style={({ pressed }) => [styles.referralEntryButton, (submittingReferral || !normalizedReferralEntryCode) && styles.disabledAction, pressed && styles.pressed]}
+            >
+              {submittingReferral
+                ? <ActivityIndicator color="#ffffff" />
+                : <Text style={styles.referralEntryButtonText}>Xác nhận</Text>}
+            </Pressable>
+          </View>
+          <FormErrorSummary errors={referralEntryError?.errors} message={referralEntryError?.message} />
+        </View>
+      ) : null}
+
       <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>TÀI KHOẢN</Text>
       <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
         <AccountMenuRow
           icon={UserRound}
           iconBackground={softBlue}
           iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/account/profile")}
-          subtitle="Họ tên và số điện thoại"
-          title="Thông tin cá nhân"
+          onPress={() => navigateTo("/(tabs)/account/information")}
+          showDivider={false}
+          subtitle="Hồ sơ, bảo mật và phiên đăng nhập"
+          title="Thông tin tài khoản"
         />
+      </View>
+
+      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>TÀI CHÍNH</Text>
+      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
         <AccountMenuRow
-          actionLabel={paymentAccountsQuery.isSuccess && paymentAccountCount === 0 ? "Thêm ngay" : undefined}
           icon={CreditCard}
           iconBackground={softOrange}
           iconColor="#f59e0b"
-          onPress={() => navigateTo("/(tabs)/wallet/payment-accounts")}
-          subtitle={paymentSubtitle}
-          title="Tài khoản ngân hàng"
+          onPress={() => navigateTo("/(tabs)/account/finance")}
+          showDivider={false}
+          subtitle="Tài khoản ngân hàng và lịch sử rút tiền"
+          title="Tài chính"
         />
-        <AccountMenuRow
-          actionLabel={typeof withdrawalCount === "number" ? `${withdrawalCount} lệnh` : undefined}
-          icon={History}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/wallet/withdrawals")}
-          subtitle="Theo dõi trạng thái rút tiền"
-          title="Lịch sử rút tiền"
-        />
+      </View>
+
+      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>THÔNG BÁO</Text>
+      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
         <AccountMenuRow
           icon={Bell}
           iconBackground={softBlue}
           iconColor="#2f9af5"
           onPress={() => navigateTo("/(tabs)/inbox")}
+          showDivider={false}
           subtitle="Thông báo và biến động tài khoản"
           title="Thông báo"
         />
-        <AccountMenuRow
-          icon={ShieldCheck}
-          iconBackground={softGreen}
-          iconColor="#16a34a"
-          onPress={() => navigateTo("/(tabs)/account/security")}
-          subtitle="OTP email và xác thực hai lớp"
-          title="Bảo mật tài khoản"
-        />
-        <AccountMenuRow
-          icon={UsersRound}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/account/sessions")}
-          subtitle="Kiểm tra và thu hồi thiết bị"
-          title="Phiên đăng nhập"
-        />
+      </View>
+
+      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>CÀI ĐẶT</Text>
+      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
         <AccountMenuRow
           icon={Languages}
           iconBackground={softBlue}
           iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/account/preferences")}
-          subtitle={`${accountLocale.toUpperCase()} · ${accountCurrency}`}
-          title="Ngôn ngữ & tiền tệ"
-        />
-        <AccountMenuRow
-          icon={SunMoon}
-          iconBackground={softOrange}
-          iconColor="#f59e0b"
-          onPress={chooseTheme}
+          onPress={() => navigateTo("/(tabs)/account/settings")}
           showDivider={false}
-          subtitle={currentThemeLabel}
-          title="Giao diện"
+          subtitle="Ngôn ngữ, tiền tệ và giao diện"
+          title="Cài đặt"
         />
       </View>
 
@@ -516,7 +582,7 @@ export default function AccountRoute() {
 
 const styles = StyleSheet.create({
   content: { gap: 18, paddingHorizontal: 18 },
-  profileHeader: { alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "space-between" },
+  profileHeader: { alignItems: "center", flexDirection: "row" },
   profileIdentity: { alignItems: "center", flex: 1, flexDirection: "row", gap: 12, minHeight: 58, minWidth: 0 },
   avatarRing: { alignItems: "center", borderColor: "#75baff", borderRadius: 34, borderWidth: 3, height: 68, justifyContent: "center", width: 68 },
   avatar: { alignItems: "center", borderRadius: 28, height: 56, justifyContent: "center", overflow: "hidden", width: 56 },
@@ -525,8 +591,6 @@ const styles = StyleSheet.create({
   identityCopy: { flex: 1, gap: 3, minWidth: 0 },
   profileName: { fontSize: 19, fontWeight: "900" },
   profileEmail: { fontSize: 13 },
-  cashbackBadge: { alignItems: "center", borderColor: "#9ed2ff", borderRadius: 999, borderWidth: 1, flexDirection: "row", gap: 5, minHeight: 44, paddingHorizontal: 8 },
-  cashbackBadgeText: { color: "#258ce9", fontSize: 11, fontWeight: "900" },
   walletCard: { borderRadius: 24, gap: 5, overflow: "hidden", padding: 22 },
   walletBubble: { backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 130, height: 220, position: "absolute", right: -64, top: -96, width: 220 },
   balanceLabel: { color: "rgba(255,255,255,0.86)", fontSize: 15 },
@@ -555,6 +619,17 @@ const styles = StyleSheet.create({
   referralRateText: { color: "#16a34a", fontSize: 11, fontWeight: "900" },
   referralDescription: { fontSize: 13, lineHeight: 19 },
   referralLink: { color: "#2f9af5", fontSize: 14, fontWeight: "900" },
+  referralEntryCard: { borderRadius: 22, borderWidth: 1, gap: 13, padding: 16 },
+  referralEntryHeader: { alignItems: "center", flexDirection: "row", gap: 12 },
+  referralEntryHeading: { flex: 1, gap: 3, minWidth: 0 },
+  referralEntryTitle: { fontSize: 17, fontWeight: "900" },
+  referralEntryLead: { fontSize: 12, lineHeight: 17 },
+  referralEntryDeadline: { fontSize: 11, lineHeight: 17 },
+  referralEntryControls: { alignItems: "center", flexDirection: "row", gap: 9 },
+  referralEntryInput: { borderRadius: 13, borderWidth: 1, flex: 1, fontSize: 14, minHeight: 48, paddingHorizontal: 13 },
+  referralEntryButton: { alignItems: "center", backgroundColor: "#2f9af5", borderRadius: 13, justifyContent: "center", minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
+  referralEntryButtonText: { color: "#ffffff", fontSize: 13, fontWeight: "900" },
+  disabledAction: { opacity: 0.45 },
   sectionLabel: { fontSize: 13, fontWeight: "900", letterSpacing: 1.4, marginLeft: 4, marginTop: 4 },
   menuCard: { borderRadius: 22, overflow: "hidden" },
   menuRow: { alignItems: "center", flexDirection: "row", minHeight: 74, paddingLeft: 14 },

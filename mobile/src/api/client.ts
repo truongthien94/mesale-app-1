@@ -81,8 +81,9 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
   try {
     const session = authenticated ? await loadSession() : null;
     const headers = new Headers(fetchOptions.headers);
+    const isFormDataBody = typeof FormData !== "undefined" && body instanceof FormData;
     headers.set("Accept", "application/json");
-    if (body !== undefined) headers.set("Content-Type", "application/json");
+    if (body !== undefined && !isFormDataBody) headers.set("Content-Type", "application/json");
     if (session) headers.set("Authorization", `${session.tokenType} ${session.accessToken}`);
 
     let response: Response;
@@ -90,7 +91,7 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
     try {
       response = await fetch(`${env.apiBaseUrl}/${path.replace(/^\//, "")}`, {
         ...fetchOptions,
-        body: body === undefined ? undefined : JSON.stringify(body),
+        body: body === undefined ? undefined : isFormDataBody ? body : JSON.stringify(body),
         headers,
         signal: controller.signal
       });

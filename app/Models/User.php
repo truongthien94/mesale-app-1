@@ -29,6 +29,8 @@ use Illuminate\Support\Facades\Schema;
     'avatar',
     'referral_code',
     'referred_by',
+    'referral_prompt_decided_at',
+    'referral_code_eligible_until',
     // Số lượt click vào link giới thiệu
     'referral_clicks',
     // email_verified_at lưu thời gian xác minh email thành công
@@ -91,6 +93,7 @@ class User extends Authenticatable
             // last_seen_at tự động ép kiểu về đối tượng Carbon datetime
             'last_seen_at' => 'datetime',
             'referral_prompt_decided_at' => 'datetime',
+            'referral_code_eligible_until' => 'datetime',
             // Số lượt click vào link giới thiệu
             'referral_clicks' => 'integer',
         ];

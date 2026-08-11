@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Exceptions\NativeOAuthVerificationException;
+use App\Exceptions\UserAvatarException;
 use App\Helpers\MoneyHelper;
 use App\Models\ActivityLog;
 use App\Models\ApiToken;
@@ -15,6 +16,8 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\Services\NativeOAuthTokenVerifier;
+use App\Services\ReferralOnboardingService;
+use App\Services\UserAvatarService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,6 +31,11 @@ use Illuminate\Validation\ValidationException;
  */
 class AccountController extends ApiController
 {
+    public function __construct(
+        private readonly ReferralOnboardingService $referralOnboarding,
+        private readonly UserAvatarService $userAvatars
+    ) {}
+
     /**
      * GET /api/v1/openapi/account
      * Trả về thông tin tài khoản, số dư ví và các thống kê tổng hợp.
@@ -53,10 +61,9 @@ class AccountController extends ApiController
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
-            'avatar' => $user->avatar,
+            'avatar' => $this->userAvatars->urlFor($user),
             'referral_code' => $user->referral_code,
-            'referral_prompt_pending' => is_null($user->referral_prompt_decided_at)
-                && Setting::getVal('referral_enabled', '1') === '1',
+            ...$this->referralOnboarding->apiFields($user),
             'status' => $user->status,
             'email_verified' => ! is_null($user->email_verified_at),
             'preferences' => $this->preferencesFor($user),
@@ -84,12 +91,12 @@ class AccountController extends ApiController
 
     /**
      * POST /api/v1/openapi/account/referral-code
-     * Apply one referral code or permanently skip the post-registration prompt.
+     * Apply one referral code within the persisted 72-hour window or dismiss the prompt.
      */
     public function decideReferralPrompt(Request $request): JsonResponse
     {
         if ($request->exists('referral_code') && is_string($request->input('referral_code'))) {
-            $request->merge(['referral_code' => trim($request->input('referral_code'))]);
+            $request->merge(['referral_code' => strtoupper(trim($request->input('referral_code')))]);
         }
 
         try {
@@ -112,19 +119,27 @@ class AccountController extends ApiController
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if (! is_null($user->referral_prompt_decided_at)) {
-                return ['state' => 'already_decided'];
+            $state = $this->referralOnboarding->stateFor($user);
+            if (! $state['feature_enabled']) {
+                return ['state' => 'disabled'];
+            }
+            if ($state['linked'] || Referral::query()->where('referred_id', $user->getKey())->exists()) {
+                return ['state' => 'already_linked'];
+            }
+            if (! $state['has_deadline']) {
+                return ['state' => 'not_eligible'];
+            }
+            if ($state['expired']) {
+                return ['state' => 'expired'];
             }
 
             if (($validated['skip'] ?? false) === true) {
-                $user->referral_prompt_decided_at = now();
-                $user->save();
+                if (is_null($user->referral_prompt_decided_at)) {
+                    $user->referral_prompt_decided_at = now();
+                    $user->save();
+                }
 
-                return ['state' => 'skipped'];
-            }
-
-            if (Setting::getVal('referral_enabled', '1') !== '1') {
-                return ['state' => 'invalid'];
+                return ['state' => 'skipped', 'user' => $user->refresh()];
             }
 
             $referrer = User::query()
@@ -155,14 +170,38 @@ class AccountController extends ApiController
                 'content' => __('Thành viên :name đã đăng ký tài khoản qua liên kết giới thiệu của bạn.', ['name' => $user->name]),
             ]);
 
-            return ['state' => 'applied'];
+            return ['state' => 'applied', 'user' => $user->refresh()];
         });
 
-        if ($outcome['state'] === 'already_decided') {
+        if ($outcome['state'] === 'disabled') {
             return $this->fail(
-                __('Không thể cập nhật mã giới thiệu.'),
+                __('Chương trình giới thiệu hiện đang tạm tắt.'),
+                403,
+                'REFERRAL_DISABLED'
+            );
+        }
+
+        if ($outcome['state'] === 'not_eligible') {
+            return $this->fail(
+                __('Tài khoản này không thuộc thời gian được nhập mã giới thiệu.'),
+                403,
+                'REFERRAL_NOT_ELIGIBLE'
+            );
+        }
+
+        if ($outcome['state'] === 'expired') {
+            return $this->fail(
+                __('Thời gian nhập mã giới thiệu đã hết.'),
+                410,
+                'REFERRAL_WINDOW_EXPIRED'
+            );
+        }
+
+        if ($outcome['state'] === 'already_linked') {
+            return $this->fail(
+                __('Tài khoản đã được liên kết với người giới thiệu.'),
                 409,
-                'REFERRAL_PROMPT_ALREADY_DECIDED'
+                'REFERRAL_ALREADY_LINKED'
             );
         }
 
@@ -175,10 +214,10 @@ class AccountController extends ApiController
         }
 
         return $this->ok(
-            ['referral_prompt_pending' => false],
+            $this->referralOnboarding->apiFields($outcome['user']),
             $outcome['state'] === 'applied'
                 ? __('Áp dụng mã giới thiệu thành công!')
-                : __('Đã bỏ qua mã giới thiệu.')
+                : __('Bạn có thể nhập mã giới thiệu sau, trước khi thời hạn kết thúc.')
         );
     }
 
@@ -290,6 +329,96 @@ class AccountController extends ApiController
     }
 
     /**
+     * POST /api/v1/openapi/account/avatar
+     * Replace the member-managed avatar with a sanitized square WebP.
+     */
+    public function uploadAvatar(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'avatar' => [
+                    'required',
+                    'file',
+                    'mimes:jpg,jpeg,png,webp',
+                    'mimetypes:image/jpeg,image/png,image/webp',
+                    'max:2048',
+                    'dimensions:max_width=4096,max_height=4096',
+                ],
+            ]);
+        } catch (ValidationException $e) {
+            return $this->fail(
+                __('Ảnh đại diện phải là JPEG, PNG hoặc WebP và không vượt quá 2 MB.'),
+                422,
+                'VALIDATION_ERROR',
+                $e->errors()
+            );
+        }
+
+        $user = $this->apiUser($request);
+
+        try {
+            $avatarUrl = $this->userAvatars->replace($user, $validated['avatar']);
+        } catch (UserAvatarException $e) {
+            Log::warning('Open API avatar update failed.', [
+                'user_id' => $user->getKey(),
+                'error_code' => $e->errorCode,
+                'exception' => $e->getPrevious() ? $e->getPrevious()::class : $e::class,
+            ]);
+
+            return $this->fail($e->getMessage(), $e->httpStatus, $e->errorCode);
+        }
+
+        try {
+            ActivityLog::log(__('Cập nhật ảnh đại diện (qua Open API)'), $user->getKey());
+        } catch (\Throwable $e) {
+            Log::warning('Avatar update committed but activity logging failed.', [
+                'user_id' => $user->getKey(),
+                'exception' => $e::class,
+            ]);
+        }
+
+        return $this->ok([
+            'avatar' => $avatarUrl,
+            'avatar_url' => $avatarUrl,
+        ], __('Cập nhật ảnh đại diện thành công!'));
+    }
+
+    /**
+     * DELETE /api/v1/openapi/account/avatar
+     * Delete only the managed upload and fall back to the verified provider avatar.
+     */
+    public function deleteAvatar(Request $request): JsonResponse
+    {
+        $user = $this->apiUser($request);
+
+        try {
+            $avatarUrl = $this->userAvatars->remove($user);
+        } catch (UserAvatarException $e) {
+            Log::warning('Open API avatar deletion failed.', [
+                'user_id' => $user->getKey(),
+                'error_code' => $e->errorCode,
+                'exception' => $e->getPrevious() ? $e->getPrevious()::class : $e::class,
+            ]);
+
+            return $this->fail($e->getMessage(), $e->httpStatus, $e->errorCode);
+        }
+
+        try {
+            ActivityLog::log(__('Xóa ảnh đại diện tự tải lên (qua Open API)'), $user->getKey());
+        } catch (\Throwable $e) {
+            Log::warning('Avatar deletion committed but activity logging failed.', [
+                'user_id' => $user->getKey(),
+                'exception' => $e::class,
+            ]);
+        }
+
+        return $this->ok([
+            'avatar' => $avatarUrl,
+            'avatar_url' => $avatarUrl,
+        ], __('Đã xóa ảnh đại diện tự tải lên.'));
+    }
+
+    /**
      * POST /api/v1/openapi/account/password
      * Đổi mật khẩu tài khoản; thu hồi token trên các thiết bị khác để bảo mật.
      */
@@ -375,12 +504,15 @@ class AccountController extends ApiController
 
         $deletionReference = (string) Str::uuid();
 
+        $managedAvatarPath = null;
+
         try {
-            DB::transaction(function () use ($user) {
+            DB::transaction(function () use ($user, &$managedAvatarPath) {
                 $model = User::where('id', $user->id)->lockForUpdate()->first();
                 if (! $model) {
                     throw new \Exception('USER_NOT_FOUND');
                 }
+                $managedAvatarPath = $model->avatar_path;
                 $email = $model->email;
                 // Dọn dẹp dữ liệu không tự cascade (api_tokens có cascade nên tự xóa theo user)
                 DB::table('activity_logs')->where('user_id', $model->id)->delete();
@@ -400,6 +532,7 @@ class AccountController extends ApiController
         // The authenticated model no longer exists; subsequent middleware must log this request anonymously.
         $request->setUserResolver(static fn () => null);
         $request->attributes->remove('api_token');
+        $this->userAvatars->deleteManagedPath($managedAvatarPath, $user->getKey());
 
         try {
             ActivityLog::create([

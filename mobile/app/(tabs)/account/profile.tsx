@@ -3,6 +3,7 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { useAccount, useUpdateProfile } from "@/features/account/api";
+import { AvatarEditor } from "@/features/account/AvatarEditor";
 import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMutationError, AccountNotice } from "@/features/account/components";
 
 export default function ProfileScreen() {
@@ -43,6 +44,9 @@ export default function ProfileScreen() {
   return (
     <AccountFormScreen>
       <AccountHeader title="Thông tin cá nhân" subtitle="Thay đổi tại đây được lưu vào cùng hồ sơ thành viên trên mesale.vn." />
+      <AccountCard>
+        <AvatarEditor avatar={query.data.avatar} name={query.data.name} />
+      </AccountCard>
       <AccountCard>
         <AccountField error={nameError ?? (mutation.error instanceof ApiError ? mutation.error.errors?.name?.[0] : undefined)} label="Họ và tên" onChangeText={setName} value={name} />
         <AccountField autoCapitalize="none" error={mutation.error instanceof ApiError ? mutation.error.errors?.phone?.[0] : undefined} keyboardType="phone-pad" label="Số điện thoại" onChangeText={setPhone} placeholder="Để trống nếu chưa sử dụng" value={phone} />

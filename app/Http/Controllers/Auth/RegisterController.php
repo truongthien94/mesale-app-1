@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Referral;
 use App\Models\ActivityLog;
 use App\Models\Setting;
+use App\Services\ReferralOnboardingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
@@ -15,6 +16,8 @@ use Illuminate\Support\Str;
 
 class RegisterController extends Controller
 {
+    public function __construct(private readonly ReferralOnboardingService $referralOnboarding) {}
+
     /**
      * Hiển thị giao diện đăng ký tài khoản.
      */
@@ -209,7 +212,7 @@ class RegisterController extends Controller
 
         // 3. Xử lý mã giới thiệu từ cookie
         $referredBy = null;
-        $cookieRefCode = Cookie::get('referred_by_code');
+        $cookieRefCode = $request->cookie('referred_by_code');
 
         // Kiểm tra xem tính năng tiếp thị liên kết có bật hay không
         $referralEnabled = Setting::getVal('referral_enabled', '1') === '1';
@@ -281,6 +284,7 @@ class RegisterController extends Controller
             'ip_address' => $request->ip(), // Lưu địa chỉ IP khi đăng ký để kiểm soát giới hạn tài khoản
             'user_agent' => strip_tags(\Illuminate\Support\Str::limit($request->userAgent(), 500)), // Lưu thông tin trình duyệt và thiết bị đã lọc sạch HTML (giới hạn 500 ký tự)
             'country' => $country, // Lưu quốc gia của người dùng đăng ký
+            ...$this->referralOnboarding->registrationAttributes($referredBy),
         ];
 
         // Thử tối đa 2 lần: lần 2 chỉ nhằm xử lý trường hợp đụng độ khóa chính ID hiếm gặp

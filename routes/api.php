@@ -85,6 +85,8 @@ Route::prefix('v1/openapi')
                 Route::get('account', [AccountController::class, 'show']);
                 Route::post('account/referral-code', [AccountController::class, 'decideReferralPrompt'])->middleware('throttle:10,1');
                 Route::post('account/profile', [AccountController::class, 'updateProfile']);
+                Route::post('account/avatar', [AccountController::class, 'uploadAvatar'])->middleware('throttle:10,1');
+                Route::delete('account/avatar', [AccountController::class, 'deleteAvatar'])->middleware('throttle:10,1');
                 Route::post('account/preferences', [AccountController::class, 'updatePreferences']);
                 Route::post('account/password', [AccountController::class, 'changePassword'])->middleware('throttle:10,1');
                 Route::post('account/delete', [AccountController::class, 'deleteAccount'])->middleware('throttle:5,1');

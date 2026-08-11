@@ -151,6 +151,7 @@ class NativeOAuthController extends AuthController
                     'ip_address' => $request->ip(),
                     'user_agent' => strip_tags(Str::limit($request->userAgent() ?? 'API Client', 500)),
                     'country' => 'Unknown',
+                    ...$this->referralOnboarding->registrationAttributes(),
                 ]);
                 $user->save();
 

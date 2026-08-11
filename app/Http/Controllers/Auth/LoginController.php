@@ -12,11 +12,14 @@ use Laravel\Socialite\Facades\Socialite;
 use App\Models\User;
 use App\Models\Referral;
 use App\Models\Setting;
+use App\Services\ReferralOnboardingService;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
+    public function __construct(private readonly ReferralOnboardingService $referralOnboarding) {}
+
     /**
      * Hiển thị giao diện đăng nhập.
      */
@@ -723,7 +726,7 @@ class LoginController extends Controller
 
         // 1. Xử lý mã giới thiệu từ cookie (nếu có)
         $referredBy = null;
-        $cookieRefCode = Cookie::get('referred_by_code');
+        $cookieRefCode = request()->cookie('referred_by_code');
         $referralEnabled = Setting::getVal('referral_enabled', '1') === '1';
 
         if ($referralEnabled && $cookieRefCode) {
@@ -790,6 +793,7 @@ class LoginController extends Controller
                 'ip_address' => $request->ip(), // Lưu IP để hỗ trợ đối soát chống gian lận đa tài khoản
                 'user_agent' => strip_tags(\Illuminate\Support\Str::limit($request->userAgent(), 500)), // Lưu thông tin thiết bị/trình duyệt đã lọc mã HTML
                 'country' => $country, // Lưu quốc gia của người dùng
+                ...$this->referralOnboarding->registrationAttributes($referredBy),
             ]);
         } catch (\Throwable $e) {
             // Xử lý dự phòng trường hợp bị trùng lặp email do luồng kết nối song song từ trình duyệt

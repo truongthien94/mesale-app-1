@@ -1,5 +1,6 @@
 export const accountPaths = {
   account: "account",
+  avatar: "account/avatar",
   profile: "account/profile",
   password: "account/password",
   preferences: "account/preferences",

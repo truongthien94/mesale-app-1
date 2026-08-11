@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
-import { Redirect } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { applyReferralCode, skipReferralPrompt } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
@@ -12,8 +12,9 @@ import { getDeviceLocale } from "@/i18n";
 import { colors } from "@/theme/tokens";
 
 export default function ReferralCodeScreen() {
+  const router = useRouter();
   const locale = getDeviceLocale();
-  const { isLoading, pendingAuth, session, settleReferralPrompt, user } = useAuth();
+  const { isLoading, pendingAuth, refreshUser, session, settleReferralPrompt, user } = useAuth();
   const [referralCode, setReferralCode] = useState("");
   const [requestError, setRequestError] = useState<ApiError | null>(null);
   const [action, setAction] = useState<"apply" | "skip" | null>(null);
@@ -21,7 +22,9 @@ export default function ReferralCodeScreen() {
 
   if (isLoading) return <LoadingState />;
   const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
-  if (authGate !== "/referral-code") return <Redirect href={authGate ?? "/login"} />;
+  if (!session || pendingAuth) return <Redirect href={authGate ?? "/login"} />;
+  const canEnterReferralCode = user?.referralPromptPending === true || user?.referralCodeEligible === true;
+  if (!canEnterReferralCode) return <Redirect href="/home" />;
 
   async function applyCode() {
     setRequestError(null);
@@ -29,11 +32,14 @@ export default function ReferralCodeScreen() {
     try {
       await applyReferralCode(normalizedCode);
       await settleReferralPrompt();
+      router.replace("/home");
     } catch (reason) {
-      if (isAlreadyDecided(reason)) {
+      if (isCompatibilityAlreadyDecided(reason)) {
         await settleReferralPrompt();
+        router.replace("/home");
         return;
       }
+      if (isTerminalReferralState(reason)) await refreshUser().catch(() => undefined);
       setRequestError(toApiError(reason, locale === "vi" ? "Không thể áp dụng mã giới thiệu." : "Unable to apply the referral code."));
     } finally {
       setAction(null);
@@ -46,9 +52,11 @@ export default function ReferralCodeScreen() {
     try {
       await skipReferralPrompt();
       await settleReferralPrompt();
+      router.replace("/home");
     } catch (reason) {
-      if (isAlreadyDecided(reason)) {
+      if (isCompatibilityAlreadyDecided(reason)) {
         await settleReferralPrompt();
+        router.replace("/home");
         return;
       }
       setRequestError(toApiError(reason, locale === "vi" ? "Không thể bỏ qua lúc này." : "Unable to skip right now."));
@@ -62,8 +70,8 @@ export default function ReferralCodeScreen() {
     <AuthForm
       title={locale === "vi" ? "Nhập mã giới thiệu" : "Enter your referral code"}
       subtitle={locale === "vi"
-        ? "Nếu bạn được một thành viên Mesale giới thiệu, hãy nhập mã của họ tại đây."
-        : "If a Mesale member invited you, enter their code here."}
+        ? "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi."
+        : "You can enter a referral code during the first 3 days after registration. The server validates eligibility when you submit."}
     >
       <AuthField
         autoCapitalize="characters"
@@ -88,28 +96,64 @@ export default function ReferralCodeScreen() {
         loading={action === "apply"}
         onPress={() => void applyCode()}
       />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ busy: action === "skip", disabled: busy }}
-        disabled={busy}
-        onPress={() => void skip()}
-        style={({ pressed }) => [styles.skipButton, busy && styles.disabled, pressed && styles.pressed]}
-      >
-        {action === "skip"
-          ? <ActivityIndicator color={colors.primary} />
-          : <Text style={styles.skipText}>{locale === "vi" ? "Bỏ qua" : "Skip"}</Text>}
-      </Pressable>
+      {user?.referralPromptPending === true ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ busy: action === "skip", disabled: busy }}
+          disabled={busy}
+          onPress={() => void skip()}
+          style={({ pressed }) => [styles.skipButton, busy && styles.disabled, pressed && styles.pressed]}
+        >
+          {action === "skip"
+            ? <ActivityIndicator color={colors.primary} />
+            : <Text style={styles.skipText}>{locale === "vi" ? "Bỏ qua" : "Skip"}</Text>}
+        </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          onPress={() => router.replace("/(tabs)/account")}
+          style={({ pressed }) => [styles.skipButton, busy && styles.disabled, pressed && styles.pressed]}
+        >
+          <Text style={styles.skipText}>{locale === "vi" ? "Quay lại tài khoản" : "Back to account"}</Text>
+        </Pressable>
+      )}
     </AuthForm>
   );
 }
 
 function toApiError(reason: unknown, fallback: string): ApiError {
-  if (reason instanceof ApiError) return reason;
+  if (reason instanceof ApiError) {
+    const stateMessage = referralStateMessage(reason.code);
+    if (!stateMessage) return reason;
+    return new ApiError(stateMessage, reason.status, {
+      code: reason.code,
+      errors: reason.errors,
+      requestId: reason.requestId
+    });
+  }
   return new ApiError(reason instanceof Error ? reason.message : fallback, 0);
 }
 
-function isAlreadyDecided(reason: unknown): boolean {
+function referralStateMessage(code?: string): string | null {
+  if (code === "REFERRAL_WINDOW_EXPIRED") return "Thời hạn nhập mã giới thiệu đã kết thúc.";
+  if (code === "REFERRAL_NOT_ELIGIBLE") return "Tài khoản hiện không đủ điều kiện nhập mã giới thiệu.";
+  if (code === "REFERRAL_ALREADY_LINKED") return "Tài khoản đã liên kết với người giới thiệu.";
+  if (code === "REFERRAL_DISABLED") return "Chương trình giới thiệu hiện đang tạm dừng.";
+  return null;
+}
+
+function isCompatibilityAlreadyDecided(reason: unknown): boolean {
   return reason instanceof ApiError && reason.code === "REFERRAL_PROMPT_ALREADY_DECIDED";
+}
+
+function isTerminalReferralState(reason: unknown): boolean {
+  return reason instanceof ApiError && [
+    "REFERRAL_WINDOW_EXPIRED",
+    "REFERRAL_NOT_ELIGIBLE",
+    "REFERRAL_ALREADY_LINKED",
+    "REFERRAL_DISABLED"
+  ].includes(reason.code ?? "");
 }
 
 const styles = StyleSheet.create({

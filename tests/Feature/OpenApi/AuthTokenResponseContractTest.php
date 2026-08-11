@@ -7,14 +7,17 @@ use App\Models\ApiLog;
 use App\Models\ApiToken;
 use App\Models\Setting;
 use App\Models\User;
+use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AuthTokenResponseContractTest extends TestCase
@@ -26,6 +29,12 @@ class AuthTokenResponseContractTest extends TestCase
         Cache::flush();
         $this->createIsolatedAuthSchema();
         $this->enableOpenApiAuth();
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 
     public function test_login_returns_a_revocable_bearer_session_token_and_integer_vnd_values(): void
@@ -165,6 +174,7 @@ class AuthTokenResponseContractTest extends TestCase
 
     public function test_registration_ignores_inline_referral_and_starts_the_new_account_pending(): void
     {
+        Carbon::setTestNow('2026-08-11 10:00:00');
         Setting::setVal('referral_enabled', '1');
         $referrer = $this->createUser([
             'email' => 'registration-referrer@example.test',
@@ -183,11 +193,14 @@ class AuthTokenResponseContractTest extends TestCase
         ]);
 
         $response->assertCreated()
-            ->assertJsonPath('data.user.referral_prompt_pending', true);
+            ->assertJsonPath('data.user.referral_prompt_pending', true)
+            ->assertJsonPath('data.user.referral_code_eligible', true)
+            ->assertJsonPath('data.user.referral_code_expires_at', now()->addHours(72)->toIso8601String());
 
         $registeredUser = User::query()->where('email', 'pending-referral@example.test')->firstOrFail();
         $this->assertNull($registeredUser->referred_by);
         $this->assertNull($registeredUser->referral_prompt_decided_at);
+        $this->assertTrue($registeredUser->referral_code_eligible_until->equalTo(now()->addHours(72)));
         $this->assertDatabaseCount('referrals', 0);
         $this->assertDatabaseCount('notifications', 0);
     }
@@ -207,6 +220,7 @@ class AuthTokenResponseContractTest extends TestCase
             'email' => 'valid-referred@example.test',
             'referral_code' => 'NEWUSER1',
             'referral_prompt_decided_at' => null,
+            'referral_code_eligible_until' => now()->addHours(72),
         ]);
         [$plainToken] = ApiToken::generateFor($user, 'Referral Apply Test', 30, '127.0.0.1');
 
@@ -229,7 +243,7 @@ class AuthTokenResponseContractTest extends TestCase
         $this->withToken($plainToken)
             ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
             ->assertStatus(409)
-            ->assertJsonPath('code', 'REFERRAL_PROMPT_ALREADY_DECIDED');
+            ->assertJsonPath('code', 'REFERRAL_ALREADY_LINKED');
 
         $this->assertDatabaseCount('referrals', 1);
         $this->assertDatabaseCount('notifications', 1);
@@ -250,6 +264,7 @@ class AuthTokenResponseContractTest extends TestCase
             'email' => 'same-ip-referred@example.test',
             'referral_code' => 'NEWUSER2',
             'referral_prompt_decided_at' => null,
+            'referral_code_eligible_until' => now()->addHours(72),
         ]);
         [$plainToken] = ApiToken::generateFor($user, 'Referral Same IP Test', 30, '127.0.0.1');
 
@@ -276,26 +291,167 @@ class AuthTokenResponseContractTest extends TestCase
     public function test_skipping_referral_prompt_decides_it_without_side_effects(): void
     {
         Setting::setVal('referral_enabled', '1');
+        Setting::setVal('block_same_ip_referral', '1');
+        $referrer = $this->createUser([
+            'email' => 'after-skip-referrer@example.test',
+            'referral_code' => 'AFTERSKIP',
+            'ip_address' => '198.51.100.44',
+            'referral_prompt_decided_at' => now(),
+        ]);
         $user = $this->createUser([
             'email' => 'skip-referral@example.test',
             'referral_code' => 'NEWUSER3',
             'referral_prompt_decided_at' => null,
+            'referral_code_eligible_until' => now()->addHours(72),
         ]);
         [$plainToken] = ApiToken::generateFor($user, 'Referral Skip Test', 30, '127.0.0.1');
 
         $this->withToken($plainToken)
             ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
             ->assertOk()
-            ->assertJsonPath('data.referral_prompt_pending', false);
+            ->assertJsonPath('data.referral_prompt_pending', false)
+            ->assertJsonPath('data.referral_code_eligible', true);
 
         $this->assertNotNull($user->refresh()->referral_prompt_decided_at);
         $this->assertNull($user->referred_by);
         $this->withToken($plainToken)
             ->getJson('/api/v1/openapi/account')
             ->assertOk()
-            ->assertJsonPath('data.referral_prompt_pending', false);
+            ->assertJsonPath('data.referral_prompt_pending', false)
+            ->assertJsonPath('data.referral_code_eligible', true);
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['referral_code' => strtolower($referrer->referral_code)])
+            ->assertOk()
+            ->assertJsonPath('data.referral_code_eligible', false);
+        $this->assertSame($referrer->id, $user->refresh()->referred_by);
+        $this->assertDatabaseCount('referrals', 1);
+        $this->assertDatabaseCount('notifications', 1);
+    }
+
+    public function test_referral_window_rejects_disabled_ineligible_expired_and_linked_accounts_with_distinct_codes(): void
+    {
+        Carbon::setTestNow('2026-08-11 12:00:00');
+
+        $disabledUser = $this->createUser([
+            'email' => 'referral-disabled@example.test',
+            'referral_code' => 'DISABLED1',
+            'referral_code_eligible_until' => now()->addHour(),
+        ]);
+        [$disabledToken] = ApiToken::generateFor($disabledUser, 'Referral Disabled Test', 30, '127.0.0.1');
+        Setting::setVal('referral_enabled', '0');
+        $this->withToken($disabledToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'REFERRAL_DISABLED');
+
+        Setting::setVal('referral_enabled', '1');
+        $oldUser = $this->createUser([
+            'email' => 'referral-old@example.test',
+            'referral_code' => 'OLDUSER1',
+            'referral_code_eligible_until' => null,
+        ]);
+        [$oldToken] = ApiToken::generateFor($oldUser, 'Referral Old User Test', 30, '127.0.0.1');
+        $this->withToken($oldToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+            ->assertForbidden()
+            ->assertJsonPath('code', 'REFERRAL_NOT_ELIGIBLE');
+
+        foreach ([
+            ['email' => 'referral-exact-expiry@example.test', 'code' => 'EXPIRED1', 'deadline' => now()],
+            ['email' => 'referral-past-expiry@example.test', 'code' => 'EXPIRED2', 'deadline' => now()->subSecond()],
+        ] as $index => $expired) {
+            $expiredUser = $this->createUser([
+                'email' => $expired['email'],
+                'referral_code' => $expired['code'],
+                'referral_code_eligible_until' => $expired['deadline'],
+            ]);
+            [$expiredToken] = ApiToken::generateFor($expiredUser, "Referral Expired Test {$index}", 30, '127.0.0.1');
+            $this->withToken($expiredToken)
+                ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+                ->assertStatus(410)
+                ->assertJsonPath('code', 'REFERRAL_WINDOW_EXPIRED');
+        }
+
+        $referrer = $this->createUser([
+            'email' => 'already-linked-referrer@example.test',
+            'referral_code' => 'LINKREF1',
+        ]);
+        $linkedUser = $this->createUser([
+            'email' => 'already-linked-user@example.test',
+            'referral_code' => 'LINKED01',
+            'referred_by' => $referrer->id,
+            'referral_code_eligible_until' => now()->addHour(),
+        ]);
+        [$linkedToken] = ApiToken::generateFor($linkedUser, 'Referral Linked Test', 30, '127.0.0.1');
+        $this->withToken($linkedToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['skip' => true])
+            ->assertStatus(409)
+            ->assertJsonPath('code', 'REFERRAL_ALREADY_LINKED');
+
+        $this->assertSame($referrer->id, $linkedUser->refresh()->referred_by);
         $this->assertDatabaseCount('referrals', 0);
         $this->assertDatabaseCount('notifications', 0);
+    }
+
+    public function test_referral_eligibility_migration_does_not_backfill_existing_members(): void
+    {
+        Schema::table('users', function (Blueprint $table): void {
+            $table->dropColumn('referral_code_eligible_until');
+        });
+
+        $existingUser = $this->createUser([
+            'email' => 'existing-before-eligibility-migration@example.test',
+            'referral_code' => 'NOELIG01',
+            'created_at' => now()->subYear(),
+        ]);
+
+        $migration = require database_path('migrations/2026_08_11_000001_add_referral_code_eligible_until_to_users_table.php');
+        $migration->up();
+
+        $this->assertNull(
+            DB::table('users')->where('id', $existingUser->id)->value('referral_code_eligible_until')
+        );
+
+        $migration->down();
+        $this->assertFalse(Schema::hasColumn('users', 'referral_code_eligible_until'));
+    }
+
+    public function test_web_cookie_linked_registration_is_decided_and_never_receives_a_mobile_window(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        Setting::setVal('block_same_ip_referral', '1');
+        Setting::setVal('register_identifier_email', '1');
+        Setting::setVal('register_identifier_phone', '0');
+        Setting::setVal('register_field_name', '1');
+        Setting::setVal('register_field_name_required', '1');
+        Setting::setVal('register_field_phone', '0');
+        $referrer = $this->createUser([
+            'email' => 'web-cookie-referrer@example.test',
+            'referral_code' => 'WEBREF01',
+            'ip_address' => '198.51.100.90',
+        ]);
+
+        $this->withCredentials()
+            ->withCookie('referred_by_code', $referrer->referral_code)
+            ->postJson('/register', [
+                'register_type' => 'email',
+                'name' => 'Web Cookie Member',
+                'email' => 'web-cookie-member@example.test',
+                'password' => 'registered-password',
+                'password_confirmation' => 'registered-password',
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $registered = User::query()->where('email', 'web-cookie-member@example.test')->firstOrFail();
+        $this->assertSame($referrer->id, $registered->referred_by);
+        $this->assertNotNull($registered->referral_prompt_decided_at);
+        $this->assertNull($registered->referral_code_eligible_until);
+        $this->assertDatabaseHas('referrals', [
+            'referrer_id' => $referrer->id,
+            'referred_id' => $registered->id,
+        ]);
     }
 
     public function test_referral_prompt_migration_backfills_existing_members_as_decided(): void
@@ -322,7 +478,9 @@ class AuthTokenResponseContractTest extends TestCase
         $this->withToken($plainToken)
             ->getJson('/api/v1/openapi/account')
             ->assertOk()
-            ->assertJsonPath('data.referral_prompt_pending', false);
+            ->assertJsonPath('data.referral_prompt_pending', false)
+            ->assertJsonPath('data.referral_code_eligible', false)
+            ->assertJsonPath('data.referral_code_expires_at', null);
 
         $migration->down();
         $this->assertFalse(Schema::hasColumn('users', 'referral_prompt_decided_at'));
@@ -378,6 +536,171 @@ class AuthTokenResponseContractTest extends TestCase
             $this->assertIsInt($wallet[$field], "{$field} must be restored as integer VND");
             $this->assertSame($amount, $wallet[$field]);
         }
+    }
+
+    public function test_avatar_upload_reencodes_replaces_and_deletes_only_managed_files(): void
+    {
+        Storage::fake('public');
+        config()->set('app.url', 'https://mesale.test');
+        $providerAvatar = 'https://images.example.test/provider-avatar.jpg';
+        $user = $this->createUser([
+            'email' => 'avatar-owner@example.test',
+            'referral_code' => 'AVATAR01',
+            'avatar' => $providerAvatar,
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Avatar Contract Test', 30, '127.0.0.1');
+
+        $firstResponse = $this->withToken($plainToken)->post(
+            '/api/v1/openapi/account/avatar',
+            ['avatar' => UploadedFile::fake()->image('private-original-name.png', 900, 700)->size(512)],
+            ['Accept' => 'application/json']
+        );
+
+        $firstResponse->assertOk()
+            ->assertJsonPath('success', true);
+        $firstPath = $user->refresh()->avatar_path;
+        $this->assertMatchesRegularExpression('#^avatars/'.$user->id.'/[A-Za-z0-9]{40}\.webp$#', $firstPath);
+        $this->assertStringNotContainsString('private-original-name', $firstPath);
+        Storage::disk('public')->assertExists($firstPath);
+        $this->assertSame([512, 512], array_slice(getimagesize(Storage::disk('public')->path($firstPath)), 0, 2));
+        $this->assertSame('image/webp', mime_content_type(Storage::disk('public')->path($firstPath)));
+
+        $managedUrl = $firstResponse->json('data.avatar');
+        $this->assertSame($managedUrl, $firstResponse->json('data.avatar_url'));
+        $this->assertStringStartsWith('https://', $managedUrl);
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.avatar', $managedUrl);
+
+        $secondResponse = $this->withToken($plainToken)->post(
+            '/api/v1/openapi/account/avatar',
+            ['avatar' => UploadedFile::fake()->image('replacement.jpg', 640, 640)->size(256)],
+            ['Accept' => 'application/json']
+        );
+        $secondResponse->assertOk();
+        $secondPath = $user->refresh()->avatar_path;
+        $this->assertNotSame($firstPath, $secondPath);
+        Storage::disk('public')->assertMissing($firstPath);
+        Storage::disk('public')->assertExists($secondPath);
+
+        $this->withToken($plainToken)
+            ->deleteJson('/api/v1/openapi/account/avatar')
+            ->assertOk()
+            ->assertJsonPath('data.avatar', $providerAvatar)
+            ->assertJsonPath('data.avatar_url', $providerAvatar);
+
+        $this->assertNull($user->refresh()->avatar_path);
+        $this->assertSame($providerAvatar, $user->avatar);
+        Storage::disk('public')->assertMissing($secondPath);
+
+        $uploadLog = ApiLog::query()
+            ->where('endpoint', '/api/v1/openapi/account/avatar')
+            ->where('method', 'POST')
+            ->latest('id')
+            ->firstOrFail();
+        $this->assertSame('[REDACTED]', data_get(json_decode($uploadLog->request_data, true, flags: JSON_THROW_ON_ERROR), 'avatar'));
+        $this->assertStringNotContainsString('replacement.jpg', (string) $uploadLog->request_data);
+        $this->assertStringNotContainsString('private-original-name.png', (string) $uploadLog->request_data);
+        $this->assertStringNotContainsString('avatars/', (string) $uploadLog->request_data);
+    }
+
+    public function test_avatar_endpoint_requires_bearer_and_rejects_strings_unsupported_images_and_oversized_files(): void
+    {
+        Storage::fake('public');
+        $user = $this->createUser([
+            'email' => 'avatar-validation@example.test',
+            'referral_code' => 'AVATAR02',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Avatar Validation Test', 30, '127.0.0.1');
+
+        $this->postJson('/api/v1/openapi/account/avatar', [
+            'avatar' => 'https://attacker.example/avatar.jpg',
+        ])->assertUnauthorized();
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/avatar', ['avatar' => 'data:image/png;base64,AAAA'])
+            ->assertUnprocessable()
+            ->assertJsonPath('code', 'VALIDATION_ERROR');
+
+        foreach ([
+            UploadedFile::fake()->image('animated.gif', 100, 100),
+            UploadedFile::fake()->createWithContent('spoofed.jpg', '<?php echo "not-an-image";'),
+            UploadedFile::fake()->create('too-large.png', 2049, 'image/png'),
+            UploadedFile::fake()->image('too-wide.png', 4097, 8),
+        ] as $file) {
+            Cache::flush();
+            $this->withToken($plainToken)
+                ->post('/api/v1/openapi/account/avatar', ['avatar' => $file], ['Accept' => 'application/json'])
+                ->assertUnprocessable()
+                ->assertJsonPath('code', 'VALIDATION_ERROR');
+        }
+
+        $this->assertNull($user->refresh()->avatar_path);
+        Storage::disk('public')->assertDirectoryEmpty('avatars');
+    }
+
+    public function test_avatar_storage_failure_preserves_the_previous_managed_avatar(): void
+    {
+        $blockedRoot = tempnam(sys_get_temp_dir(), 'mesale-avatar-root-');
+        $this->assertNotFalse($blockedRoot);
+        config()->set('filesystems.disks.public.root', $blockedRoot);
+        Storage::forgetDisk('public');
+
+        $user = $this->createUser([
+            'email' => 'avatar-storage-failure@example.test',
+            'referral_code' => 'AVATAR03',
+        ]);
+        $oldPath = 'avatars/'.$user->id.'/'.str_repeat('B', 40).'.webp';
+        $user->forceFill(['avatar_path' => $oldPath])->save();
+        [$plainToken] = ApiToken::generateFor($user, 'Avatar Storage Failure Test', 30, '127.0.0.1');
+
+        try {
+            $this->withToken($plainToken)
+                ->post(
+                    '/api/v1/openapi/account/avatar',
+                    ['avatar' => UploadedFile::fake()->image('valid.png', 512, 512)->size(128)],
+                    ['Accept' => 'application/json']
+                )
+                ->assertStatus(503)
+                ->assertJsonPath('code', 'AVATAR_STORAGE_FAILED');
+
+            $this->assertSame($oldPath, $user->refresh()->avatar_path);
+        } finally {
+            Storage::forgetDisk('public');
+            @unlink($blockedRoot);
+        }
+    }
+
+    public function test_avatar_activity_log_failure_does_not_turn_a_committed_upload_into_http_500(): void
+    {
+        Storage::fake('public');
+        $user = $this->createUser([
+            'email' => 'avatar-audit-outage@example.test',
+            'referral_code' => 'AVATAR04',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Avatar Audit Outage Test', 30, '127.0.0.1');
+
+        DB::statement(<<<'SQL'
+            CREATE TRIGGER reject_avatar_activity
+            BEFORE INSERT ON activity_logs
+            BEGIN
+                SELECT RAISE(ABORT, 'activity sink unavailable');
+            END
+            SQL);
+
+        $this->withToken($plainToken)
+            ->post(
+                '/api/v1/openapi/account/avatar',
+                ['avatar' => UploadedFile::fake()->image('valid.png', 512, 512)->size(128)],
+                ['Accept' => 'application/json']
+            )
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $path = $user->refresh()->avatar_path;
+        $this->assertNotNull($path);
+        Storage::disk('public')->assertExists($path);
     }
 
     public function test_orders_endpoint_returns_only_the_authenticated_users_unrecorded_clicks_without_duplicates(): void
@@ -1117,9 +1440,11 @@ class AuthTokenResponseContractTest extends TestCase
 
     public function test_apple_native_exchange_supports_private_relay_and_rejects_replay(): void
     {
+        Carbon::setTestNow(Carbon::now());
         $this->configureAppleExchange();
         Setting::setVal('openapi_auth_oauth_apple_status', '1');
         Setting::setVal('apple_services_id', 'apple-services.test');
+        Setting::setVal('referral_enabled', '1');
         $nonce = 'apple-native-nonce-123456789';
         [$identityToken, $jwks] = $this->signedProviderToken([
             'iss' => 'https://appleid.apple.com',
@@ -1145,6 +1470,9 @@ class AuthTokenResponseContractTest extends TestCase
         $this->postJson('/api/v1/openapi/auth/oauth/apple', $payload)
             ->assertOk()
             ->assertJsonPath('data.user.email', 'relay@privaterelay.appleid.com')
+            ->assertJsonPath('data.user.referral_prompt_pending', true)
+            ->assertJsonPath('data.user.referral_code_eligible', true)
+            ->assertJsonPath('data.user.referral_code_expires_at', now()->addHours(72)->toIso8601String())
             ->assertJsonPath('data.token_type', 'Bearer');
 
         $this->postJson('/api/v1/openapi/auth/oauth/apple', $payload)
@@ -1154,6 +1482,7 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseHas('users', [
             'apple_id' => 'apple-private-relay-subject',
             'email' => 'relay@privaterelay.appleid.com',
+            'referral_code_eligible_until' => now()->addHours(72)->format('Y-m-d H:i:s'),
         ]);
         Http::assertSent(fn ($request): bool => $request->url() === 'https://appleid.apple.com/auth/token'
             && $request['client_id'] === 'apple-services.test'
@@ -1442,11 +1771,15 @@ class AuthTokenResponseContractTest extends TestCase
 
     public function test_account_deletion_removes_related_auth_data_without_logging_raw_email_or_balance(): void
     {
+        Storage::fake('public');
         Setting::setVal('allow_self_delete_account', '1');
         $user = $this->createUser([
             'email' => 'privacy-deletion@example.test',
             'balance' => '98765.00',
         ]);
+        $managedAvatarPath = 'avatars/'.$user->id.'/'.str_repeat('A', 40).'.webp';
+        $user->forceFill(['avatar_path' => $managedAvatarPath])->save();
+        Storage::disk('public')->put($managedAvatarPath, 'managed-avatar-content');
         [$plainToken] = ApiToken::generateFor($user, 'Privacy Deletion Test', 30, '127.0.0.1');
         DB::table('password_reset_tokens')->insert([
             'email' => $user->email,
@@ -1467,6 +1800,7 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseMissing('api_tokens', ['user_id' => $user->id]);
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
         $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+        Storage::disk('public')->assertMissing($managedAvatarPath);
 
         $auditLog = ActivityLog::query()->latest('id')->firstOrFail();
         $this->assertNull($auditLog->user_id);
@@ -1653,6 +1987,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('locale', 10)->nullable();
             $table->string('currency', 10)->nullable();
             $table->string('avatar')->nullable();
+            $table->string('avatar_path')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->decimal('balance', 15, 2)->default(0);
@@ -1662,6 +1997,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->string('referral_code')->nullable()->unique();
             $table->unsignedBigInteger('referred_by')->nullable();
             $table->timestamp('referral_prompt_decided_at')->nullable();
+            $table->timestamp('referral_code_eligible_until')->nullable();
             $table->unsignedInteger('referral_clicks')->default(0);
             $table->string('role')->default('user');
             $table->string('status')->default('active');

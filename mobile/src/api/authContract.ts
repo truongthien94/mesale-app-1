@@ -5,6 +5,8 @@ export type User = {
   name?: string | null;
   email?: string | null;
   referralPromptPending: boolean;
+  referralCodeEligible?: boolean;
+  referralCodeExpiresAt?: string | null;
   phone?: string | null;
   avatar?: string | null;
   referral_code?: string | null;
@@ -88,6 +90,18 @@ export function parseUser(value: unknown): User {
   if (typeof value.phone === "string" || value.phone === null) user.phone = value.phone;
   if (typeof value.avatar === "string" || value.avatar === null) user.avatar = value.avatar;
   if (typeof value.referral_code === "string" || value.referral_code === null) user.referral_code = value.referral_code;
+  if (value.referral_code_eligible !== undefined) {
+    if (typeof value.referral_code_eligible !== "boolean") {
+      throw new AuthContractError("The authentication response included an invalid referral eligibility flag.");
+    }
+    user.referralCodeEligible = value.referral_code_eligible;
+  }
+  if (value.referral_code_expires_at !== undefined) {
+    if (typeof value.referral_code_expires_at !== "string" && value.referral_code_expires_at !== null) {
+      throw new AuthContractError("The authentication response included an invalid referral eligibility expiry.");
+    }
+    user.referralCodeExpiresAt = value.referral_code_expires_at;
+  }
   if (typeof value.status === "string" || value.status === null) user.status = value.status;
   if (typeof value.email_verified === "boolean") user.email_verified = value.email_verified;
   if (value.preferences !== undefined) {

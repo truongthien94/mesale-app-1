@@ -7,6 +7,8 @@ use App\Models\ActivityLog;
 use App\Models\ApiToken;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\ReferralOnboardingService;
+use App\Services\UserAvatarService;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -28,6 +30,11 @@ use PragmaRX\Google2FA\Google2FA;
  */
 class AuthController extends ApiController
 {
+    public function __construct(
+        protected ReferralOnboardingService $referralOnboarding,
+        protected UserAvatarService $userAvatars
+    ) {}
+
     /**
      * Số ngày hiệu lực của token, đọc từ cấu hình (0 = vĩnh viễn).
      */
@@ -48,7 +55,7 @@ class AuthController extends ApiController
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
-            'avatar' => $user->avatar,
+            'avatar' => $this->userAvatars->urlFor($user),
             // VND has no fractional unit. Existing clients still receive JSON numbers,
             // while mobile clients can rely on an integer-only money contract.
             'balance' => (int) MoneyHelper::round($user->balance),
@@ -56,8 +63,7 @@ class AuthController extends ApiController
             'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
             'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),
             'referral_code' => $user->referral_code,
-            'referral_prompt_pending' => is_null($user->referral_prompt_decided_at)
-                && Setting::getVal('referral_enabled', '1') === '1',
+            ...$this->referralOnboarding->apiFields($user),
             'status' => $user->status,
             'email_verified' => ! is_null($user->email_verified_at),
             'created_at' => optional($user->created_at)->toIso8601String(),
@@ -237,6 +243,7 @@ class AuthController extends ApiController
             'ip_address' => $request->ip(),
             'user_agent' => strip_tags(Str::limit($request->userAgent() ?? 'API Client', 500)),
             'country' => 'Unknown',
+            ...$this->referralOnboarding->registrationAttributes(),
         ];
 
         // Thử tối đa 2 lần: lần 2 chỉ nhằm xử lý trường hợp đụng độ khóa chính ID hiếm gặp

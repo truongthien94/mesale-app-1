@@ -25,6 +25,45 @@ export function useUpdateProfile() {
   });
 }
 
+export type AvatarUpload = {
+  uri: string;
+  name: string;
+  type: "image/jpeg";
+};
+
+type AvatarMutationResult = {
+  avatar: string | null;
+  avatar_url?: string | null;
+};
+
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (avatar: AvatarUpload) => {
+      const formData = new FormData();
+      formData.append("avatar", {
+        uri: avatar.uri,
+        name: avatar.name,
+        type: avatar.type
+      } as unknown as Blob);
+
+      return requestEnvelope<AvatarMutationResult>(accountPaths.avatar, {
+        method: "POST",
+        body: formData
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["account"] })
+  });
+}
+
+export function useDeleteAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => requestEnvelope<AvatarMutationResult>(accountPaths.avatar, { method: "DELETE" }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["account"] })
+  });
+}
+
 export function useChangePassword() {
   return useMutation({
     mutationFn: (payload: { currentPassword: string; password: string; passwordConfirmation: string }) => requestEnvelope<null>(accountPaths.password, {

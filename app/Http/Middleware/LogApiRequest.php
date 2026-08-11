@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\ApiLog;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use JsonSerializable;
 use Symfony\Component\HttpFoundation\Response;
@@ -120,6 +121,10 @@ class LogApiRequest
      */
     private function redactSensitiveData(mixed $value): mixed
     {
+        if ($value instanceof UploadedFile) {
+            return self::REDACTED_VALUE;
+        }
+
         if (is_array($value)) {
             $redacted = [];
 
@@ -173,6 +178,7 @@ class LogApiRequest
             'card_number',
             'routing_number',
             'iban',
+            'avatar',
         ], true)) {
             return true;
         }

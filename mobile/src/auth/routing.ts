@@ -5,10 +5,10 @@ export type AuthGateRoute = "/verify-email" | "/two-factor" | "/referral-code" |
 export function resolveAuthGate(
   pendingAuth: AuthContinuation | null,
   hasSession: boolean,
-  referralPromptPending: boolean
+  _referralPromptPending: boolean
 ): AuthGateRoute | null {
   if (pendingAuth?.kind === "email-verification") return "/verify-email";
   if (pendingAuth?.kind === "two-factor") return "/two-factor";
   if (!hasSession) return null;
-  return referralPromptPending ? "/referral-code" : "/home";
+  return "/home";
 }

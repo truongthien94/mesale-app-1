@@ -65,6 +65,28 @@ test("maps the referral prompt flag and defaults an absent field to false", () =
   assert.equal(existing.user.referralPromptPending, false);
 });
 
+test("parses the server referral eligibility window without inventing a client deadline", () => {
+  const expiresAt = "2026-08-12T10:30:00+07:00";
+  const result = parseLoginResult({
+    access_token: "eligible-account-token",
+    token_type: "Bearer",
+    user: {
+      ...user,
+      referral_code_eligible: true,
+      referral_code_expires_at: expiresAt
+    }
+  }, now);
+
+  assert.equal(result.kind, "authenticated");
+  assert.equal(result.user.referralCodeEligible, true);
+  assert.equal(result.user.referralCodeExpiresAt, expiresAt);
+  assert.throws(() => parseLoginResult({
+    access_token: "invalid-referral-window",
+    token_type: "Bearer",
+    user: { ...user, referral_code_eligible: "yes" }
+  }, now), AuthContractError);
+});
+
 test("accepts the temporary token alias only when it is a Bearer session", () => {
   const result = parseLoginResult({ token: "legacy-alias", token_type: "bearer", expires_at: null, user }, now);
   assert.equal(result.kind, "authenticated");

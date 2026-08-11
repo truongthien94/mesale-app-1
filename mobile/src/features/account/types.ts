@@ -10,6 +10,8 @@ export type AccountData = {
   phone: string | null;
   avatar: string | null;
   referral_code: string | null;
+  referral_code_eligible?: boolean;
+  referral_code_expires_at?: string | null;
   status: string;
   email_verified: boolean;
   preferences: AccountPreferences;
