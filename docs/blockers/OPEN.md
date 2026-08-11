@@ -1,6 +1,6 @@
 # Open Blockers
 
-Home parity checkpoint `CKP-20260811-001`: mobile `46/46`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff, and sensitive-data checks passed. Code commit `88e2095` is locally verified. Production API governance, staging, physical devices, signed artifacts, and store evidence remain open.
+Home wallet-summary checkpoint `CKP-20260811-005`: mobile `49/49`, Laravel `77/708`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff, and staged credential checks passed. Code commit `0a375b0` is published. Production deployment of the additive pending-cashback field, API governance, staging, physical devices, signed artifacts, and store evidence remain open.
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|
