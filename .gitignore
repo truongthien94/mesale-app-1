@@ -58,3 +58,12 @@ mobile/ios/Pods/
 *.swp
 Thumbs.db
 Desktop.ini
+
+# Local credential/host notes - never commit
+host.txt
+hosts.txt
+*credentials*
+*.pem
+*.p8
+*.keystore
+*.jks

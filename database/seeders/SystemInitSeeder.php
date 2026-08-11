@@ -221,6 +221,12 @@ class SystemInitSeeder extends Seeder
             // Tài liệu API hiển thị cho thành viên trong trang Hồ sơ (chỉ là tài liệu hướng dẫn,
             // không tự mở endpoint nào nên mặc định BẬT là an toàn — endpoint vẫn phụ thuộc openapi_status)
             ['key' => 'api_docs_enabled', 'value' => '1', 'description' => 'Bật/Tắt hiển thị Tài liệu API cho thành viên (1: Bật - mặc định, 0: Tắt)'],
+
+            // Kênh hỗ trợ chính thức hiển thị tại /support và /account-deletion.
+            // App Store và Google Play yêu cầu ít nhất một kênh liên hệ thật trước khi phát hành.
+            ['key' => 'support_email', 'value' => 'mesale.vn@gmail.com', 'description' => 'Email hỗ trợ chính thức hiển thị trên trang Hỗ trợ'],
+            ['key' => 'support_hotline', 'value' => '0862836280', 'description' => 'Số điện thoại/Zalo hỗ trợ chính thức hiển thị trên trang Hỗ trợ'],
+            ['key' => 'zalo_link', 'value' => 'https://zalo.me/0862836280', 'description' => 'Liên kết Zalo hỗ trợ khách hàng (phải là URL http/https để hiển thị)'],
         ];
 
         foreach ($settings as $setting) {
