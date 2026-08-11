@@ -44,6 +44,7 @@ class AccountController extends ApiController
             ->keyBy('status');
 
         $pendingCashback = $cashbackStats->get('pending');
+        $approvedCashback = $cashbackStats->get('approved');
 
         $pendingWithdraw = Withdrawal::where('user_id', $user->id)->where('status', 'pending')->count();
 
@@ -63,6 +64,7 @@ class AccountController extends ApiController
                 // Số dư khả dụng có thể rút
                 'balance' => (int) MoneyHelper::round($user->balance),
                 'pending_cashback' => (int) MoneyHelper::round($pendingCashback?->cashback_total),
+                'approved_cashback' => (int) MoneyHelper::round($approvedCashback?->cashback_total),
                 'total_cashback' => (int) MoneyHelper::round($user->total_cashback),
                 'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
                 'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),

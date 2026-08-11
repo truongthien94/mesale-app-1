@@ -8,6 +8,7 @@ import type {
   AppConfig,
   BalanceLogsPage,
   OrderDetail,
+  OrderQueryFilters,
   OrdersPage,
   PaymentAccount,
   PaymentAccountCollection,
@@ -33,6 +34,19 @@ function pagePath(path: string, page: number): string {
   return `${path}?page=${page}&per_page=${PAGE_SIZE}`;
 }
 
+export function buildOrdersPath(page: number, filters: OrderQueryFilters = {}): string {
+  const params = [`page=${page}`, `per_page=${PAGE_SIZE}`];
+  const search = filters.search?.trim();
+
+  if (filters.status) params.push(`status=${encodeURIComponent(filters.status)}`);
+  if (filters.platform) params.push(`platform=${encodeURIComponent(filters.platform)}`);
+  if (search) params.push(`search=${encodeURIComponent(search)}`);
+  if (filters.startDate) params.push(`start_date=${encodeURIComponent(filters.startDate)}`);
+  if (filters.endDate) params.push(`end_date=${encodeURIComponent(filters.endDate)}`);
+
+  return `orders?${params.join("&")}`;
+}
+
 export function useAccountSummary() {
   return useQuery({
     queryKey: walletKeys.account,
@@ -47,11 +61,11 @@ export function useAppConfig() {
   });
 }
 
-export function useOrders() {
+export function useOrders(filters: OrderQueryFilters = {}) {
   return useInfiniteQuery({
-    queryKey: walletKeys.orders,
+    queryKey: [...walletKeys.orders, filters] as const,
     initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => request<OrdersPage>(pagePath("orders", pageParam), { signal }),
+    queryFn: ({ pageParam, signal }) => request<OrdersPage>(buildOrdersPath(pageParam, filters), { signal }),
     getNextPageParam
   });
 }

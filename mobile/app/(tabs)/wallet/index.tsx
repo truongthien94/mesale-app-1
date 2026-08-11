@@ -16,16 +16,19 @@ import { LoadingState } from "@/components/AsyncState";
 import { QueryFailure } from "@/features/wallet/components";
 import { useAccountSummary, useOrders } from "@/features/wallet/api";
 import { formatDate, formatVnd } from "@/features/wallet/format";
+import { isRecordedOrder, orderListKey } from "@/features/wallet/orders";
 import type { Order, OrderStatus } from "@/features/wallet/types";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const statusBorder: Record<OrderStatus, string> = {
+  unrecorded: "#60a5fa",
   pending: "#facc15",
   approved: "#10b981",
   rejected: "#f43f5e"
 };
 
 const statusCopy: Record<OrderStatus, string> = {
+  unrecorded: "Chờ sàn ghi nhận",
   pending: "Chờ duyệt",
   approved: "Đã cộng tiền",
   rejected: "Từ chối"
@@ -45,7 +48,9 @@ export default function WalletRoute() {
   }
 
   const { wallet, stats } = accountQuery.data;
-  const recentOrders = (ordersQuery.data?.pages.flatMap((page) => page.items) ?? []).slice(0, 5);
+  const recentOrders = (ordersQuery.data?.pages.flatMap((page) => page.items) ?? [])
+    .filter(isRecordedOrder)
+    .slice(0, 5);
   const balanceText = showBalance ? formatVnd(wallet.balance) : "••••••";
 
   return (
@@ -153,7 +158,7 @@ export default function WalletRoute() {
             {recentOrders.map((order) => (
               <RecentOrder
                 colors={colors}
-                key={order.id}
+                key={orderListKey(order)}
                 onPress={() => router.push(`/(tabs)/wallet/orders/${order.id}`)}
                 order={order}
                 radius={radius}

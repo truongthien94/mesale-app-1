@@ -19,9 +19,10 @@ export function formatDate(value: string | null, includeTime = true): string {
 }
 
 export function statusLabel(status: OrderStatus): string {
-  if (status === "approved") return "Thành công";
-  if (status === "rejected") return "Từ chối";
-  return "Chờ duyệt";
+  if (status === "unrecorded") return "Chờ sàn ghi nhận";
+  if (status === "approved") return "Đã xác nhận";
+  if (status === "rejected") return "Bị từ chối";
+  return "Chờ xác nhận";
 }
 
 export function balanceTypeLabel(type: string): string {

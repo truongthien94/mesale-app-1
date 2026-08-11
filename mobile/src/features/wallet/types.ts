@@ -1,15 +1,19 @@
 import type { PaginatedData } from "@/api/pagination";
 
-export type OrderStatus = "pending" | "approved" | "rejected";
+export type OrderStatus = "pending" | "approved" | "rejected" | "unrecorded";
+export type OrderRecordType = "order" | "unrecorded";
+export type OrderPlatform = "shopee" | "tiktok" | "lazada";
 export type PaymentMethod = "bank" | "wallet" | "momo";
 
 export type Order = {
   id: number;
+  record_type?: OrderRecordType;
   order_id: string | null;
   trans_id: string | null;
   platform: string | null;
   product_name: string | null;
   product_image: string | null;
+  affiliate_url?: string | null;
   original_price: number;
   commission_amount: number;
   cashback_amount: number;
@@ -18,6 +22,14 @@ export type Order = {
   rejected_reason: string | null;
   approved_at: string | null;
   created_at: string | null;
+};
+
+export type OrderQueryFilters = {
+  status?: OrderStatus;
+  platform?: OrderPlatform;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
 };
 
 export type OrderDetail = Order & {
@@ -124,6 +136,10 @@ export type PaymentAccountPayload = {
 };
 
 export type PaymentAccountCollection = { items: PaymentAccount[]; total: number };
-export type OrdersPage = PaginatedData<Order>;
+export type OrdersPage = PaginatedData<Order> & {
+  meta?: {
+    show_unrecorded: boolean;
+  };
+};
 export type BalanceLogsPage = PaginatedData<BalanceLog>;
 export type WithdrawalsPage = PaginatedData<Withdrawal>;

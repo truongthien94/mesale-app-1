@@ -140,6 +140,7 @@ export async function fetchAccountSummary(signal?: AbortSignal): Promise<Account
     wallet: {
       balance: requireInteger(wallet.balance, "wallet balance"),
       pendingCashback: requireIntegerOrNullIfMissing(wallet.pending_cashback, "pending cashback"),
+      approvedCashback: requireIntegerOrNullIfMissing(wallet.approved_cashback, "approved cashback"),
       totalCashback: requireInteger(wallet.total_cashback, "total cashback"),
       totalReferralEarned: requireInteger(wallet.total_referral_earned, "referral earnings"),
       totalWithdrawn: requireInteger(wallet.total_withdrawn, "total withdrawn"),

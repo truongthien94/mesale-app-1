@@ -1019,5 +1019,21 @@ class FinancialIdempotencyContractTest extends TestCase
             $table->timestamps();
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
         });
+
+        Schema::create('cashback_clicks', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('trans_id')->unique();
+            $table->string('platform')->nullable();
+            $table->text('product_name')->nullable();
+            $table->text('product_image')->nullable();
+            $table->decimal('original_price', 15, 2)->default(0);
+            $table->decimal('cashback_amount', 15, 2)->default(0);
+            $table->decimal('cashback_rate', 5, 2)->default(0);
+            $table->decimal('commission_amount', 15, 2)->default(0);
+            $table->text('affiliate_url')->nullable();
+            $table->timestamps();
+            $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+        });
     }
 }

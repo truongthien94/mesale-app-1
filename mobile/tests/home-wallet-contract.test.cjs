@@ -70,7 +70,7 @@ test("home normalizes product URLs and only accepts HTTPS affiliate handoff", ()
   assert.equal(normalizeBannerLink("javascript:alert(1)"), null);
 });
 
-test("account summary preserves an unknown pending cashback field during rolling deploy", async () => {
+test("account summary preserves unknown aggregate cashback fields during rolling deploy", async () => {
   let accountPayload = {
     id: 42,
     name: "Mobile User",
@@ -97,19 +97,29 @@ test("account summary preserves an unknown pending cashback field during rolling
     "@/api/client": { request: async () => accountPayload }
   });
 
-  assert.equal((await fetchAccountSummary()).wallet.pendingCashback, null);
+  const legacySummary = await fetchAccountSummary();
+  assert.equal(legacySummary.wallet.pendingCashback, null);
+  assert.equal(legacySummary.wallet.approvedCashback, null);
 
   accountPayload = {
     ...accountPayload,
-    wallet: { ...accountPayload.wallet, pending_cashback: 1250 }
+    wallet: { ...accountPayload.wallet, pending_cashback: 1250, approved_cashback: 3400 }
   };
-  assert.equal((await fetchAccountSummary()).wallet.pendingCashback, 1250);
+  const aggregateSummary = await fetchAccountSummary();
+  assert.equal(aggregateSummary.wallet.pendingCashback, 1250);
+  assert.equal(aggregateSummary.wallet.approvedCashback, 3400);
 
   accountPayload = {
     ...accountPayload,
     wallet: { ...accountPayload.wallet, pending_cashback: 12.5 }
   };
   await assert.rejects(fetchAccountSummary(), /Invalid pending cashback response/);
+
+  accountPayload = {
+    ...accountPayload,
+    wallet: { ...accountPayload.wallet, pending_cashback: 1250, approved_cashback: 12.5 }
+  };
+  await assert.rejects(fetchAccountSummary(), /Invalid approved cashback response/);
 });
 
 test("successful withdrawal invalidates both Wallet and Home account summaries", async () => {
@@ -211,10 +221,113 @@ test("Round C wallet uses the orange dashboard, shared orders cache, and status 
   assert.doesNotMatch(source, /savings|chart|referral_count/i);
 });
 
+test("orders API builds the additive server-side filter and pagination contract", () => {
+  const { buildOrdersPath } = loadTypeScriptModule("../src/features/wallet/api.ts", {
+    "@tanstack/react-query": {
+      useInfiniteQuery: () => undefined,
+      useMutation: () => undefined,
+      useQuery: () => undefined,
+      useQueryClient: () => undefined
+    },
+    "@/api/idempotency": { idempotencyHeaders: () => ({}) },
+    "@/api/pagination": { getNextPageParam: () => undefined },
+    "@/api/client": { request: async () => ({}) },
+    "@/features/home/hooks": { homeQueryKeys: { account: ["account"] } }
+  });
+
+  assert.equal(
+    buildOrdersPath(2, {
+      status: "unrecorded",
+      platform: "lazada",
+      search: "  ma don 42  ",
+      startDate: "2026-08-01",
+      endDate: "2026-08-11"
+    }),
+    "orders?page=2&per_page=20&status=unrecorded&platform=lazada&search=ma%20don%2042&start_date=2026-08-01&end_date=2026-08-11"
+  );
+  assert.equal(buildOrdersPath(1), "orders?page=1&per_page=20");
+});
+
+test("orders preserve stable record keys and suppress unsafe unrecorded fallbacks", () => {
+  const {
+    isRecordedOrder,
+    orderListKey,
+    secureOrderImageUrl,
+    visibleOrdersForTab
+  } = loadTypeScriptModule("../src/features/wallet/orders.ts");
+  const recorded = { id: 7, record_type: "order" };
+  const legacyRecorded = { id: 8 };
+  const unrecorded = { id: 7, record_type: "unrecorded" };
+
+  assert.equal(orderListKey(recorded), "order:7");
+  assert.equal(orderListKey(unrecorded), "unrecorded:7");
+  assert.equal(orderListKey(legacyRecorded), "order:8");
+  assert.equal(isRecordedOrder(recorded), true);
+  assert.equal(isRecordedOrder(unrecorded), false);
+  assert.deepEqual(visibleOrdersForTab([recorded, unrecorded], "unrecorded", false), []);
+  assert.deepEqual(visibleOrdersForTab([recorded, unrecorded], "unrecorded", true), [unrecorded]);
+  assert.equal(secureOrderImageUrl("http://cdn.example.test/item.png"), "https://cdn.example.test/item.png");
+  assert.equal(secureOrderImageUrl("https://user:pass@cdn.example.test/item.png"), null);
+  assert.equal(secureOrderImageUrl("javascript:alert(1)"), null);
+});
+
+test("orders tab follows the compact MeSale process and server-authoritative summary flow", () => {
+  const source = read("../app/(tabs)/wallet/orders/index.tsx");
+
+  for (const label of [
+    "Đơn hàng",
+    "Đơn lên app: TikTok ~1 giờ · Shopee ~1 ngày",
+    "Đặt đơn qua Mê Sale",
+    "Đơn hiện ở màn này",
+    "Nhận hàng → tiền về ví",
+    "Đôi khi sàn gửi dữ liệu chậm hơn một chút — đơn không mất đâu.",
+    "Về ví 7–14 ngày sau khi giao",
+    "Đã cộng vào ví của bạn",
+    "Chờ xác nhận",
+    "Đã xác nhận",
+    "Tất cả",
+    "Bị từ chối",
+    "Chưa có đơn hàng nào",
+    "Chưa có đơn ở trạng thái này",
+    "Xem tất cả",
+    "Mua sắm ngay"
+  ]) {
+    assert.match(source, new RegExp(label));
+  }
+  assert.match(source, /useAccountSummary\(\)/);
+  assert.match(source, /accountQuery\.data\?\.wallet\.pendingCashback/);
+  assert.match(source, /accountQuery\.data\?\.stats\.ordersPending/);
+  assert.match(source, /accountQuery\.data\?\.wallet\.approvedCashback/);
+  assert.match(source, /accountQuery\.data\?\.stats\.ordersApproved/);
+  assert.doesNotMatch(source, /accountQuery\.data\?\.wallet\.totalCashback/);
+  assert.match(source, /useMemo\([\s\S]*pages\.flatMap/);
+  assert.match(source, /background: "#2563eb", border: "#2563eb"/);
+  assert.match(source, /<Receipt color=\{scheme === "dark" \? "#60a5fa" : "#2563eb"\}/);
+  assert.match(source, /<ShoppingBag color="#2563eb"/);
+  assert.match(source, /<Smartphone color="#7c3aed"/);
+  assert.match(source, /<WalletCards color="#16a34a"/);
+  assert.match(source, /filterChip:[^\n]*minHeight: 44/);
+  assert.match(source, /<FlatList/);
+  assert.match(source, /ListHeaderComponent=\{listHeader\}/);
+  assert.match(source, /ListEmptyComponent=/);
+  assert.match(source, /ordersQuery\.fetchNextPage\(\)/);
+  assert.match(source, /keyExtractor=\{orderListKey\}/);
+  assert.match(source, /if \(orderRecordType\(order\) === "unrecorded"\)[\s\S]*Alert\.alert[\s\S]*return;[\s\S]*router\.push/);
+  assert.match(source, /accessibilityLabel=\{`\$\{productName\}\. Mã \$\{reference \?\? order\.id\}\. Hoàn tiền \$\{cashbackLabel\}\. Trạng thái \$\{statusLabel\(order\.status\)\}\.`\}/);
+  assert.match(source, /router\.push\("\/\(tabs\)\/home"\)/);
+  assert.match(source, /onShowAll=\{\(\) => setStatusFilter\("all"\)\}/);
+  assert.match(source, /onPress=\{filtered \? onShowAll : onShop\}/);
+  assert.match(source, /useTheme\(\)/);
+  assert.doesNotMatch(source, /WebView|orders\.reduce|cashback_amount[\s\S]{0,80}reduce/);
+
+  const filterBlock = source.match(/const statusFilters:[\s\S]*?\];/)?.[0] ?? "";
+  assert.doesNotMatch(filterBlock, /unrecorded|Chờ sàn ghi nhận/);
+});
+
 test("wallet histories use infinite queries and virtualized native lists", () => {
   const api = read("../src/features/wallet/api.ts");
   assert.match(api, /useInfiniteQuery/);
-  assert.match(api, /pagePath\("orders"/);
+  assert.match(api, /buildOrdersPath\(pageParam, filters\)/);
   assert.match(api, /pagePath\("balance-logs"/);
   assert.match(api, /pagePath\("withdrawals"/);
 
@@ -245,12 +358,16 @@ test("financial submissions retain one idempotency key until success", () => {
   assert.match(paymentAccount, /stableSubmission\.reset\(\)/);
 });
 
-test("wallet VND formatting emits rounded integer amounts", () => {
-  const { formatVnd } = loadTypeScriptModule("../src/features/wallet/format.ts");
+test("wallet VND formatting emits rounded integer amounts and current order labels", () => {
+  const { formatVnd, statusLabel } = loadTypeScriptModule("../src/features/wallet/format.ts");
   const formatted = formatVnd(50000.49);
   const signed = formatVnd(1250, true);
 
   assert.match(formatted, /50[.\s]?000/);
   assert.doesNotMatch(formatted, /[,.]49/);
   assert.match(signed, /^\+1[.\s]?250/);
+  assert.equal(statusLabel("pending"), "Chờ xác nhận");
+  assert.equal(statusLabel("approved"), "Đã xác nhận");
+  assert.equal(statusLabel("rejected"), "Bị từ chối");
+  assert.equal(statusLabel("unrecorded"), "Chờ sàn ghi nhận");
 });

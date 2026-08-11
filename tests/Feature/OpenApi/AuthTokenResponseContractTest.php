@@ -344,8 +344,9 @@ class AuthTokenResponseContractTest extends TestCase
         DB::table('cashback_histories')->insert([
             ['user_id' => $user->id, 'status' => 'pending', 'cashback_amount' => '1200.49'],
             ['user_id' => $user->id, 'status' => 'pending', 'cashback_amount' => '300.51'],
-            ['user_id' => $user->id, 'status' => 'approved', 'cashback_amount' => '9000.00'],
+            ['user_id' => $user->id, 'status' => 'approved', 'cashback_amount' => '9000.51'],
             ['user_id' => $otherUser->id, 'status' => 'pending', 'cashback_amount' => '750000.00'],
+            ['user_id' => $otherUser->id, 'status' => 'approved', 'cashback_amount' => '900000.00'],
         ]);
         [$plainToken] = ApiToken::generateFor($user, 'Session Restore Test', 30, '127.0.0.1');
 
@@ -367,6 +368,7 @@ class AuthTokenResponseContractTest extends TestCase
         $expected = [
             'balance' => 123456,
             'pending_cashback' => 1501,
+            'approved_cashback' => 9001,
             'total_cashback' => 34567,
             'total_referral_earned' => 4567,
             'total_withdrawn' => 12000,
@@ -376,6 +378,191 @@ class AuthTokenResponseContractTest extends TestCase
             $this->assertIsInt($wallet[$field], "{$field} must be restored as integer VND");
             $this->assertSame($amount, $wallet[$field]);
         }
+    }
+
+    public function test_orders_endpoint_returns_only_the_authenticated_users_unrecorded_clicks_without_duplicates(): void
+    {
+        Setting::setVal('cashback_show_pending_clicks', '1');
+        $user = $this->createUser();
+        $otherUser = $this->createUser([
+            'email' => 'other-orders-user@example.test',
+            'referral_code' => 'OTHERORDERS',
+        ]);
+
+        $this->createOrderRecord($user, [
+            'trans_id' => 'MATCHED-TRANS',
+            'order_id' => 'ORDER-MATCHED',
+        ]);
+        $this->createClickRecord($user, [
+            'trans_id' => 'MATCHED-TRANS',
+            'product_name' => 'Already recorded click',
+        ]);
+        $clickId = $this->createClickRecord($user, [
+            'trans_id' => 'UNRECORDED-OWN',
+            'platform' => 'tiktok',
+            'product_name' => 'Own unrecorded product',
+            'original_price' => '250000.49',
+            'cashback_amount' => '12000.51',
+            'commission_amount' => '20000.49',
+            'cashback_rate' => '4.80',
+            'affiliate_url' => 'https://mesale.vn/own-unrecorded',
+        ]);
+        $this->createClickRecord($otherUser, [
+            'trans_id' => 'UNRECORDED-OTHER',
+            'product_name' => 'Other user private click',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Orders Unrecorded Test', 30, '127.0.0.1');
+
+        $response = $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/orders?status=unrecorded&per_page=10');
+
+        $response->assertOk()
+            ->assertJsonPath('data.meta.show_unrecorded', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.items.0.id', $clickId)
+            ->assertJsonPath('data.items.0.record_type', 'unrecorded')
+            ->assertJsonPath('data.items.0.order_id', null)
+            ->assertJsonPath('data.items.0.trans_id', 'UNRECORDED-OWN')
+            ->assertJsonPath('data.items.0.status', 'unrecorded')
+            ->assertJsonPath('data.items.0.approved_at', null)
+            ->assertJsonPath('data.items.0.rejected_reason', null);
+
+        $item = $response->json('data.items.0');
+        foreach (['original_price', 'commission_amount', 'cashback_amount'] as $field) {
+            $this->assertIsInt($item[$field]);
+        }
+        $this->assertSame(250000, $item['original_price']);
+        $this->assertSame(20000, $item['commission_amount']);
+        $this->assertSame(12001, $item['cashback_amount']);
+        $this->assertSame('https://mesale.vn/own-unrecorded', $item['affiliate_url']);
+        $this->assertStringNotContainsString('Other user private click', json_encode($response->json(), JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('Already recorded click', json_encode($response->json(), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_orders_endpoint_hides_unrecorded_capability_and_falls_back_to_recorded_orders_when_disabled(): void
+    {
+        Setting::setVal('cashback_show_pending_clicks', '0');
+        $user = $this->createUser();
+        $orderId = $this->createOrderRecord($user, [
+            'order_id' => 'ORDER-FLAG-OFF',
+            'product_name' => 'Recorded order remains visible',
+        ]);
+        $this->createClickRecord($user, [
+            'trans_id' => 'CLICK-FLAG-OFF',
+            'product_name' => 'Hidden pending click',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Orders Flag Off Test', 30, '127.0.0.1');
+
+        $response = $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/orders?status=unrecorded');
+
+        $response->assertOk()
+            ->assertJsonPath('data.meta.show_unrecorded', false)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.items.0.id', $orderId)
+            ->assertJsonPath('data.items.0.record_type', 'order')
+            ->assertJsonPath('data.items.0.order_id', 'ORDER-FLAG-OFF');
+        $this->assertStringNotContainsString('Hidden pending click', json_encode($response->json(), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_bot_orders_remain_recorded_only_when_open_api_exposes_unrecorded_clicks(): void
+    {
+        Setting::setVal('cashback_show_pending_clicks', '1');
+        $user = $this->createUser();
+        $this->createOrderRecord($user, [
+            'order_id' => 'BOT-RECORDED-ORDER',
+            'product_name' => 'Bot recorded order',
+        ]);
+        $this->createClickRecord($user, [
+            'trans_id' => 'BOT-UNRECORDED-CLICK',
+            'product_name' => 'Bot hidden click',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Bot Orders Contract Test', 30, '127.0.0.1');
+
+        $response = $this->withToken($plainToken)
+            ->getJson('/api/v1/bot/orders?status=unrecorded');
+
+        $response->assertOk()
+            ->assertJsonPath('data.meta.show_unrecorded', false)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.items.0.record_type', 'order')
+            ->assertJsonPath('data.items.0.order_id', 'BOT-RECORDED-ORDER')
+            ->assertJsonMissingPath('data.items.0.id');
+        $this->assertStringNotContainsString('Bot hidden click', json_encode($response->json(), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_orders_endpoint_merges_sources_with_stable_tie_breaking_and_pagination(): void
+    {
+        Setting::setVal('cashback_show_pending_clicks', '1');
+        $user = $this->createUser();
+        $timestamp = '2026-08-11 12:00:00';
+
+        $orderOne = $this->createOrderRecord($user, ['order_id' => 'ORDER-ONE', 'created_at' => $timestamp, 'updated_at' => $timestamp]);
+        $orderTwo = $this->createOrderRecord($user, ['order_id' => 'ORDER-TWO', 'created_at' => $timestamp, 'updated_at' => $timestamp]);
+        $clickOne = $this->createClickRecord($user, ['trans_id' => 'CLICK-ONE', 'created_at' => $timestamp, 'updated_at' => $timestamp]);
+        $clickTwo = $this->createClickRecord($user, ['trans_id' => 'CLICK-TWO', 'created_at' => $timestamp, 'updated_at' => $timestamp]);
+        [$plainToken] = ApiToken::generateFor($user, 'Orders Pagination Test', 30, '127.0.0.1');
+
+        $pages = [];
+        foreach ([1, 2] as $page) {
+            $response = $this->withToken($plainToken)
+                ->getJson("/api/v1/openapi/orders?per_page=2&page={$page}")
+                ->assertOk()
+                ->assertJsonPath('data.pagination.total', 4)
+                ->assertJsonPath('data.pagination.last_page', 2);
+            $pages[$page] = array_map(
+                fn (array $item): string => $item['record_type'].':'.$item['id'],
+                $response->json('data.items')
+            );
+        }
+
+        $this->assertSame(["order:{$orderTwo}", "order:{$orderOne}"], $pages[1]);
+        $this->assertSame(["unrecorded:{$clickTwo}", "unrecorded:{$clickOne}"], $pages[2]);
+        $this->assertCount(4, array_unique(array_merge($pages[1], $pages[2])));
+
+        $repeat = $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/orders?per_page=2&page=1')
+            ->assertOk();
+        $this->assertSame($pages[1], array_map(
+            fn (array $item): string => $item['record_type'].':'.$item['id'],
+            $repeat->json('data.items')
+        ));
+    }
+
+    public function test_orders_endpoint_supports_lazada_search_and_date_filters(): void
+    {
+        Setting::setVal('cashback_show_pending_clicks', '1');
+        $user = $this->createUser();
+        $matchingId = $this->createOrderRecord($user, [
+            'order_id' => 'LZD-NEEDLE-001',
+            'platform' => 'lazada',
+            'product_name' => 'Needle Lazada product',
+            'created_at' => '2026-08-10 09:00:00',
+            'updated_at' => '2026-08-10 09:00:00',
+        ]);
+        $this->createOrderRecord($user, [
+            'order_id' => 'LZD-NEEDLE-OLD',
+            'platform' => 'lazada',
+            'product_name' => 'Needle outside range',
+            'created_at' => '2026-08-01 09:00:00',
+            'updated_at' => '2026-08-01 09:00:00',
+        ]);
+        $this->createOrderRecord($user, [
+            'order_id' => 'SHP-NEEDLE-001',
+            'platform' => 'shopee',
+            'product_name' => 'Needle Shopee product',
+            'created_at' => '2026-08-10 09:00:00',
+            'updated_at' => '2026-08-10 09:00:00',
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Orders Lazada Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->getJson('/api/v1/openapi/orders?status=pending&platform=lazada&search=Needle&start_date=2026-08-10&end_date=2026-08-10')
+            ->assertOk()
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.items.0.id', $matchingId)
+            ->assertJsonPath('data.items.0.platform', 'lazada')
+            ->assertJsonPath('data.items.0.record_type', 'order');
     }
 
     public function test_account_preferences_normalize_and_persist_active_codes_without_changing_wallet_currency(): void
@@ -1323,6 +1510,7 @@ class AuthTokenResponseContractTest extends TestCase
         foreach ([
             'openapi_status' => '1',
             'openapi_auth_status' => '1',
+            'openapi_orders_status' => '1',
             'registration_enabled' => '1',
             'email_verification_enabled' => '0',
             'referral_enabled' => '0',
@@ -1331,6 +1519,46 @@ class AuthTokenResponseContractTest extends TestCase
         ] as $key => $value) {
             Setting::setVal($key, $value);
         }
+    }
+
+    private function createOrderRecord(User $user, array $attributes = []): int
+    {
+        return DB::table('cashback_histories')->insertGetId(array_merge([
+            'user_id' => $user->id,
+            'order_id' => 'ORDER-'.strtoupper(bin2hex(random_bytes(4))),
+            'trans_id' => null,
+            'platform' => 'shopee',
+            'product_name' => 'Recorded cashback order',
+            'product_image' => null,
+            'original_price' => '100000.00',
+            'cashback_amount' => '5000.00',
+            'cashback_rate' => '5.00',
+            'commission_amount' => '10000.00',
+            'affiliate_url' => 'https://mesale.vn/recorded-order',
+            'status' => 'pending',
+            'rejected_reason' => null,
+            'approved_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
+    }
+
+    private function createClickRecord(User $user, array $attributes = []): int
+    {
+        return DB::table('cashback_clicks')->insertGetId(array_merge([
+            'user_id' => $user->id,
+            'trans_id' => 'CLICK-'.strtoupper(bin2hex(random_bytes(4))),
+            'platform' => 'shopee',
+            'product_name' => 'Unrecorded cashback click',
+            'product_image' => null,
+            'original_price' => '100000.00',
+            'cashback_amount' => '5000.00',
+            'cashback_rate' => '5.00',
+            'commission_amount' => '10000.00',
+            'affiliate_url' => 'https://mesale.vn/unrecorded-click',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ], $attributes));
     }
 
     private function createUser(array $attributes = []): User
@@ -1562,8 +1790,35 @@ class AuthTokenResponseContractTest extends TestCase
         Schema::create('cashback_histories', function (Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('user_id');
-            $table->string('status');
+            $table->string('order_id')->nullable();
+            $table->string('trans_id')->nullable();
+            $table->string('platform')->nullable();
+            $table->text('product_name')->nullable();
+            $table->text('product_image')->nullable();
+            $table->decimal('original_price', 15, 2)->default(0);
             $table->decimal('cashback_amount', 15, 2)->default(0);
+            $table->decimal('cashback_rate', 5, 2)->default(0);
+            $table->decimal('commission_amount', 15, 2)->default(0);
+            $table->text('affiliate_url')->nullable();
+            $table->string('status')->default('pending');
+            $table->text('rejected_reason')->nullable();
+            $table->timestamp('approved_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('cashback_clicks', function (Blueprint $table): void {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->string('trans_id')->unique();
+            $table->string('platform')->nullable();
+            $table->text('product_name')->nullable();
+            $table->text('product_image')->nullable();
+            $table->decimal('original_price', 15, 2)->default(0);
+            $table->decimal('cashback_amount', 15, 2)->default(0);
+            $table->decimal('cashback_rate', 5, 2)->default(0);
+            $table->decimal('commission_amount', 15, 2)->default(0);
+            $table->text('affiliate_url')->nullable();
+            $table->timestamps();
         });
 
         Schema::create('withdrawals', function (Blueprint $table): void {

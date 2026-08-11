@@ -21,6 +21,11 @@ use Illuminate\Support\Arr;
  */
 class OrderController extends BaseOrderController
 {
+    protected function supportsUnrecordedRecords(): bool
+    {
+        return false;
+    }
+
     /**
      * GET /api/v1/bot/orders/{order_id}
      * Chi tiết đơn hàng, tra cứu bằng mã đơn hàng của sàn.
