@@ -1,6 +1,6 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-005`
+- Latest checkpoint: `CKP-20260811-006`
 - Session: `SES-20260811-003`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Home wallet-summary parity implemented and published
@@ -23,7 +23,8 @@
 - Mobile treats an omitted pending field as unavailable (`--`) during rolling deployment instead of inventing a zero value.
 - Successful withdrawals refresh both Wallet and Home account caches.
 - Verification passed: TypeScript, mobile `49/49`, Laravel `77/708`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check and staged credential-pattern scan.
-- Implementation commit `0a375b0` is published on `origin/main`; operational IDs are `SES-20260811-003`, `CKP-20260811-005`, `TSK-MOB-018`, `DEC-20260811-002`, `CHG-20260811-003`, and `TST-20260811-003`.
+- Implementation commit `0a375b0` and context commit `e989475` are published on `origin/main`; GitHub Actions runs `31471558647` and `31471865183` passed.
+- Operational IDs `SES-20260811-003`, `CKP-20260811-005`, `TSK-MOB-018`, `DEC-20260811-002`, `CHG-20260811-003`, and `TST-20260811-003` were synchronized uniquely; final handoff checkpoint is `CKP-20260811-006`.
 - Production deployment of the additive pending field and physical-device/store evidence remain open; M0/M1 and release gates are not complete.
 
 ## 2026-08-11 Claude Code Handoff
