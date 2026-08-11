@@ -1,23 +1,23 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-007`
-- Session: `SES-20260811-004`
+- Latest checkpoint: `CKP-20260811-008`
+- Session: `SES-20260811-005`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Home wallet-summary parity implemented and published
+- Phase: M0 P0 remediation and M1 MVP foundation; Home summary and Quick Access parity update implemented and published
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Claude handoff and final checkpoint are published; completed evidence includes GitHub Actions runs `31461723048` and `31462040420`, both green
+- Remote `main`: Home summary and Quick Access source commit `142f265` is published; GitHub Actions run `31475087577` passed all jobs
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
 
 ## 2026-08-11 Home Wallet Summary
 
-- Replaced the old promotional Home hero with the owner-approved member summary: greeting and notification action, wallet balance and withdrawal action, and exactly two statistics for total received and pending cashback.
+- Replaced the old promotional Home hero with the owner-approved member summary: greeting and notification action, wallet balance and withdrawal action, and three statistics for total received, pending cashback and total withdrawn.
 - The cashback-link form remains immediately below the summary; `% HH ròng` is intentionally absent.
 - Laravel `/account` now returns integer VND `wallet.pending_cashback`, scoped to the authenticated user and calculated server-side.
 - By explicit product decision, Home displays an omitted pending field as `0đ`; the API parser remains nullable and real supplied values remain server-authoritative.
@@ -27,6 +27,18 @@
 - Operational IDs `SES-20260811-003`, `CKP-20260811-005`, `TSK-MOB-018`, `DEC-20260811-002`, `CHG-20260811-003`, and `TST-20260811-003` were synchronized uniquely; final handoff checkpoint is `CKP-20260811-006`.
 - Production deployment of the additive pending field and physical-device/store evidence remain open; M0/M1 and release gates are not complete.
 - Product override commit `d8263f8` is published on `origin/main`; GitHub Actions run `31472999223` passed. Operational handoff is `CKP-20260811-007`.
+
+## 2026-08-11 Home Summary and Quick Access
+
+- Added the server-authoritative `wallet.totalWithdrawn` value as the third compact Home statistic card labelled `Tổng đã rút` in Vietnamese UI.
+- Added the approved cashback claim above the supported-platform row: `Hoàn tiền mua sắm Shopee - Tiktok Shop lên đến 15% giá trị đơn hàng`.
+- Added Quick Access immediately below the cashback-link card and before the native phone walkthrough: coupons, daily check-in, usage guidance and HTTPS support.
+- Coupon Quick Access handles loading, error and empty states, and measures a direct ScrollView-child anchor so a successful tap lands on the coupon content instead of the top of Home.
+- Android emulator visual and interaction checks passed; the three cards and Quick Access fit without horizontal overflow.
+- Local verification passed: mobile tests `51/51`, TypeScript, Expo Doctor `18/18`, diff check and staged credential-pattern scan.
+- Source commit `142f265` was fast-forwarded directly to `origin/main`; GitHub Actions run `31475087577` passed Laravel, mobile/export and context/secret jobs.
+- Operational IDs: `SES-20260811-005`, `CKP-20260811-008`, `TSK-MOB-020`, `CHG-20260811-005`, and `TST-20260811-005`.
+- No Laravel route, API contract, database, production setting, credential or member data changed.
 
 ## 2026-08-11 Claude Code Handoff
 
