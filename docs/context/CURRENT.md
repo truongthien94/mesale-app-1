@@ -1,20 +1,33 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-015`
-- Session: `SES-20260811-010`
+- Latest checkpoint: `CKP-20260811-017`
+- Session: `SES-20260811-011`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Account/avatar/referral source and final context published directly to `origin/main` with both CI runs verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Account/check-in/referral/withdrawal UI source published directly to `origin/main` with source CI verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-025` / `CHG-20260811-010`; source `f9d87c9` and context `4eeafff` are published directly to `origin/main`; runs `31494516026` and `31494964995` passed; no production migration, deployment, or production-data change
-- Remote `main`: context commit `4eeafff` contains source commit `f9d87c9`; final Actions run `31494964995` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-026` / `CHG-20260811-011`; source `305838c` is published directly to `origin/main`; run `31500747827` passed; no Laravel, database, production migration, deployment, or production-data change
+- Remote `main`: source commit `305838c`; Actions run `31500747827` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports; context publication is the next repository update
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-11 Account, Check-in, Referral, And Withdrawal UI Parity
+
+- Removed redundant Account-section headings while retaining the four compact parent cards and all nested destinations.
+- Referral-code entry is collapsed and shown only when Laravel reports eligibility within the server-authoritative 72-hour window.
+- Daily Check-in now renders a native seven-day streak, server milestones, mutation feedback, history, pagination, and dark-aware loading/error/offline/empty states.
+- Referrals now uses the live F1 rate, code/link share flow, live invited/earned totals, network and commission filters, and the owner-approved three-step copy without App Store/Google Play cards.
+- Withdrawal creation now uses live balance, minimum, fee, OTP policy, saved payment accounts, idempotency, and truthful processing copy.
+- Shared async states and wallet headers follow runtime light/dark theme; wallet header safe area and title remain correct at Android font scale `1.0` and `1.3`.
+- Verification passed: mobile `71/71`; TypeScript; Expo Doctor `18/18`; iOS/Android exports; Android emulator light/dark checks; wallet header font scaling; diff and staged credential checks.
+- Source `305838c` is published directly to `origin/main`; GitHub Actions run `31500747827` passed all jobs, including both exports.
+- Operational IDs: `SES-20260811-011`, `CKP-20260811-016`, `CKP-20260811-017`, `TSK-MOB-026`, `DEC-20260811-007`, `CHG-20260811-011`, `TST-20260811-011`, and `GATE-BOTH-016`.
+- Physical devices, full accessibility/offline/performance matrices, signed artifacts, privacy declarations, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Account, Avatar, And Referral Hardening
 

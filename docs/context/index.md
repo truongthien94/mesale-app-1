@@ -1,13 +1,12 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260811-015](checkpoints/CKP-20260811-015.md)
-- Latest session: [SES-20260811-010](sessions/SES-20260811-010.md)
-- Latest decision: [DEC-20260811-006](../decisions/DEC-20260811-006.md)
-- Current source commit: `f9d87c9` (published directly to `origin/main`; CI verified)
-- Current context commit: `4eeafff` (published directly to `origin/main`; final CI verified)
-- Source GitHub Actions run: `31494516026` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`)
-- Final context GitHub Actions run: `31494964995` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
+- Latest checkpoint: [CKP-20260811-017](checkpoints/CKP-20260811-017.md)
+- Latest session: [SES-20260811-011](sessions/SES-20260811-011.md)
+- Latest decision: [DEC-20260811-007](../decisions/DEC-20260811-007.md)
+- Current source commit: `305838c` (published directly to `origin/main`; CI verified)
+- Current context commit: pending this documentation publication
+- Source GitHub Actions run: `31500747827` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)
