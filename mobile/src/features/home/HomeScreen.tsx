@@ -648,7 +648,7 @@ export function HomeScreen() {
             <Pressable
               accessibilityLabel={strings.withdraw}
               accessibilityRole="button"
-              onPress={() => router.push("/(tabs)/wallet/withdrawals")}
+              onPress={() => router.push("/(tabs)/withdraw")}
               style={({ pressed }) => [styles.accountWithdrawButton, pressed && styles.pressed]}
             >
               <Banknote color="#3b82f6" size={17} strokeWidth={2.2} />

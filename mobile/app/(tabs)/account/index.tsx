@@ -323,7 +323,7 @@ export default function AccountRoute() {
         <Pressable
           accessibilityLabel="Rút tiền về ngân hàng"
           accessibilityRole="button"
-          onPress={() => navigateTo("/(tabs)/wallet/withdrawals/create")}
+          onPress={() => navigateTo("/(tabs)/withdraw")}
           style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}
         >
           <ArrowDownCircle color="#197ddd" size={22} />

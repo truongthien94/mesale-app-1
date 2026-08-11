@@ -100,7 +100,7 @@ export default function WalletRoute() {
           <View style={styles.bannerActions}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push("/(tabs)/wallet/withdrawals")}
+              onPress={() => router.push("/(tabs)/withdraw")}
               style={({ pressed }) => [styles.bannerAction, pressed && styles.pressed]}
             >
               <Text style={styles.bannerActionText}>Rút tiền</Text>

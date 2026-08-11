@@ -24,7 +24,11 @@ test("the primary tab bar exposes Account as a real screen and retires the More 
 
 test("Round B keeps canonical wallet screens behind direct tab aliases", () => {
   assert.match(read("../app/(tabs)/orders.tsx"), /export \{ default \} from "\.\/wallet\/orders"/);
-  assert.match(read("../app/(tabs)/withdraw.tsx"), /export \{ default \} from "\.\/wallet\/withdrawals"/);
+  const withdrawTab = read("../app/(tabs)/withdraw.tsx");
+  assert.match(withdrawTab, /import CreateWithdrawalScreen from "\.\/wallet\/withdrawals\/create"/);
+  assert.match(withdrawTab, /<CreateWithdrawalScreen \/>/);
+  assert.match(withdrawTab, /router\.replace\("\/\(tabs\)\/wallet\/withdrawals"\)/);
+  assert.doesNotMatch(withdrawTab, /<Redirect/);
 });
 
 test("Account is a server-authoritative native hub with approved destinations", () => {
@@ -32,7 +36,7 @@ test("Account is a server-authoritative native hub with approved destinations", 
   for (const hook of ["useAccount", "usePaymentAccounts", "useWithdrawals", "fetchReferrals"]) {
     assert.match(account, new RegExp(`${hook}\\(`));
   }
-  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "wallet/withdrawals/create", "earn/referrals", "earn/checkin", "earn/tasks", "earn/gifts", "inbox"]) {
+  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "earn/tasks", "earn/gifts", "inbox"]) {
     assert.match(account, new RegExp(`\\/\\(tabs\\)\\/${route.replaceAll("/", "\\/")}`));
   }
   for (const label of ["Số dư khả dụng", "Tổng đã nhận", "Từ giới thiệu", "Chưa liên kết ngân hàng", "Giới thiệu bạn bè", "Thông tin tài khoản", "Tài chính", "Thông báo", "Cài đặt", "KHÁM PHÁ", "HỖ TRỢ & PHÁP LÝ", "Đăng xuất", "Xóa tài khoản"]) {

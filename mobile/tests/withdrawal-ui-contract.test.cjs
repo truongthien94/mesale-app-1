@@ -73,6 +73,10 @@ test("withdrawal form follows the compact native field order and server-enabled 
   assert.match(source, /accessibilityState=\{\{ checked: selected, disabled: !enabled \}\}/);
   assert.match(source, /disabled=\{!enabled\}/);
   assert.match(source, /Chưa hỗ trợ/);
+  assert.match(source, /styles\.addAccountButton/);
+  assert.match(source, /Thêm \{selectedMethod === "bank" \? "tài khoản ngân hàng" : "ví điện tử"\}/);
+  assert.match(source, /Boolean\(selectedAccount\) && amountIsValid && otpIsValid/);
+  assert.match(source, /disabled=\{!canSubmit\}/);
 });
 
 test("withdrawal destination stays saved-account-derived and server authoritative", () => {
@@ -105,4 +109,43 @@ test("withdrawal creation keeps validation, OTP, retry, success and keyboard sta
   assert.match(source, /if \(created\)/);
   assert.match(source, /router\.replace\("\/\(tabs\)\/wallet\/withdrawals"\)/);
   assert.match(source, /accessibilityRole="radio"/);
+});
+
+test("keeps withdrawal history and create-request routes distinct", () => {
+  const layout = read("../app/(tabs)/wallet/_layout.tsx");
+  const tabAlias = read("../app/(tabs)/withdraw.tsx");
+  const history = read("../app/(tabs)/wallet/withdrawals/index.tsx");
+  const create = read("../app/(tabs)/wallet/withdrawals/create.tsx");
+
+  assert.match(layout, /name="withdrawals\/index"/);
+  assert.match(layout, /name="withdrawals\/create"/);
+  assert.match(tabAlias, /import CreateWithdrawalScreen from "\.\/wallet\/withdrawals\/create"/);
+  assert.match(tabAlias, /<CreateWithdrawalScreen \/>/);
+  assert.match(tabAlias, /useSafeAreaInsets\(\)/);
+  assert.match(tabAlias, /useTheme\(\)/);
+  assert.match(tabAlias, /paddingTop: insets\.top/);
+  assert.match(tabAlias, /accessibilityLabel="Mở lịch sử rút tiền"/);
+  assert.match(tabAlias, /router\.replace\("\/\(tabs\)\/wallet\/withdrawals"\)/);
+  assert.match(tabAlias, /allowFontScaling=\{false\}/);
+  assert.doesNotMatch(tabAlias, /<Redirect/);
+  assert.match(history, /router\.push\("\/\(tabs\)\/withdraw"\)/);
+  assert.match(create, /router\.replace\("\/\(tabs\)\/wallet\/withdrawals"\)/);
+});
+
+test("withdrawal history keeps the native empty state and server-backed list behavior", () => {
+  const history = read("../app/(tabs)/wallet/withdrawals/index.tsx");
+
+  assert.match(history, /useWithdrawals\(\)/);
+  assert.match(history, /useAppConfig\(\)/);
+  assert.match(history, /useTheme\(\)/);
+  assert.match(history, /Tạo yêu cầu rút tiền/);
+  assert.match(history, /disabled=\{!config\.data\.withdraw\.enabled\}/);
+  assert.match(history, /Chưa có lệnh rút tiền/);
+  assert.match(history, /Yêu cầu mới và trạng thái xử lý sẽ xuất hiện tại đây\./);
+  assert.match(history, /emptyState: \{[\s\S]*flex: 1[\s\S]*justifyContent: "center"/);
+  assert.doesNotMatch(history, /<History\b|emptyIcon/);
+  assert.match(history, /query\.hasNextPage && !query\.isFetchingNextPage/);
+  assert.match(history, /query\.isFetchNextPageError/);
+  assert.match(history, /onRefresh=\{\(\) => void query\.refetch\(\)\}/);
+  assert.doesNotMatch(history, /sk_live_|fake withdrawal|mock withdrawal/i);
 });

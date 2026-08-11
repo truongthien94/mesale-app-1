@@ -167,7 +167,7 @@ test("home replaces the promotional hero with a live three-card account summary"
   assert.match(source, /account\.wallet\.totalCashback/);
   assert.match(source, /account\.wallet\.pendingCashback/);
   assert.match(source, /account\.wallet\.totalWithdrawn/);
-  assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/withdrawals"\)/);
+  assert.match(source, /router\.push\("\/\(tabs\)\/withdraw"\)/);
   assert.match(source, /import \{ formatAccountMoney \} from "@\/features\/home\/format"/);
   assert.match(source, /accountNotificationButton:\s*\{[^}]*height: 44,[^}]*width: 44/);
   assert.match(source, /accountWithdrawButton:\s*\{[^}]*minHeight: 44/);
@@ -218,6 +218,7 @@ test("Round C wallet uses the orange dashboard, shared orders cache, and status 
   assert.match(source, /approved: "#10b981"/);
   assert.match(source, /rejected: "#f43f5e"/);
   assert.match(source, /useTheme/);
+  assert.match(source, /router\.push\("\/\(tabs\)\/withdraw"\)/);
   assert.doesNotMatch(source, /savings|chart|referral_count/i);
 });
 
