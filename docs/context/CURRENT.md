@@ -1,19 +1,29 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-003`
-- Session: `SES-20260811-001`
+- Latest checkpoint: `CKP-20260811-004`
+- Session: `SES-20260811-002`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; native Home parity and animated phone walkthrough locally verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Claude Code handoff prepared from verified source/Git evidence
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for the current Home parity batch
+- Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Home parity and push context published through `643f6ce`; final GitHub/Sheet synchronization checkpoint follows this head
+- Remote `main`: `fffa8be`; GitHub Actions run `31457169695` passed context/secret, Laravel and mobile jobs
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-11 Claude Code Handoff
+
+- Added root `CLAUDE.md` as the receiving agent's primary source map and operating guide.
+- The handoff covers non-negotiable data/auth/security rules, Laravel/Open API architecture, Expo/mobile screen inventory, current Home walkthrough, commands, CI evidence, Git/Sheet workflow, blockers, owner inputs and prioritized next work.
+- Verified repository facts: private monorepo, default branch `main`, current local/remote commit `fffa8be`, and successful CI run `31457169695`.
+- Recorded the local stale-upstream risk: do not use bare `git push`; only publish a reviewed fast-forward with explicit `HEAD:main` target.
+- Read-only live check on 2026-08-11: home, manifest and Open API config respond HTTP 200; privacy/terms/support redirect to the homepage; account deletion remains HTTP 404.
+- No application source, database, route, middleware, package, production data or credential changed in this handoff.
+- Operational IDs: `SES-20260811-002`, `CKP-20260811-004`, `TSK-MOB-017`, `CHG-20260811-002`, and `TST-20260811-002`.
 
 ## 2026-08-11 Home Parity Work
 
