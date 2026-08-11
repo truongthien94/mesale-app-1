@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-001`
+- Latest checkpoint: `CKP-20260811-002`
 - Session: `SES-20260811-001`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; native Home parity and animated phone walkthrough locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received for the current Home parity batch; publication pending
+- Push gate: received and completed for the current Home parity batch
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: `b91eb02`; locally verified Home parity code commit: `88e2095`
+- Remote `main`: Home parity code/context published through `4fd81cf`; final push-checkpoint commit follows this head
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -25,7 +25,7 @@
 - Replaced the square fake phone with an iPhone Pro Max-style titanium frame, rounded screen clipping, and Dynamic Island. The visible illustration heading/caption was removed at owner request.
 - Verification passed: TypeScript, mobile `46/46`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check, and staged sensitive-data scan.
 - Operational IDs: `SES-20260811-001`, `CKP-20260811-001`, `TSK-MOB-016`, `DEC-20260811-001`, `CHG-20260811-001`, `TST-20260811-001`, `BLK-UI-002`, and `GATE-BOTH-012`.
-- Code commit: `88e2095`; publication to `origin/main` is pending in this checkpoint.
+- Code commit `88e2095` and context commit `4fd81cf` are published on `origin/main`; GitHub Issue #26 tracks `BLK-UI-002`.
 
 ## Historical Round 5 Work
 
@@ -111,7 +111,7 @@
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
 - `BLK-HOME-001`: coupon/blog static snapshot can become stale because the current site blocks are dynamic and no public mobile content API exists.
-- `BLK-UI-002`: the native phone walkthrough contains hardcoded order/cashback values without a visible illustration label; owner-approved store/user disclosure is required before release.
+- `BLK-UI-002`: the native phone walkthrough contains hardcoded order/cashback values without a visible illustration label; owner-approved store/user disclosure is required before release. GitHub Issue #26.
 - `BLK-TEST-001`: resolved for remote `bd1b802`; GitHub Actions run `31325812368` passed. Device/store evidence remains separate.
 
 ## Handoff

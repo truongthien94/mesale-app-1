@@ -19,7 +19,7 @@ Home parity checkpoint `CKP-20260811-001`: mobile `46/46`, TypeScript, Expo Doct
 | `BLK-DEVICE-001` | P1 | QA | No physical iOS/Android verification, screenshot regression, font scaling, accessibility, keyboard, offline, retry, performance, or signed-artifact evidence exists. GitHub Issue #20. | Mobile/QA/release | Open |
 | `BLK-UI-001` | P1 | Accessibility/parity | Approved orange `#f97316` with white text measures about `2.80:1`; do not change the visual reference without product approval and screenshot evidence. | Product/design | Open |
 | `BLK-HOME-001` | P1 | Home content parity | Current coupon/ranking content now uses existing live API contracts and the disabled blog block is omitted. Page Builder order and enable/disable state still have no reviewed mobile config contract, so admin configuration can drift from the app. GitHub Issue #24. | Product/backend/mobile | Partially resolved locally |
-| `BLK-UI-002` | P1 | Store copy / walkthrough | The native phone walkthrough uses hardcoded sample order and cashback values. Its visible illustration caption was removed at owner request, so users or reviewers may interpret the amounts as real or guaranteed earnings. | Product/release | Open |
+| `BLK-UI-002` | P1 | Store copy / walkthrough | The native phone walkthrough uses hardcoded sample order and cashback values. Its visible illustration caption was removed at owner request, so users or reviewers may interpret the amounts as real or guaranteed earnings. GitHub Issue #26. | Product/release | Open |
 | `BLK-TEST-001` | P2 | Test quality | Remote CI run `31325626880` passed for commit `62e6678`; device/store evidence remains outside CI. | Backend/CI | Resolved |
 
 Resolved in this checkpoint:
