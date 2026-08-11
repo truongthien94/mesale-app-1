@@ -6,14 +6,14 @@ import { resolveAuthGate } from "@/auth/routing";
 import { LoadingState } from "@/components/AsyncState";
 import { MoreSheet } from "@/features/navigation/MoreSheet";
 import { useMoreSheetStore } from "@/features/navigation/moreStore";
-import { getDeviceLocale } from "@/i18n";
+import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function TabsLayout() {
   const { isLoading, pendingAuth, session, user } = useAuth();
   const { colors } = useTheme();
   const openMoreSheet = useMoreSheetStore((state) => state.open);
-  const isVietnamese = getDeviceLocale() === "vi";
+  const isVietnamese = resolveLocale(user?.preferences?.locale ?? getDeviceLocale()) === "vi";
 
   if (isLoading) return <LoadingState />;
   const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);

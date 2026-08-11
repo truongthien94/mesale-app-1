@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,22 +17,43 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import {
-  BookOpen,
+  Bell,
+  CircleAlert,
+  CirclePlay,
   CheckCircle2,
   Clock3,
   Copy,
-  Ticket
+  Crown,
+  Link2,
+  Menu,
+  Moon,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  Sun,
+  Ticket,
+  Trophy
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/AuthProvider";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
-import { getDeviceLocale } from "@/i18n";
+import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { colors, spacing } from "@/theme/tokens";
-import { isSafeAffiliateUrl, normalizeBannerLink, normalizeProductUrl } from "@/features/home/api";
-import { useAccountSummary, useCreateCashbackLink, useHomeConfig } from "@/features/home/hooks";
-import type { CashbackProduct, HomeConfig, Marketplace } from "@/features/home/types";
+import { isSafeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
+import {
+  useAccountSummary,
+  useCoupons,
+  useCreateCashbackLink,
+  useHomeConfig,
+  useRanking
+} from "@/features/home/hooks";
+import { PhoneFlowDemo } from "@/features/home/PhoneFlowDemo";
+import { useMoreSheetStore } from "@/features/navigation/moreStore";
+import type { CashbackProduct, Coupon, HomeConfig, Marketplace, RankingBoard, RankingEntry } from "@/features/home/types";
 
 const copy = {
   vi: {
@@ -55,19 +76,26 @@ const copy = {
     approved: "Đã duyệt",
     rejected: "Từ chối",
     referrals: "Giới thiệu",
-    cashbackTitle: "Tạo link hoàn tiền",
-    cashbackCaption: "Dán link sản phẩm, Mê Sale sẽ tạo liên kết mua hàng có ghi nhận cashback.",
-    supported: "Nền tảng hỗ trợ",
+    heroBadge: "Hoàn tiền mua sắm Shopee - TikTok Shop lên đến 15% giá trị đơn hàng",
+    cashbackTitle: "Hệ Thống Mua Sắm Hoàn Tiền Shopee & TikTok Shop - Mê Sale",
+    cashbackCaption: "Dán link sản phẩm bất kỳ từ Shopee - TikTok để lấy mã giảm giá, kiểm tra số tiền hoàn lại dự kiến và nhận tiền hoàn trực tiếp vào ví sau khi mua hàng thành công.",
+    supported: "Nền tảng hỗ trợ:",
     configLoading: "Đang kiểm tra trạng thái các sàn...",
     configOffline: "Chưa thể kiểm tra trạng thái sàn vì thiết bị đang offline.",
     configError: "Chưa thể tải cấu hình sàn. Tính năng tạo link tạm khóa để bảo đảm an toàn.",
     featureDisabled: "Tính năng tạo link hoàn tiền đang tạm bảo trì.",
     noMarketplace: "Hiện chưa có sàn nào được bật trên máy chủ.",
-    urlPlaceholder: "Dán link Shopee, TikTok Shop hoặc Lazada",
+    urlPlaceholder: "Dán link sản phẩm Shopee - TikTok tại đây...",
     urlRequired: "Vui lòng nhập link sản phẩm.",
     urlInvalid: "Link sản phẩm không đúng định dạng.",
-    analyze: "Phân tích link",
+    analyze: "Lấy Link Hoàn Tiền",
     analyzing: "Đang phân tích...",
+    linkHelp: "Bạn chưa biết cách lấy link?",
+    linkHelpTitle: "Cách lấy link sản phẩm",
+    linkHelpMessage: "Mở sản phẩm trên Shopee hoặc TikTok Shop, chọn Chia sẻ, sau đó sao chép liên kết và dán vào ô phía trên.",
+    usageCaution: "Cần lưu ý gì khi sử dụng?",
+    usageCautionTitle: "Lưu ý khi nhận hoàn tiền",
+    usageCautionMessage: "Hãy mua hàng qua đúng link hoàn tiền được Mê Sale tạo và không thay đổi sản phẩm trong quá trình đặt hàng để hệ thống có thể ghi nhận giao dịch.",
     productReady: "Sản phẩm hợp lệ nhận hoàn tiền",
     currentPrice: "Giá hiện tại",
     estimatedCashback: "Tiền hoàn dự kiến",
@@ -109,19 +137,26 @@ const copy = {
     approved: "Approved",
     rejected: "Rejected",
     referrals: "Referrals",
-    cashbackTitle: "Create cashback link",
-    cashbackCaption: "Paste a product URL and Mesale will create a tracked cashback link.",
-    supported: "Supported marketplaces",
+    heroBadge: "Get up to 15% cashback on Shopee and TikTok Shop orders",
+    cashbackTitle: "Cashback Shopping for Shopee & TikTok Shop - Me Sale",
+    cashbackCaption: "Paste any Shopee or TikTok product link to get a discount code, check your estimated cashback, and receive cashback in your wallet after a successful purchase.",
+    supported: "Supported platforms:",
     configLoading: "Checking marketplace availability...",
     configOffline: "Marketplace availability cannot be checked while offline.",
     configError: "Marketplace configuration is unavailable. Link creation is locked for safety.",
     featureDisabled: "Cashback-link creation is under maintenance.",
     noMarketplace: "No marketplace is currently enabled by the server.",
-    urlPlaceholder: "Paste a Shopee, TikTok Shop or Lazada URL",
+    urlPlaceholder: "Paste a Shopee or TikTok product link here...",
     urlRequired: "Enter a product URL.",
     urlInvalid: "Enter a valid product URL.",
-    analyze: "Analyze link",
+    analyze: "Get Cashback Link",
     analyzing: "Analyzing...",
+    linkHelp: "Not sure how to get a product link?",
+    linkHelpTitle: "How to get a product link",
+    linkHelpMessage: "Open the product in Shopee or TikTok Shop, choose Share, then copy the link and paste it into the field above.",
+    usageCaution: "What should I know before using this?",
+    usageCautionTitle: "Cashback reminders",
+    usageCautionMessage: "Complete your purchase through the exact cashback link created by Me Sale and do not switch products during checkout so the transaction can be tracked.",
     productReady: "Product eligible for cashback",
     currentPrice: "Current price",
     estimatedCashback: "Estimated cashback",
@@ -192,13 +227,19 @@ function InlineNotice({ message, tone = "neutral", onRetry, strings }: {
   onRetry?: () => void;
   strings: Strings;
 }) {
+  const { colors } = useTheme();
+  const toneColors = tone === "danger"
+    ? { backgroundColor: `${colors.danger}14`, borderColor: `${colors.danger}55` }
+    : tone === "warning"
+      ? { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }
+      : { backgroundColor: colors.background, borderColor: colors.border };
+
   return (
     <View accessibilityRole={tone === "danger" ? "alert" : undefined} style={[
       styles.notice,
-      tone === "danger" && styles.noticeDanger,
-      tone === "warning" && styles.noticeWarning
+      toneColors
     ]}>
-      <Text style={styles.noticeText}>{message}</Text>
+      <Text style={[styles.noticeText, { color: colors.mutedText }]}>{message}</Text>
       {onRetry ? (
         <Pressable accessibilityRole="button" onPress={onRetry} style={styles.noticeAction}>
           <Text style={styles.noticeActionText}>{strings.retry}</Text>
@@ -209,11 +250,13 @@ function InlineNotice({ message, tone = "neutral", onRetry, strings }: {
 }
 
 function MetricCard({ label, value, accent }: { label: string; value: string; accent: string }) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.metricCard}>
+    <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={[styles.metricMark, { backgroundColor: accent }]} />
-      <Text numberOfLines={2} style={styles.metricLabel}>{label}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={styles.metricValue}>{value}</Text>
+      <Text numberOfLines={2} style={[styles.metricLabel, { color: colors.mutedText }]}>{label}</Text>
+      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
     </View>
   );
 }
@@ -235,12 +278,10 @@ function PlatformBadges({ config }: { config: HomeConfig }) {
     <View style={styles.badgeRow}>
       {enabled.map((platform) => {
         const presentation = platformPresentation[platform];
-        const rate = config.marketplaces[platform].rate;
         return (
           <View key={platform} style={[styles.platformBadge, { backgroundColor: presentation.color }]}>
-            <Text style={styles.platformBadgeText}>
-              {presentation.label}{rate > 0 ? ` · ${rate}%` : ""}
-            </Text>
+            <ShoppingBag color="#ffffff" size={12} strokeWidth={2.4} />
+            <Text style={styles.platformBadgeText}>{presentation.label}</Text>
           </View>
         );
       })}
@@ -250,10 +291,11 @@ function PlatformBadges({ config }: { config: HomeConfig }) {
 
 function ProductImage({ uri, name }: { uri: string | null; name: string }) {
   const [failed, setFailed] = useState(false);
+  const { colors } = useTheme();
   const secureUri = secureRemoteUri(uri);
 
   return (
-    <View style={styles.productImageFrame}>
+    <View style={[styles.productImageFrame, { backgroundColor: colors.background, borderColor: colors.border }]}>
       {secureUri && !failed ? (
         <Image
           accessibilityLabel={name}
@@ -263,7 +305,7 @@ function ProductImage({ uri, name }: { uri: string | null; name: string }) {
           style={styles.productImage}
         />
       ) : (
-        <Text accessibilityLabel="Product image unavailable" style={styles.productImageFallback}>IMG</Text>
+        <Text accessibilityLabel="Product image unavailable" style={[styles.productImageFallback, { color: colors.mutedText }]}>IMG</Text>
       )}
     </View>
   );
@@ -276,6 +318,7 @@ function ProductResult({ product, language, notice, strings }: {
   strings: Strings;
 }) {
   const [handoffError, setHandoffError] = useState<string | null>(null);
+  const { colors } = useTheme();
   const presentation = platformPresentation[product.platform];
   const marketplaceNotice = stripMarkup(notice ?? null);
 
@@ -316,27 +359,27 @@ function ProductResult({ product, language, notice, strings }: {
   }
 
   return (
-    <View style={styles.resultCard}>
+    <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={styles.resultTopRow}>
         <View style={[styles.platformBadge, { backgroundColor: presentation.color }]}>
           <Text style={styles.platformBadgeText}>{presentation.label}</Text>
         </View>
-        <Text style={styles.referenceText}>{strings.reference}: {product.transId}</Text>
+        <Text style={[styles.referenceText, { color: colors.mutedText }]}>{strings.reference}: {product.transId}</Text>
       </View>
 
       <View style={styles.productRow}>
         <ProductImage key={product.image ?? product.transId} name={product.name} uri={product.image} />
         <View style={styles.productBody}>
-          <Text style={styles.eligibleText}>{strings.productReady}</Text>
-          <Text numberOfLines={4} style={styles.productName}>{product.name}</Text>
+          <Text style={[styles.eligibleText, { backgroundColor: `${colors.primary}18`, color: colors.primary }]}>{strings.productReady}</Text>
+          <Text numberOfLines={4} style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
         </View>
       </View>
 
       {product.isEstimated ? (
-        <View style={styles.estimatedBox}>
-          <Text style={styles.estimatedLabel}>{strings.estimatedRate}</Text>
-          <Text style={styles.estimatedValue}>{product.cashbackRate}{strings.rateSuffix}</Text>
-          <Text style={styles.estimatedNote}>{strings.estimatedNote}</Text>
+        <View style={[styles.estimatedBox, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+          <Text style={[styles.estimatedLabel, { color: colors.primary }]}>{strings.estimatedRate}</Text>
+          <Text style={[styles.estimatedValue, { color: colors.primary }]}>{product.cashbackRate}{strings.rateSuffix}</Text>
+          <Text style={[styles.estimatedNote, { color: colors.text }]}>{strings.estimatedNote}</Text>
         </View>
       ) : (
         <View style={styles.productMetrics}>
@@ -345,15 +388,15 @@ function ProductResult({ product, language, notice, strings }: {
         </View>
       )}
 
-      <View style={styles.affiliateBox}>
-        <Text style={styles.affiliateLabel}>{strings.affiliateLink}</Text>
-        <Text numberOfLines={2} selectable style={styles.affiliateUrl}>{product.affiliateUrl}</Text>
+      <View style={[styles.affiliateBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <Text style={[styles.affiliateLabel, { color: colors.mutedText }]}>{strings.affiliateLink}</Text>
+        <Text numberOfLines={2} selectable style={[styles.affiliateUrl, { color: colors.text }]}>{product.affiliateUrl}</Text>
       </View>
 
       {marketplaceNotice ? (
-        <View style={styles.marketplaceNotice}>
-          <Text style={styles.marketplaceNoticeTitle}>{strings.notice}</Text>
-          <Text style={styles.marketplaceNoticeText}>{marketplaceNotice}</Text>
+        <View style={[styles.marketplaceNotice, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
+          <Text style={[styles.marketplaceNoticeTitle, { color: colors.primary }]}>{strings.notice}</Text>
+          <Text style={[styles.marketplaceNoticeText, { color: colors.text }]}>{marketplaceNotice}</Text>
         </View>
       ) : null}
 
@@ -369,47 +412,27 @@ function ProductResult({ product, language, notice, strings }: {
       <Pressable
         accessibilityRole="button"
         onPress={() => void shareAffiliateLink()}
-        style={({ pressed }) => [styles.secondaryButton, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.secondaryButton,
+          { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` },
+          pressed && styles.pressed
+        ]}
       >
-        <Text style={styles.secondaryButtonText}>{strings.shareLink}</Text>
+        <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{strings.shareLink}</Text>
       </Pressable>
     </View>
   );
 }
 
-// Round C uses the live homepage snapshot because the Page Builder has no
-// mobile JSON contract. Keep volatile coupon/blog records clearly isolated so
-// a future API-backed block can replace this data without touching the tool.
-const roundCStaticCoupons = [
-  {
-    code: "YOUTUBEAPR210105",
-    discount: "24%",
-    maximum: "Tối đa 100,000đ",
-    minimum: "ĐƠN TỪ 150k",
-    title: "Giảm 24% Đơn Tối Thiểu ₫300K Giảm tối đa ₫150K",
-    used: "Đã dùng 20%",
-    expires: "CÒN 143 NGÀY"
-  },
-  {
-    code: "YOUTUBEMAR200108",
-    discount: "22%",
-    maximum: "Tối đa 2,000,000đ",
-    minimum: "ĐƠN TỪ 1,250k",
-    title: "Giảm 22% Đơn Tối Thiểu ₫1500K Giảm tối đa ₫3Tr",
-    used: "Đã dùng 20%",
-    expires: "CÒN 4180 NGÀY"
-  },
-  {
-    code: "METAPAR2MARD22750",
-    discount: "22%",
-    maximum: "Tối đa 500,000đ",
-    minimum: "ĐƠN TỪ 50k",
-    title: "Giảm 22% Đơn Tối Thiểu ₫50K Giảm tối đa ₫500K",
-    used: "Đã dùng 10%",
-    expires: "CÒN 1604 NGÀY"
-  }
-] as const;
-
+// Timeline copy mirrors the "timeline" Page Builder block, which is enabled
+// in the current homepage configuration (sort_order 2). Coupons and the
+// leaderboard render live data via the /coupons and /ranking endpoints
+// instead of static copy, since both are already exposed by the API and
+// match the same business scope as their website blocks. The "steps",
+// "features" and "blog" blocks are disabled in the current configuration and
+// intentionally have no mobile section. If the Page Builder is reordered or
+// toggled later from /admin/appearance, this screen will not follow until
+// updated to match.
 const roundCStaticTimeline = [
   {
     badge: "Bước 1: Mua hàng",
@@ -428,27 +451,6 @@ const roundCStaticTimeline = [
     title: "Có thể rút",
     tag: "7 ngày",
     description: "Sau khi Shopee đối soát kỳ hoàn thành (khoảng 7 ngày khi nhận hàng), tiền khả dụng sẽ được cộng vào ví và có thể rút ngay."
-  }
-] as const;
-
-const roundCStaticBlogPosts = [
-  {
-    title: "Đồ gia dụng cồng kềnh và hoàn tiền TikTok Shop: đọc phí giao trước",
-    summary: "Đồ gia dụng cồng kềnh và hoàn tiền TikTok Shop: đọc phí giao trước. Bài viết tập trung vào tính tổng chi phí thay vì chỉ nhìn giá sau ưu đãi, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
-    image: "https://mesale.vn/uploads/blog/1786356052_qjKQzzz2er.jpg",
-    views: "21 lượt xem"
-  },
-  {
-    title: "Đồ bếp theo set và hoàn tiền TikTok Shop: kiểm tra vật liệu, số món",
-    summary: "Đồ bếp theo set và hoàn tiền TikTok Shop: kiểm tra vật liệu, số món. Bài viết tập trung vào so sánh thành phần bộ sản phẩm thay vì chỉ nhìn ảnh minh họa, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
-    image: "https://mesale.vn/uploads/blog/1786342549_oUKtjV1b79.jpg",
-    views: "16 lượt xem"
-  },
-  {
-    title: "Văn phòng phẩm theo combo và hoàn tiền TikTok Shop: có thật sự tiết kiệm?",
-    summary: "Văn phòng phẩm theo combo và hoàn tiền TikTok Shop: có thật sự tiết kiệm? Bài viết tập trung vào so sánh giá theo đơn vị và số lượng thực sự cần, kèm tình huống thực tế và các điểm cần kiểm tra trước, trong hoặc sau khi đặt hàng.",
-    image: "https://mesale.vn/uploads/blog/1786333251_9lVQyVGtPj.jpg",
-    views: "22 lượt xem"
   }
 ] as const;
 
@@ -477,8 +479,69 @@ function RoundCSectionShell({
   );
 }
 
+function couponDaysLeft(expiredAt: string | null): number | null {
+  if (!expiredAt) return null;
+  const expiry = new Date(expiredAt).getTime();
+  if (Number.isNaN(expiry)) return null;
+  const diff = Math.ceil((expiry - Date.now()) / 86400000);
+  return diff >= 0 ? diff : 0;
+}
+
+function CouponCard({ coupon }: { coupon: Coupon }) {
+  const { colors, spacing } = useTheme();
+  const daysLeft = couponDaysLeft(coupon.expiredAt);
+  const discountLabel = coupon.discountPercentage > 0
+    ? `${coupon.discountPercentage}%`
+    : formatVnd(coupon.discountAmount, "vi");
+
+  return (
+    <View style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", minHeight: 158, overflow: "hidden", width: 300 }}>
+      <View style={{ alignItems: "center", backgroundColor: colors.primary, justifyContent: "center", padding: spacing.sm, width: 104 }}>
+        <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "900", letterSpacing: 1 }}>ƯU ĐÃI</Text>
+        <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: "#ffffff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{discountLabel}</Text>
+        {coupon.minSpend > 0 ? (
+          <Text style={{ borderTopColor: "rgba(255,255,255,0.35)", borderTopWidth: 1, color: "#ffffff", fontSize: 8, fontWeight: "900", marginTop: 8, paddingTop: 7, textAlign: "center" }}>ĐƠN TỪ {formatVnd(coupon.minSpend, "vi")}</Text>
+        ) : null}
+      </View>
+      <View style={{ flex: 1, gap: 8, justifyContent: "space-between", padding: spacing.md }}>
+        <View style={{ gap: 6 }}>
+          <Text numberOfLines={2} style={{ color: colors.text, fontSize: 12, fontWeight: "800", lineHeight: 17 }}>{coupon.title}</Text>
+          {coupon.category ? (
+            <Text style={{ backgroundColor: `${colors.primary}18`, alignSelf: "flex-start", borderRadius: 6, color: colors.primary, fontSize: 9, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 3 }}>{coupon.category}</Text>
+          ) : null}
+        </View>
+        <View style={{ alignItems: "flex-end", flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
+          {daysLeft !== null ? (
+            <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
+              <Clock3 color={colors.mutedText} size={12} />
+              <Text style={{ color: colors.mutedText, fontSize: 9, fontWeight: "800" }}>CÒN {daysLeft} NGÀY</Text>
+            </View>
+          ) : <View />}
+          <Pressable
+            accessibilityHint="Sao chép mã giảm giá vào bộ nhớ tạm"
+            accessibilityLabel={`Sao chép mã ${coupon.code}`}
+            accessibilityRole="button"
+            onPress={() => {
+              void Clipboard.setStringAsync(coupon.code);
+            }}
+            style={({ pressed }) => [{ alignItems: "center", backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40`, borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 7 }, pressed && { opacity: 0.72 }]}
+          >
+            <Copy color={colors.primary} size={13} />
+            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900" }}>{coupon.code}</Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function RoundCCouponSection() {
   const { colors, spacing } = useTheme();
+  const couponsQuery = useCoupons();
+  const coupons = couponsQuery.data ?? [];
+
+  if (!couponsQuery.isPending && !couponsQuery.isError && coupons.length === 0) return null;
+
   return (
     <RoundCSectionShell>
       <View style={{ gap: spacing.xs }}>
@@ -490,48 +553,15 @@ function RoundCCouponSection() {
           Mã khuyến mãi <Text style={{ color: colors.primary }}>Shopee</Text>
         </Text>
       </View>
-      <ScrollView contentContainerStyle={{ gap: spacing.md }} horizontal showsHorizontalScrollIndicator={false}>
-        {roundCStaticCoupons.map((coupon) => (
-          <View key={coupon.code} style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", minHeight: 158, overflow: "hidden", width: 300 }}>
-            <View style={{ alignItems: "center", backgroundColor: colors.primary, justifyContent: "center", padding: spacing.sm, width: 104 }}>
-              <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "900", letterSpacing: 1 }}>ƯU ĐÃI</Text>
-              <Text style={{ color: "#ffffff", fontSize: 27, fontWeight: "900", marginTop: 4 }}>{coupon.discount}</Text>
-              <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "700", marginTop: 3, textAlign: "center" }}>{coupon.maximum}</Text>
-              <Text style={{ borderTopColor: "rgba(255,255,255,0.35)", borderTopWidth: 1, color: "#ffffff", fontSize: 8, fontWeight: "900", marginTop: 8, paddingTop: 7, textAlign: "center" }}>{coupon.minimum}</Text>
-            </View>
-            <View style={{ flex: 1, gap: 8, justifyContent: "space-between", padding: spacing.md }}>
-              <View style={{ gap: 6 }}>
-                <Text numberOfLines={2} style={{ color: colors.text, fontSize: 12, fontWeight: "800", lineHeight: 17 }}>{coupon.title}</Text>
-                <Text style={{ color: colors.mutedText, fontSize: 10, fontWeight: "700" }}>{coupon.used}</Text>
-                <View style={{ backgroundColor: colors.border, borderRadius: 4, height: 5, overflow: "hidden" }}>
-                  <View style={{ backgroundColor: colors.primary, borderRadius: 4, height: "100%", width: coupon.used === "Đã dùng 10%" ? "10%" : "20%" }} />
-                </View>
-              </View>
-              <View style={{ alignItems: "flex-end", flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                <View style={{ gap: 4 }}>
-                  <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
-                    <Clock3 color={colors.mutedText} size={12} />
-                    <Text style={{ color: colors.mutedText, fontSize: 9, fontWeight: "800" }}>{coupon.expires}</Text>
-                  </View>
-                  <Text style={{ backgroundColor: `${colors.primary}18`, borderRadius: 6, color: colors.primary, fontSize: 9, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 3 }}>Toàn Sàn</Text>
-                </View>
-                <Pressable
-                  accessibilityHint="Mở bảng chia sẻ để chọn sao chép mã"
-                  accessibilityLabel={`Sao chép mã ${coupon.code}`}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    void Clipboard.setStringAsync(coupon.code);
-                  }}
-                  style={({ pressed }) => [{ alignItems: "center", backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40`, borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 7 }, pressed && { opacity: 0.72 }]}
-                >
-                  <Copy color={colors.primary} size={13} />
-                  <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900" }}>Sao chép</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+      {couponsQuery.isPending ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : couponsQuery.isError ? (
+        <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>Chưa thể tải mã khuyến mãi lúc này.</Text>
+      ) : (
+        <ScrollView contentContainerStyle={{ gap: spacing.md }} horizontal showsHorizontalScrollIndicator={false}>
+          {coupons.map((coupon) => <CouponCard coupon={coupon} key={coupon.id} />)}
+        </ScrollView>
+      )}
     </RoundCSectionShell>
   );
 }
@@ -569,33 +599,88 @@ function RoundCTimelineSection() {
   );
 }
 
-function RoundCBlogSection() {
+const rankingTabs: { key: keyof RankingBoard; label: string }[] = [
+  { key: "topOrders", label: "Đơn hàng" },
+  { key: "topCashback", label: "Hoàn tiền" },
+  { key: "topCheckin", label: "Điểm danh" },
+  { key: "topReferral", label: "Giới thiệu" },
+  { key: "topBalance", label: "Số dư" }
+];
+
+function RankingRow({ entry, rank }: { entry: RankingEntry; rank: number }) {
   const { colors, spacing } = useTheme();
+  const isTop = rank === 1;
   return (
-    <RoundCSectionShell tone="blue">
-      <View style={{ gap: spacing.xs }}>
-        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: "#2563eb18", borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <BookOpen color="#2563eb" size={14} />
-          <Text style={{ color: "#2563eb", fontSize: 11, fontWeight: "900" }}>Cẩm nang mua sắm</Text>
+    <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm, paddingVertical: 8 }}>
+      <View style={{ alignItems: "center", justifyContent: "center", width: 22 }}>
+        {isTop ? <Crown color="#f59e0b" size={17} /> : (
+          <Text style={{ color: colors.mutedText, fontSize: 12, fontWeight: "900" }}>{rank}</Text>
+        )}
+      </View>
+      {entry.avatar ? (
+        <Image accessibilityIgnoresInvertColors source={{ uri: entry.avatar }} style={{ backgroundColor: colors.border, borderRadius: 999, height: 30, width: 30 }} />
+      ) : (
+        <View style={{ alignItems: "center", backgroundColor: colors.border, borderRadius: 999, height: 30, justifyContent: "center", width: 30 }}>
+          <Text style={{ color: colors.mutedText, fontSize: 12, fontWeight: "900" }}>{entry.name.charAt(0).toUpperCase()}</Text>
         </View>
-        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29 }}>Tin Tức & Bí Quyết Săn Sale Mới Nhất</Text>
+      )}
+      <Text numberOfLines={1} style={{ color: colors.text, flex: 1, fontSize: 12, fontWeight: "800" }}>{entry.name}</Text>
+      <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "900" }}>{entry.value.toLocaleString("vi-VN")}</Text>
+    </View>
+  );
+}
+
+function RoundCLeaderboardSection() {
+  const { colors, spacing } = useTheme();
+  const rankingQuery = useRanking();
+  const board = rankingQuery.data;
+  const availableTabs = board
+    ? rankingTabs.filter((tab) => board[tab.key].length > 0)
+    : [];
+  const [activeKey, setActiveKey] = useState<keyof RankingBoard | null>(null);
+  const activeTab = availableTabs.find((tab) => tab.key === activeKey) ?? availableTabs[0];
+
+  if (!rankingQuery.isPending && !rankingQuery.isError && availableTabs.length === 0) return null;
+
+  return (
+    <RoundCSectionShell>
+      <View style={{ gap: spacing.xs }}>
+        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: `${colors.primary}18`, borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
+          <Trophy color={colors.primary} size={14} />
+          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900" }}>Bảng xếp hạng</Text>
+        </View>
+        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29 }}>Thành Viên Xuất Sắc</Text>
       </View>
-      <View style={{ gap: spacing.md }}>
-        {roundCStaticBlogPosts.map((post) => (
-          <View key={post.title} style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, overflow: "hidden" }}>
-            <Image accessibilityLabel={post.title} resizeMode="cover" source={{ uri: post.image }} style={{ backgroundColor: colors.border, height: 150, width: "100%" }} />
-            <View style={{ gap: 7, padding: spacing.md }}>
-              <View style={{ alignItems: "center", flexDirection: "row", gap: 8 }}>
-                <Text style={{ backgroundColor: "#2563eb18", borderRadius: 999, color: "#2563eb", fontSize: 9, fontWeight: "900", paddingHorizontal: 7, paddingVertical: 4 }}>Mẹo hoàn tiền & Tiết kiệm</Text>
-                <Text style={{ color: colors.mutedText, flex: 1, fontSize: 10, fontWeight: "700", textAlign: "right" }}>10/08/2026 · {post.views}</Text>
-              </View>
-              <Text numberOfLines={3} style={{ color: colors.text, fontSize: 15, fontWeight: "900", lineHeight: 21 }}>{post.title}</Text>
-              <Text numberOfLines={4} style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>{post.summary}</Text>
-              {/* Website-only blog routes are intentionally omitted on mobile. */}
-            </View>
+      {rankingQuery.isPending ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : rankingQuery.isError ? (
+        <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>Chưa thể tải bảng xếp hạng lúc này.</Text>
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={{ gap: 8 }} horizontal showsHorizontalScrollIndicator={false}>
+            {availableTabs.map((tab) => {
+              const selected = tab.key === activeTab?.key;
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  key={tab.key}
+                  onPress={() => setActiveKey(tab.key)}
+                  style={({ pressed }) => [{ backgroundColor: selected ? colors.primary : `${colors.primary}14`, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }, pressed && { opacity: 0.8 }]}
+                >
+                  <Text style={{ color: selected ? "#ffffff" : colors.primary, fontSize: 11, fontWeight: "900" }}>{tab.label}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View>
+            {activeTab && board
+              ? board[activeTab.key].slice(0, 10).map((entry, index) => (
+                  <RankingRow entry={entry} key={`${activeTab.key}-${entry.name}-${index}`} rank={index + 1} />
+                ))
+              : null}
           </View>
-        ))}
-      </View>
+        </>
+      )}
     </RoundCSectionShell>
   );
 }
@@ -605,14 +690,19 @@ function RoundCHomeBlocks() {
     <View style={{ gap: spacing.md }}>
       <RoundCCouponSection />
       <RoundCTimelineSection />
-      <RoundCBlogSection />
+      <RoundCLeaderboardSection />
     </View>
   );
 }
 
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const language = getDeviceLocale();
+  const { user } = useAuth();
+  const productInputRef = useRef<TextInput>(null);
+  const openMoreSheet = useMoreSheetStore((state) => state.open);
+  const { colors: themeColors, scheme, setPreference } = useTheme();
+  // Keep Vietnamese as the default while honoring an explicit account choice.
+  const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
   const strings = copy[language];
   const accountQuery = useAccountSummary();
   const configQuery = useHomeConfig();
@@ -663,29 +753,23 @@ export function HomeScreen() {
     cashbackMutation.mutate(validation.url);
   }
 
+  async function pasteProductUrl() {
+    const value = (await Clipboard.getStringAsync()).trim();
+    if (!value) return;
+    setProductUrl(value);
+    setInputError(null);
+  }
+
   const mutationMessage = cashbackMutation.isError
     ? (isOfflineError(cashbackMutation.error)
       ? strings.mutationOffline
       : errorMessage(cashbackMutation.error, strings.mutationError))
     : null;
-  const banner = config?.banners[0];
-  const bannerUri = secureRemoteUri(banner?.imageUrl ?? null);
-  const bannerLink = normalizeBannerLink(banner?.link ?? null);
-
-  async function openBannerLink() {
-    if (!bannerLink) return;
-    try {
-      if (!await Linking.canOpenURL(bannerLink)) throw new Error("Unsupported banner link");
-      await Linking.openURL(bannerLink);
-    } catch {
-      Alert.alert(strings.bannerLinkError);
-    }
-  }
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: themeColors.background }]}
     >
       <ScrollView
         contentContainerStyle={[
@@ -706,21 +790,10 @@ export function HomeScreen() {
               void configQuery.refetch();
             }}
             refreshing={refreshing}
-            tintColor={colors.primary}
+            tintColor={themeColors.primary}
           />
         )}
       >
-        <View style={styles.headingRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(account.name ?? account.email ?? "M").charAt(0).toUpperCase()}</Text>
-          </View>
-          <View style={styles.headingBody}>
-            <Text style={styles.eyebrow}>{strings.greeting}</Text>
-            <Text numberOfLines={1} style={styles.heading}>{account.name ?? account.email ?? `#${account.id}`}</Text>
-            <Text style={styles.caption}>{strings.dashboardCaption}</Text>
-          </View>
-        </View>
-
         {accountQuery.isError ? (
           <InlineNotice
             message={strings.refreshError}
@@ -730,55 +803,82 @@ export function HomeScreen() {
           />
         ) : null}
 
-        {banner && bannerUri ? (
-          <Pressable
-            accessibilityRole={bannerLink ? "link" : "image"}
-            disabled={!bannerLink}
-            onPress={() => void openBannerLink()}
-            style={({ pressed }) => [styles.bannerFrame, pressed && styles.pressed]}
-          >
-            <Image
-              accessibilityLabel={banner.title ?? config?.siteName ?? "Mesale"}
-              resizeMode="cover"
-              source={{ uri: bannerUri }}
-              style={styles.bannerImage}
-            />
-          </Pressable>
-        ) : null}
+        <View style={[styles.brandBar, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
+          <Image
+            accessibilityLabel="Mê Sale"
+            resizeMode="contain"
+            source={require("../../../assets/mesale-logo.png")}
+            style={styles.brandLogo}
+          />
+          <View style={styles.brandActions}>
+            <Pressable
+              accessibilityLabel={language === "vi" ? "Tìm kiếm sản phẩm" : "Search products"}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => productInputRef.current?.focus()}
+              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
+            >
+              <Search color={themeColors.mutedText} size={18} strokeWidth={2} />
+            </Pressable>
+            <Pressable
+              accessibilityLabel={scheme === "dark"
+                ? (language === "vi" ? "Chuyển sang giao diện sáng" : "Switch to light theme")
+                : (language === "vi" ? "Chuyển sang giao diện tối" : "Switch to dark theme")}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => setPreference(scheme === "dark" ? "light" : "dark")}
+              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
+            >
+              {scheme === "dark"
+                ? <Sun color="#f59e0b" size={18} strokeWidth={2} />
+                : <Moon color={themeColors.mutedText} size={18} strokeWidth={2} />}
+            </Pressable>
+            <Pressable
+              accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => router.push("/(tabs)/inbox")}
+              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
+            >
+              <Bell color={themeColors.mutedText} size={18} strokeWidth={2} />
+            </Pressable>
+            <Pressable
+              accessibilityLabel={language === "vi" ? "Mở thêm tùy chọn" : "Open more options"}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={openMoreSheet}
+              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
+            >
+              <Menu color={themeColors.mutedText} size={19} strokeWidth={2} />
+            </Pressable>
+          </View>
+        </View>
 
-        <View style={styles.balanceCard}>
-          <View style={styles.balanceOrbLarge} />
-          <View style={styles.balanceOrbSmall} />
-          <Text style={styles.balanceLabel}>{strings.availableBalance}</Text>
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>
-            {formatVnd(account.wallet.balance, language)}
+        <View style={styles.heroIntro}>
+          <View style={[styles.heroBadge, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+            <Sparkles color={themeColors.primary} size={15} strokeWidth={2.4} />
+            <Text style={[styles.heroBadgeText, { color: themeColors.primary }]}>{strings.heroBadge}</Text>
+          </View>
+          <Text accessibilityLabel={strings.cashbackTitle} accessibilityRole="header" style={[styles.creatorTitle, { color: themeColors.text }]}>
+            {language === "vi" ? (
+              <>
+                Hệ Thống Mua Sắm{"\n"}
+                Hoàn Tiền <Text style={[styles.creatorTitleAccent, { color: themeColors.primary }]}>Shopee &{"\n"}TikTok Shop</Text> - Mê Sale
+              </>
+            ) : (
+              <>
+                Cashback Shopping for{"\n"}
+                <Text style={[styles.creatorTitleAccent, { color: themeColors.primary }]}>Shopee & TikTok Shop</Text>{"\n"}
+                - Me Sale
+              </>
+            )}
           </Text>
+          <Text style={[styles.creatorCaption, { color: themeColors.mutedText }]}>{strings.cashbackCaption}</Text>
         </View>
 
-        <View style={styles.metricGrid}>
-          <MetricCard label={strings.totalCashback} value={formatVnd(account.wallet.totalCashback, language)} accent="#10b981" />
-          <MetricCard label={strings.totalWithdrawn} value={formatVnd(account.wallet.totalWithdrawn, language)} accent="#3b82f6" />
-          <MetricCard label={strings.referralEarned} value={formatVnd(account.wallet.totalReferralEarned, language)} accent="#f59e0b" />
-          <MetricCard label={strings.referrals} value={String(account.stats.referralsCount)} accent="#8b5cf6" />
-        </View>
-
-        <View style={styles.statsCard}>
-          <Text style={styles.sectionLabel}>{strings.orders} · {account.stats.ordersTotal}</Text>
-          <View style={styles.statsRow}>
-            <StatPill color="#d97706" label={strings.pending} value={account.stats.ordersPending} />
-            <StatPill color="#059669" label={strings.approved} value={account.stats.ordersApproved} />
-            <StatPill color="#dc2626" label={strings.rejected} value={account.stats.ordersRejected} />
-          </View>
-        </View>
-
-        <View style={styles.creatorCard}>
-          <View>
-            <Text accessibilityRole="header" style={styles.creatorTitle}>{strings.cashbackTitle}</Text>
-            <Text style={styles.creatorCaption}>{strings.cashbackCaption}</Text>
-          </View>
-
+        <View style={[styles.creatorCard, { backgroundColor: themeColors.surface, borderColor: scheme === "dark" ? themeColors.border : "#fed7c7" }]}>
           <View style={styles.supportBlock}>
-            <Text style={styles.supportLabel}>{strings.supported}</Text>
+            <Text style={[styles.supportLabel, { color: themeColors.mutedText }]}>{strings.supported}</Text>
             {config ? <PlatformBadges config={config} /> : null}
           </View>
 
@@ -798,7 +898,8 @@ export function HomeScreen() {
             <InlineNotice message={strings.noMarketplace} strings={strings} tone="warning" />
           ) : null}
 
-          <View style={[styles.inputFrame, inputError && styles.inputFrameError]}>
+          <View style={[styles.inputFrame, { backgroundColor: themeColors.background, borderColor: inputError ? themeColors.danger : themeColors.border }]}>
+            <Link2 color={themeColors.mutedText} size={19} strokeWidth={2.1} />
             <TextInput
               accessibilityLabel={strings.urlPlaceholder}
               autoCapitalize="none"
@@ -811,29 +912,62 @@ export function HomeScreen() {
               }}
               onSubmitEditing={() => submitProductUrl()}
               placeholder={strings.urlPlaceholder}
-              placeholderTextColor="#94a3b8"
+              placeholderTextColor={themeColors.mutedText}
+              ref={productInputRef}
               returnKeyType="search"
-              style={styles.input}
+              style={[styles.input, { color: themeColors.text }]}
               value={productUrl}
             />
+            <Pressable
+              accessibilityHint={language === "vi" ? "Dán nội dung đang có trong bộ nhớ tạm" : "Paste the current clipboard contents"}
+              accessibilityLabel={language === "vi" ? "Dán link" : "Paste link"}
+              accessibilityRole="button"
+              disabled={creationDisabled || cashbackMutation.isPending}
+              hitSlop={8}
+              onPress={() => void pasteProductUrl()}
+              style={({ pressed }) => [styles.pasteButton, pressed && styles.pressed]}
+            >
+              <Copy color={themeColors.mutedText} size={18} strokeWidth={2.1} />
+            </Pressable>
           </View>
-          {inputError ? <Text accessibilityRole="alert" style={styles.fieldError}>{inputError}</Text> : null}
+          {inputError ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: themeColors.danger }]}>{inputError}</Text> : null}
 
           <Pressable
             accessibilityRole="button"
             disabled={creationDisabled || cashbackMutation.isPending}
             onPress={() => submitProductUrl()}
             style={({ pressed }) => [
-              styles.primaryButton,
+              styles.creatorPrimaryButton,
               (creationDisabled || cashbackMutation.isPending) && styles.disabled,
               pressed && styles.pressed
             ]}
           >
             {cashbackMutation.isPending ? <ActivityIndicator color="#ffffff" size="small" /> : null}
+            {!cashbackMutation.isPending ? <Search color="#ffffff" size={18} strokeWidth={2.4} /> : null}
             <Text style={styles.primaryButtonText}>
               {cashbackMutation.isPending ? strings.analyzing : strings.analyze}
             </Text>
           </Pressable>
+
+          <View style={styles.creatorHelpRow}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => Alert.alert(strings.linkHelpTitle, strings.linkHelpMessage)}
+              style={({ pressed }) => [styles.creatorHelpAction, pressed && styles.pressed]}
+            >
+              <CirclePlay color="#3b82f6" size={17} strokeWidth={2.2} />
+              <Text style={[styles.creatorHelpText, styles.creatorHelpTextBlue]}>{strings.linkHelp}</Text>
+            </Pressable>
+            <View style={[styles.creatorHelpDivider, { backgroundColor: themeColors.border }]} />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => Alert.alert(strings.usageCautionTitle, strings.usageCautionMessage)}
+              style={({ pressed }) => [styles.creatorHelpAction, pressed && styles.pressed]}
+            >
+              <CircleAlert color="#f59e0b" size={17} strokeWidth={2.2} />
+              <Text style={[styles.creatorHelpText, styles.creatorHelpTextAmber]}>{strings.usageCaution}</Text>
+            </Pressable>
+          </View>
 
           {mutationMessage ? (
             <InlineNotice
@@ -853,20 +987,19 @@ export function HomeScreen() {
             strings={strings}
           />
         ) : cashbackMutation.isPending ? (
-          <View accessibilityRole="progressbar" style={styles.resultSkeleton}>
-            <View style={styles.skeletonImage} />
+          <View accessibilityRole="progressbar" style={[styles.resultSkeleton, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+            <View style={[styles.skeletonImage, { backgroundColor: themeColors.border }]} />
             <View style={styles.skeletonBody}>
-              <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
-              <View style={styles.skeletonLine} />
-              <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+              <View style={[styles.skeletonLine, styles.skeletonLineLong, { backgroundColor: themeColors.border }]} />
+              <View style={[styles.skeletonLine, { backgroundColor: themeColors.border }]} />
+              <View style={[styles.skeletonLine, styles.skeletonLineShort, { backgroundColor: themeColors.border }]} />
             </View>
           </View>
-        ) : (
-          <View style={styles.resultEmpty}>
-            <Text style={styles.resultEmptyMark}>LINK</Text>
-            <Text style={styles.resultEmptyText}>{strings.resultEmpty}</Text>
-          </View>
-        )}
+        ) : null}
+
+        <View style={styles.demoSection}>
+          <PhoneFlowDemo />
+        </View>
 
         <RoundCHomeBlocks />
       </ScrollView>
@@ -875,29 +1008,35 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  brandBar: {
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    minHeight: 64,
+    paddingHorizontal: spacing.sm
+  },
+  brandLogo: { height: 50, width: 50 },
+  brandActions: { alignItems: "center", flex: 1, flexDirection: "row", gap: 8, justifyContent: "flex-end" },
+  brandAction: { alignItems: "center", borderRadius: 11, borderWidth: 1, height: 38, justifyContent: "center", width: 38 },
+  demoSection: { marginBottom: spacing.sm },
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing.md },
-  headingRow: { alignItems: "center", flexDirection: "row", gap: 12 },
-  avatar: {
-    alignItems: "center", backgroundColor: "#fff1eb", borderColor: "#fed7c7", borderRadius: 18,
-    borderWidth: 1, height: 52, justifyContent: "center", width: 52
+  heroIntro: { gap: spacing.md, paddingHorizontal: 2, paddingTop: spacing.sm },
+  heroBadge: {
+    alignItems: "center",
+    alignSelf: "flex-start",
+    backgroundColor: "#e8f0ff",
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 7,
+    maxWidth: "100%",
+    paddingHorizontal: 13,
+    paddingVertical: 9
   },
-  avatarText: { color: "#ee4d2d", fontSize: 22, fontWeight: "900" },
-  headingBody: { flex: 1 },
-  eyebrow: { color: colors.mutedText, fontSize: 12, fontWeight: "700", textTransform: "uppercase" },
-  heading: { color: colors.text, fontSize: 22, fontWeight: "900", letterSpacing: -0.4 },
-  caption: { color: colors.mutedText, fontSize: 12, lineHeight: 18, marginTop: 2 },
-  bannerFrame: { borderRadius: 20, height: 144, overflow: "hidden" },
-  bannerImage: { height: "100%", width: "100%" },
-  balanceCard: {
-    backgroundColor: "#ff451a", borderRadius: 24, minHeight: 154, overflow: "hidden", padding: spacing.lg,
-    shadowColor: "#f97316", shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.22, shadowRadius: 18, elevation: 7
-  },
-  balanceOrbLarge: { backgroundColor: "rgba(255,255,255,0.17)", borderRadius: 80, height: 150, position: "absolute", right: -45, top: -55, width: 150 },
-  balanceOrbSmall: { backgroundColor: "rgba(98,25,0,0.12)", borderRadius: 60, bottom: -55, height: 115, left: -25, position: "absolute", width: 115 },
-  balanceLabel: { color: "rgba(255,255,255,0.88)", fontSize: 12, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
-  balanceValue: { color: "#ffffff", fontSize: 34, fontWeight: "900", letterSpacing: -1, marginTop: spacing.lg },
-  metricGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  heroBadgeText: { color: "#3b82f6", flexShrink: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
   metricCard: {
     backgroundColor: colors.surface, borderColor: "#f1f5f9", borderRadius: 18, borderWidth: 1,
     flexBasis: "47%", flexGrow: 1, minHeight: 112, padding: spacing.md,
@@ -916,12 +1055,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderColor: "#fed7c7", borderRadius: 24, borderWidth: 1, gap: spacing.md,
     padding: spacing.lg, shadowColor: "#f97316", shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3
   },
-  creatorTitle: { color: colors.text, fontSize: 21, fontWeight: "900" },
-  creatorCaption: { color: colors.mutedText, fontSize: 13, lineHeight: 20, marginTop: 5 },
-  supportBlock: { borderBottomColor: "#f1f5f9", borderBottomWidth: 1, gap: 9, paddingBottom: spacing.md },
+  creatorTitle: { color: colors.text, fontSize: 29, fontWeight: "900", letterSpacing: -0.8, lineHeight: 36 },
+  creatorTitleAccent: { color: "#3b82f6" },
+  creatorCaption: { color: colors.mutedText, fontSize: 15, lineHeight: 24 },
+  supportBlock: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 9, justifyContent: "space-between" },
   supportLabel: { color: colors.mutedText, fontSize: 10, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
-  platformBadge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  platformBadge: { alignItems: "center", borderRadius: 999, flexDirection: "row", gap: 5, paddingHorizontal: 11, paddingVertical: 7 },
   platformBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
   notice: { alignItems: "center", backgroundColor: "#f1f5f9", borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 10, padding: 12 },
   noticeDanger: { backgroundColor: "#fff1f2", borderColor: "#fecdd3" },
@@ -929,12 +1069,34 @@ const styles = StyleSheet.create({
   noticeText: { color: "#475569", flex: 1, fontSize: 12, lineHeight: 18 },
   noticeAction: { minHeight: 36, justifyContent: "center", paddingHorizontal: 5 },
   noticeActionText: { color: "#ea580c", fontSize: 12, fontWeight: "900" },
-  inputFrame: { backgroundColor: "#f8fafc", borderColor: colors.border, borderRadius: 16, borderWidth: 1, minHeight: 54 },
+  inputFrame: { alignItems: "center", backgroundColor: "#f8fafc", borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", minHeight: 54, paddingLeft: 13 },
   inputFrameError: { borderColor: colors.danger },
-  input: { color: colors.text, flex: 1, fontSize: 14, minHeight: 54, paddingHorizontal: 15, paddingVertical: 12 },
+  input: { color: colors.text, flex: 1, fontSize: 13, minHeight: 54, paddingHorizontal: 10, paddingVertical: 12 },
+  pasteButton: { alignItems: "center", justifyContent: "center", minHeight: 48, minWidth: 44 },
   fieldError: { color: colors.danger, fontSize: 12, fontWeight: "600", marginTop: -8 },
   primaryButton: { alignItems: "center", backgroundColor: "#ee4d2d", borderRadius: 16, flexDirection: "row", gap: 9, justifyContent: "center", minHeight: 52, paddingHorizontal: spacing.lg },
+  creatorPrimaryButton: {
+    alignItems: "center",
+    backgroundColor: "#3b82f6",
+    borderRadius: 13,
+    flexDirection: "row",
+    gap: 9,
+    justifyContent: "center",
+    minHeight: 50,
+    paddingHorizontal: spacing.lg,
+    shadowColor: "#2563eb",
+    shadowOffset: { height: 7, width: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 4
+  },
   primaryButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "900" },
+  creatorHelpRow: { alignItems: "stretch", flexDirection: "row", gap: 9 },
+  creatorHelpAction: { alignItems: "center", flex: 1, flexDirection: "row", gap: 7, justifyContent: "center", minHeight: 46, minWidth: 0, paddingHorizontal: 2 },
+  creatorHelpDivider: { alignSelf: "center", backgroundColor: colors.border, height: 26, width: 1 },
+  creatorHelpText: { flexShrink: 1, fontSize: 11, fontWeight: "800", lineHeight: 16, textAlign: "center" },
+  creatorHelpTextBlue: { color: "#3b82f6" },
+  creatorHelpTextAmber: { color: "#d97706" },
   secondaryButton: { alignItems: "center", backgroundColor: "#fff7ed", borderColor: "#fed7aa", borderRadius: 16, borderWidth: 1, justifyContent: "center", minHeight: 48, paddingHorizontal: spacing.lg },
   secondaryButtonText: { color: "#c2410c", fontSize: 14, fontWeight: "800" },
   disabled: { opacity: 0.5 },
@@ -966,7 +1128,4 @@ const styles = StyleSheet.create({
   skeletonLine: { backgroundColor: "#e2e8f0", borderRadius: 6, height: 13, width: "65%" },
   skeletonLineLong: { width: "100%" },
   skeletonLineShort: { width: "42%" },
-  resultEmpty: { alignItems: "center", backgroundColor: "#ffffff", borderColor: colors.border, borderRadius: 22, borderStyle: "dashed", borderWidth: 1, gap: 10, padding: spacing.lg },
-  resultEmptyMark: { color: "#cbd5e1", fontSize: 13, fontWeight: "900", letterSpacing: 2 },
-  resultEmptyText: { color: colors.mutedText, fontSize: 13, lineHeight: 20, textAlign: "center" }
 });

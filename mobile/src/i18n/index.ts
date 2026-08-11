@@ -1,9 +1,16 @@
-import { getLocales } from "expo-localization";
-
 export type SupportedLocale = "vi" | "en";
 
+/**
+ * Vietnamese is the product default. Device locale must not silently switch
+ * the member experience to English; callers may pass the explicit account
+ * preference returned by Laravel when a member has selected another locale.
+ */
 export function getDeviceLocale(): SupportedLocale {
-  return getLocales()[0]?.languageCode?.toLowerCase() === "en" ? "en" : "vi";
+  return "vi";
+}
+
+export function resolveLocale(preference?: string | null): SupportedLocale {
+  return preference?.trim().toLowerCase() === "en" ? "en" : "vi";
 }
 
 const messages = {

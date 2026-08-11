@@ -26,7 +26,7 @@ import { useAccount } from "@/features/account/api";
 import { fetchTasks } from "@/features/earn/api";
 import { fetchUnreadCount } from "@/features/notifications/api";
 import { useMoreSheetStore } from "@/features/navigation/moreStore";
-import { getDeviceLocale } from "@/i18n";
+import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemePreference } from "@/theme/themePreference";
 
@@ -68,8 +68,8 @@ export function MoreSheet() {
     enabled: isOpen
   });
   const [loggingOut, setLoggingOut] = useState(false);
-  const vi = getDeviceLocale() === "vi";
   const account = accountQuery.data;
+  const vi = resolveLocale(account?.preferences?.locale ?? user?.preferences?.locale ?? getDeviceLocale()) === "vi";
   const displayName = account?.name || user?.name || "Mesale";
   const displayEmail = account?.email || user?.email || (vi ? "Thành viên Mesale" : "Mesale member");
   const referralCode = account?.referral_code ?? user?.referral_code ?? null;

@@ -90,5 +90,7 @@ test("Round A keeps current UI stable while mounting the theme boundary", () => 
   assert.match(tokens, /export const colors = lightColors/);
   assert.match(tokens, /primary: "#f97316"/g);
   assert.match(layout, /<ThemeProvider>[\s\S]*<AuthProvider>/);
-  assert.match(layout, /<StatusBar style="auto" \/>/);
+  assert.match(layout, /function ThemedStatusBar/);
+  assert.match(layout, /style=\{scheme === "dark" \? "light" : "dark"\}/);
+  assert.match(layout, /<ThemedStatusBar \/>/);
 });

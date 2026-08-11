@@ -90,6 +90,15 @@ export function parseUser(value: unknown): User {
   if (typeof value.referral_code === "string" || value.referral_code === null) user.referral_code = value.referral_code;
   if (typeof value.status === "string" || value.status === null) user.status = value.status;
   if (typeof value.email_verified === "boolean") user.email_verified = value.email_verified;
+  if (value.preferences !== undefined) {
+    if (!isRecord(value.preferences)) throw new AuthContractError("The authentication response included invalid account preferences.");
+    const locale = value.preferences.locale;
+    const currency = value.preferences.currency;
+    if (typeof locale !== "string" || typeof currency !== "string") {
+      throw new AuthContractError("The authentication response included invalid account preferences.");
+    }
+    user.preferences = { locale, currency };
+  }
   if (typeof value.created_at === "string" || value.created_at === null) user.created_at = value.created_at;
   return user;
 }

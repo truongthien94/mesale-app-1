@@ -2,12 +2,16 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   createCashbackLink,
   fetchAccountSummary,
-  fetchHomeConfig
+  fetchCoupons,
+  fetchHomeConfig,
+  fetchRanking
 } from "@/features/home/api";
 
 export const homeQueryKeys = {
   account: ["account"] as const,
-  config: ["config"] as const
+  config: ["config"] as const,
+  coupons: ["home", "coupons"] as const,
+  ranking: ["home", "ranking"] as const
 };
 
 export function useAccountSummary() {
@@ -27,5 +31,19 @@ export function useHomeConfig() {
 export function useCreateCashbackLink() {
   return useMutation({
     mutationFn: createCashbackLink
+  });
+}
+
+export function useCoupons() {
+  return useQuery({
+    queryKey: homeQueryKeys.coupons,
+    queryFn: ({ signal }) => fetchCoupons(signal)
+  });
+}
+
+export function useRanking() {
+  return useQuery({
+    queryKey: homeQueryKeys.ranking,
+    queryFn: ({ signal }) => fetchRanking(signal)
   });
 }

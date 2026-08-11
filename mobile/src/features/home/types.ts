@@ -63,3 +63,32 @@ export type CashbackProduct = {
 export type ProductUrlValidation =
   | { valid: true; url: string }
   | { valid: false; reason: "required" | "invalid" };
+
+export type Coupon = {
+  id: number;
+  platform: Marketplace;
+  code: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  minSpend: number;
+  discountAmount: number;
+  discountPercentage: number;
+  imageUrl: string | null;
+  redirectLink: string | null;
+  expiredAt: string | null;
+};
+
+export type RankingEntry = {
+  name: string;
+  avatar: string | null;
+  value: number;
+};
+
+export type RankingBoard = {
+  topOrders: RankingEntry[];
+  topCashback: RankingEntry[];
+  topCheckin: RankingEntry[];
+  topReferral: RankingEntry[];
+  topBalance: RankingEntry[];
+};

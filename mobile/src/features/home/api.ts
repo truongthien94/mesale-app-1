@@ -2,11 +2,14 @@ import { request } from "@/api/client";
 import type {
   AccountSummary,
   CashbackProduct,
+  Coupon,
   HomeBanner,
   HomeConfig,
   Marketplace,
   MarketplaceConfig,
-  ProductUrlValidation
+  ProductUrlValidation,
+  RankingBoard,
+  RankingEntry
 } from "@/features/home/types";
 
 class HomeContractError extends Error {
@@ -168,6 +171,67 @@ export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig>
       lazada: parseMarketplaceConfig(cashback, "lazada")
     },
     banners
+  };
+}
+
+function parseCoupon(value: unknown): Coupon | null {
+  if (!isRecord(value)) return null;
+  const platform = value.platform;
+  if (platform !== "shopee" && platform !== "tiktok" && platform !== "lazada") return null;
+  const code = optionalString(value.code);
+  const title = optionalString(value.title);
+  if (!code || !title) return null;
+
+  return {
+    id: requireInteger(value.id, "coupon id"),
+    platform,
+    code,
+    title,
+    description: optionalString(value.description),
+    category: optionalString(value.category),
+    minSpend: optionalNumber(value.min_spend),
+    discountAmount: optionalNumber(value.discount_amount),
+    discountPercentage: optionalNumber(value.discount_percentage),
+    imageUrl: optionalString(value.image_url),
+    redirectLink: optionalString(value.redirect_link),
+    expiredAt: optionalString(value.expired_at)
+  };
+}
+
+export async function fetchCoupons(signal?: AbortSignal): Promise<Coupon[]> {
+  const value = requireRecord(
+    await request<unknown>("coupons?platform=shopee&per_page=10", { signal }),
+    "coupons"
+  );
+  const items = Array.isArray(value.items) ? value.items : [];
+  return items.map(parseCoupon).filter((coupon): coupon is Coupon => coupon !== null);
+}
+
+function parseRankingEntries(value: unknown): RankingEntry[] {
+  if (!Array.isArray(value)) return [];
+  const entries: RankingEntry[] = [];
+  for (const item of value) {
+    if (!isRecord(item)) continue;
+    const name = optionalString(item.name);
+    if (!name) continue;
+    entries.push({
+      name,
+      avatar: optionalString(item.avatar),
+      value: optionalNumber(item.value)
+    });
+  }
+  return entries;
+}
+
+export async function fetchRanking(signal?: AbortSignal): Promise<RankingBoard> {
+  const value = requireRecord(await request<unknown>("ranking", { signal }), "ranking");
+
+  return {
+    topOrders: parseRankingEntries(value.top_orders),
+    topCashback: parseRankingEntries(value.top_cashback),
+    topCheckin: parseRankingEntries(value.top_checkin),
+    topReferral: parseRankingEntries(value.top_referral),
+    topBalance: parseRankingEntries(value.top_balance)
   };
 }
 

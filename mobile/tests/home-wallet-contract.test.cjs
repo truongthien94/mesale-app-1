@@ -31,6 +31,15 @@ function loadTypeScriptModule(relativePath, stubs = {}) {
   return loadedModule.exports;
 }
 
+test("Vietnamese remains the default locale unless English is explicitly preferred", () => {
+  const { getDeviceLocale, resolveLocale } = loadTypeScriptModule("../src/i18n/index.ts");
+
+  assert.equal(getDeviceLocale(), "vi");
+  assert.equal(resolveLocale(), "vi");
+  assert.equal(resolveLocale("th"), "vi");
+  assert.equal(resolveLocale(" EN "), "en");
+});
+
 test("home normalizes product URLs and only accepts HTTPS affiliate handoff", () => {
   const { isSafeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
     "@/api/client": { request: async () => { throw new Error("not called"); } }
@@ -53,23 +62,23 @@ test("home normalizes product URLs and only accepts HTTPS affiliate handoff", ()
   assert.equal(normalizeBannerLink("javascript:alert(1)"), null);
 });
 
-test("home banner links use safe native Linking handoff", () => {
+test("home has no banner block, matching the live classic hero layout which renders no banner", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
-  assert.match(source, /normalizeBannerLink\(banner\?\.link/);
-  assert.match(source, /Linking\.canOpenURL\(bannerLink\)/);
-  assert.match(source, /Linking\.openURL\(bannerLink\)/);
-  assert.match(source, /accessibilityRole=\{bannerLink \? "link"/);
+  assert.doesNotMatch(source, /normalizeBannerLink/);
+  assert.doesNotMatch(source, /openBannerLink|bannerFrame|bannerImage|const banner =/);
+  assert.doesNotMatch(source, /config\?\.banners/);
 });
 
-test("Round C appends the observed homepage snapshot without website-only links", () => {
+test("Round C renders the enabled homepage blocks with live coupon and ranking data, no disabled blog block", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
   assert.match(source, /RoundCHomeBlocks/);
-  assert.match(source, /YOUTUBEAPR210105/);
-  assert.match(source, /YOUTUBEMAR200108/);
-  assert.match(source, /METAPAR2MARD22750/);
+  assert.match(source, /RoundCCouponSection/);
+  assert.match(source, /useCoupons\(\)/);
   assert.match(source, /RoundCTimelineSection/);
-  assert.match(source, /RoundCBlogSection/);
+  assert.match(source, /RoundCLeaderboardSection/);
+  assert.match(source, /useRanking\(\)/);
   assert.match(source, /useTheme/);
+  assert.doesNotMatch(source, /RoundCBlogSection/);
   assert.doesNotMatch(source, /route\(['"]blog\./);
 });
 
