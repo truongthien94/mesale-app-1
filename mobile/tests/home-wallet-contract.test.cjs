@@ -62,11 +62,104 @@ test("home normalizes product URLs and only accepts HTTPS affiliate handoff", ()
   assert.equal(normalizeBannerLink("javascript:alert(1)"), null);
 });
 
+test("account summary preserves an unknown pending cashback field during rolling deploy", async () => {
+  let accountPayload = {
+    id: 42,
+    name: "Mobile User",
+    email: "mobile@example.test",
+    avatar: null,
+    referral_code: "MESALE42",
+    wallet: {
+      balance: 200,
+      total_cashback: 500,
+      total_referral_earned: 50,
+      total_withdrawn: 100,
+      currency: "VND"
+    },
+    stats: {
+      orders_total: 3,
+      orders_pending: 1,
+      orders_approved: 2,
+      orders_rejected: 0,
+      referrals_count: 0,
+      withdrawals_pending: 0
+    }
+  };
+  const { fetchAccountSummary } = loadTypeScriptModule("../src/features/home/api.ts", {
+    "@/api/client": { request: async () => accountPayload }
+  });
+
+  assert.equal((await fetchAccountSummary()).wallet.pendingCashback, null);
+
+  accountPayload = {
+    ...accountPayload,
+    wallet: { ...accountPayload.wallet, pending_cashback: 1250 }
+  };
+  assert.equal((await fetchAccountSummary()).wallet.pendingCashback, 1250);
+
+  accountPayload = {
+    ...accountPayload,
+    wallet: { ...accountPayload.wallet, pending_cashback: 12.5 }
+  };
+  await assert.rejects(fetchAccountSummary(), /Invalid pending cashback response/);
+});
+
+test("successful withdrawal invalidates both Wallet and Home account summaries", async () => {
+  const invalidated = [];
+  const { useCreateWithdrawal } = loadTypeScriptModule("../src/features/wallet/api.ts", {
+    "@tanstack/react-query": {
+      useInfiniteQuery: () => undefined,
+      useMutation: (options) => options,
+      useQuery: () => undefined,
+      useQueryClient: () => ({
+        invalidateQueries: async ({ queryKey }) => { invalidated.push(queryKey); }
+      })
+    },
+    "@/api/idempotency": { idempotencyHeaders: () => ({}) },
+    "@/api/pagination": { getNextPageParam: () => undefined },
+    "@/api/client": { request: async () => ({}) },
+    "@/features/home/hooks": { homeQueryKeys: { account: ["account"] } }
+  });
+
+  await useCreateWithdrawal().onSuccess();
+
+  assert.deepEqual(invalidated, [
+    ["account"],
+    ["wallet", "account"],
+    ["wallet", "withdrawals"],
+    ["wallet", "balance-logs"]
+  ]);
+});
+
 test("home has no banner block, matching the live classic hero layout which renders no banner", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
   assert.doesNotMatch(source, /normalizeBannerLink/);
   assert.doesNotMatch(source, /openBannerLink|bannerFrame|bannerImage|const banner =/);
   assert.doesNotMatch(source, /config\?\.banners/);
+});
+
+test("home replaces the promotional hero with a live two-card account summary", () => {
+  const source = read("../src/features/home/HomeScreen.tsx");
+  const accountStats = source.match(/<AccountStat\b/g) ?? [];
+  const bellIcons = source.match(/<Bell\b/g) ?? [];
+  const inboxActions = source.match(/router\.push\("\/\(tabs\)\/inbox"\)/g) ?? [];
+  const compactAccountValues = source.match(/formatAccountMoney\(account\.wallet\./g) ?? [];
+
+  assert.match(source, /account\.wallet\.balance/);
+  assert.match(source, /account\.wallet\.totalCashback/);
+  assert.match(source, /account\.wallet\.pendingCashback/);
+  assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/withdrawals"\)/);
+  assert.match(source, /function formatAccountMoney\(value: number \| null/);
+  assert.match(source, /if \(value === null\) return "--"/);
+  assert.match(source, /\.format\(value\)\}đ/);
+  assert.match(source, /minHeight: 44/);
+  assert.equal(accountStats.length, 2);
+  assert.equal(bellIcons.length, 1);
+  assert.equal(inboxActions.length, 1);
+  assert.equal(compactAccountValues.length, 4);
+  assert.doesNotMatch(source, /strings\.(heroBadge|cashbackTitle|cashbackCaption)/);
+  assert.doesNotMatch(source, /Hệ Thống Mua Sắm|Cashback Shopping for/);
+  assert.doesNotMatch(source, /% HH ròng|% net commission/i);
 });
 
 test("Round C renders the enabled homepage blocks with live coupon and ranking data, no disabled blog block", () => {

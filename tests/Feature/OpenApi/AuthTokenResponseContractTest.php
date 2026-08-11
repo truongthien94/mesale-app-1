@@ -336,6 +336,17 @@ class AuthTokenResponseContractTest extends TestCase
             'total_referral_earned' => '4567.00',
             'total_withdrawn' => '12000.00',
         ]);
+        $otherUser = $this->createUser([
+            'email' => 'other-wallet-user@example.test',
+            'referral_code' => 'OTHERWALLET',
+        ]);
+
+        DB::table('cashback_histories')->insert([
+            ['user_id' => $user->id, 'status' => 'pending', 'cashback_amount' => '1200.49'],
+            ['user_id' => $user->id, 'status' => 'pending', 'cashback_amount' => '300.51'],
+            ['user_id' => $user->id, 'status' => 'approved', 'cashback_amount' => '9000.00'],
+            ['user_id' => $otherUser->id, 'status' => 'pending', 'cashback_amount' => '750000.00'],
+        ]);
         [$plainToken] = ApiToken::generateFor($user, 'Session Restore Test', 30, '127.0.0.1');
 
         $response = $this->withToken($plainToken)->getJson('/api/v1/openapi/account');
@@ -346,11 +357,16 @@ class AuthTokenResponseContractTest extends TestCase
             ->assertJsonPath('data.email', $user->email)
             ->assertJsonPath('data.preferences.locale', 'vi')
             ->assertJsonPath('data.preferences.currency', 'VND')
-            ->assertJsonPath('data.wallet.currency', 'VND');
+            ->assertJsonPath('data.wallet.currency', 'VND')
+            ->assertJsonPath('data.stats.orders_total', 3)
+            ->assertJsonPath('data.stats.orders_pending', 2)
+            ->assertJsonPath('data.stats.orders_approved', 1)
+            ->assertJsonPath('data.stats.orders_rejected', 0);
 
         $wallet = $response->json('data.wallet');
         $expected = [
             'balance' => 123456,
+            'pending_cashback' => 1501,
             'total_cashback' => 34567,
             'total_referral_earned' => 4567,
             'total_withdrawn' => 12000,
@@ -1547,6 +1563,7 @@ class AuthTokenResponseContractTest extends TestCase
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->string('status');
+            $table->decimal('cashback_amount', 15, 2)->default(0);
         });
 
         Schema::create('withdrawals', function (Blueprint $table): void {

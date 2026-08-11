@@ -19,7 +19,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import * as Clipboard from "expo-clipboard";
+import { LinearGradient } from "expo-linear-gradient";
 import {
+  Banknote,
   Bell,
   CircleAlert,
   CirclePlay,
@@ -27,14 +29,15 @@ import {
   Clock3,
   Copy,
   Crown,
+  Hourglass,
   Link2,
   Menu,
   Moon,
   Search,
   ShoppingBag,
-  Sparkles,
   Sun,
   Ticket,
+  TrendingUp,
   Trophy
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
@@ -65,20 +68,11 @@ const copy = {
     emptyTitle: "Không có dữ liệu tài khoản",
     emptyMessage: "Máy chủ chưa trả về thông tin ví cho tài khoản này.",
     retry: "Thử lại",
-    greeting: "Xin chào",
-    dashboardCaption: "Tổng quan tài khoản và công cụ hoàn tiền của bạn",
-    availableBalance: "Số dư khả dụng",
-    totalCashback: "Tổng cashback",
-    totalWithdrawn: "Tổng đã rút",
-    referralEarned: "Hoa hồng giới thiệu",
-    orders: "Đơn hàng",
+    greeting: "Chào",
+    availableBalance: "Số dư ví",
+    withdraw: "Rút tiền",
+    totalCashback: "Tổng đã nhận",
     pending: "Chờ duyệt",
-    approved: "Đã duyệt",
-    rejected: "Từ chối",
-    referrals: "Giới thiệu",
-    heroBadge: "Hoàn tiền mua sắm Shopee - TikTok Shop lên đến 15% giá trị đơn hàng",
-    cashbackTitle: "Hệ Thống Mua Sắm Hoàn Tiền Shopee & TikTok Shop - Mê Sale",
-    cashbackCaption: "Dán link sản phẩm bất kỳ từ Shopee - TikTok để lấy mã giảm giá, kiểm tra số tiền hoàn lại dự kiến và nhận tiền hoàn trực tiếp vào ví sau khi mua hàng thành công.",
     supported: "Nền tảng hỗ trợ:",
     configLoading: "Đang kiểm tra trạng thái các sàn...",
     configOffline: "Chưa thể kiểm tra trạng thái sàn vì thiết bị đang offline.",
@@ -127,19 +121,10 @@ const copy = {
     emptyMessage: "The server did not return wallet data for this account.",
     retry: "Retry",
     greeting: "Hello",
-    dashboardCaption: "Your account overview and cashback tool",
-    availableBalance: "Available balance",
-    totalCashback: "Total cashback",
-    totalWithdrawn: "Total withdrawn",
-    referralEarned: "Referral earnings",
-    orders: "Orders",
+    availableBalance: "Wallet balance",
+    withdraw: "Withdraw",
+    totalCashback: "Total received",
     pending: "Pending",
-    approved: "Approved",
-    rejected: "Rejected",
-    referrals: "Referrals",
-    heroBadge: "Get up to 15% cashback on Shopee and TikTok Shop orders",
-    cashbackTitle: "Cashback Shopping for Shopee & TikTok Shop - Me Sale",
-    cashbackCaption: "Paste any Shopee or TikTok product link to get a discount code, check your estimated cashback, and receive cashback in your wallet after a successful purchase.",
     supported: "Supported platforms:",
     configLoading: "Checking marketplace availability...",
     configOffline: "Marketplace availability cannot be checked while offline.",
@@ -204,6 +189,14 @@ function formatVnd(value: number, language: "vi" | "en"): string {
   }).format(value);
 }
 
+function formatAccountMoney(value: number | null, language: "vi" | "en"): string {
+  if (value === null) return "--";
+  if (language === "vi") {
+    return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(value)}đ`;
+  }
+  return formatVnd(value, language);
+}
+
 function secureRemoteUri(value: string | null): string | null {
   if (!value) return null;
   try {
@@ -261,11 +254,14 @@ function MetricCard({ label, value, accent }: { label: string; value: string; ac
   );
 }
 
-function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+function AccountStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.statPill}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text numberOfLines={1} style={styles.statLabel}>{label}</Text>
+    <View style={[styles.accountStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      {icon}
+      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.accountStatValue, { color: colors.text }]}>{value}</Text>
+      <Text numberOfLines={1} style={[styles.accountStatLabel, { color: colors.mutedText }]}>{label}</Text>
     </View>
   );
 }
@@ -765,6 +761,7 @@ export function HomeScreen() {
       ? strings.mutationOffline
       : errorMessage(cashbackMutation.error, strings.mutationError))
     : null;
+  const displayName = account.name?.trim() || user?.name?.trim() || (language === "vi" ? "bạn" : "there");
 
   return (
     <KeyboardAvoidingView
@@ -834,15 +831,6 @@ export function HomeScreen() {
                 : <Moon color={themeColors.mutedText} size={18} strokeWidth={2} />}
             </Pressable>
             <Pressable
-              accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={() => router.push("/(tabs)/inbox")}
-              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
-            >
-              <Bell color={themeColors.mutedText} size={18} strokeWidth={2} />
-            </Pressable>
-            <Pressable
               accessibilityLabel={language === "vi" ? "Mở thêm tùy chọn" : "Open more options"}
               accessibilityRole="button"
               hitSlop={6}
@@ -854,26 +842,66 @@ export function HomeScreen() {
           </View>
         </View>
 
-        <View style={styles.heroIntro}>
-          <View style={[styles.heroBadge, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-            <Sparkles color={themeColors.primary} size={15} strokeWidth={2.4} />
-            <Text style={[styles.heroBadgeText, { color: themeColors.primary }]}>{strings.heroBadge}</Text>
+        <View style={styles.accountSummary}>
+          <View style={styles.accountGreetingRow}>
+            <Text accessibilityRole="header" style={[styles.accountGreeting, { color: themeColors.text }]}>
+              {strings.greeting} {displayName} 👋
+            </Text>
+            <Pressable
+              accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
+              accessibilityRole="button"
+              hitSlop={6}
+              onPress={() => router.push("/(tabs)/inbox")}
+              style={({ pressed }) => [
+                styles.accountNotificationButton,
+                { backgroundColor: themeColors.surface, borderColor: themeColors.border },
+                pressed && styles.pressed
+              ]}
+            >
+              <Bell color={themeColors.text} size={19} strokeWidth={2} />
+            </Pressable>
           </View>
-          <Text accessibilityLabel={strings.cashbackTitle} accessibilityRole="header" style={[styles.creatorTitle, { color: themeColors.text }]}>
-            {language === "vi" ? (
-              <>
-                Hệ Thống Mua Sắm{"\n"}
-                Hoàn Tiền <Text style={[styles.creatorTitleAccent, { color: themeColors.primary }]}>Shopee &{"\n"}TikTok Shop</Text> - Mê Sale
-              </>
-            ) : (
-              <>
-                Cashback Shopping for{"\n"}
-                <Text style={[styles.creatorTitleAccent, { color: themeColors.primary }]}>Shopee & TikTok Shop</Text>{"\n"}
-                - Me Sale
-              </>
-            )}
-          </Text>
-          <Text style={[styles.creatorCaption, { color: themeColors.mutedText }]}>{strings.cashbackCaption}</Text>
+
+          <LinearGradient
+            colors={["#59a5fa", "#356dd3"]}
+            end={{ x: 1, y: 1 }}
+            start={{ x: 0, y: 0 }}
+            style={styles.accountBalanceCard}
+          >
+            <View style={styles.accountBalanceCopy}>
+              <Text style={styles.accountBalanceLabel}>{strings.availableBalance}</Text>
+              <Text
+                accessibilityLabel={`${strings.availableBalance}: ${formatAccountMoney(account.wallet.balance, language)}`}
+                adjustsFontSizeToFit
+                numberOfLines={1}
+                style={styles.accountBalanceValue}
+              >
+                {formatAccountMoney(account.wallet.balance, language)}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityLabel={strings.withdraw}
+              accessibilityRole="button"
+              onPress={() => router.push("/(tabs)/wallet/withdrawals")}
+              style={({ pressed }) => [styles.accountWithdrawButton, pressed && styles.pressed]}
+            >
+              <Banknote color="#3b82f6" size={17} strokeWidth={2.2} />
+              <Text style={styles.accountWithdrawText}>{strings.withdraw}</Text>
+            </Pressable>
+          </LinearGradient>
+
+          <View style={styles.accountStatsRow}>
+            <AccountStat
+              icon={<TrendingUp color="#16a34a" size={20} strokeWidth={2.2} />}
+              label={strings.totalCashback}
+              value={formatAccountMoney(account.wallet.totalCashback, language)}
+            />
+            <AccountStat
+              icon={<Hourglass color="#f59e0b" size={20} strokeWidth={2.2} />}
+              label={strings.pending}
+              value={formatAccountMoney(account.wallet.pendingCashback, language)}
+            />
+          </View>
         </View>
 
         <View style={[styles.creatorCard, { backgroundColor: themeColors.surface, borderColor: scheme === "dark" ? themeColors.border : "#fed7c7" }]}>
@@ -1024,19 +1052,58 @@ const styles = StyleSheet.create({
   demoSection: { marginBottom: spacing.sm },
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing.md },
-  heroIntro: { gap: spacing.md, paddingHorizontal: 2, paddingTop: spacing.sm },
-  heroBadge: {
+  accountSummary: { gap: spacing.md, paddingTop: spacing.sm },
+  accountGreetingRow: { alignItems: "center", flexDirection: "row", gap: spacing.sm, justifyContent: "space-between" },
+  accountGreeting: { flex: 1, fontSize: 20, fontWeight: "900", lineHeight: 27 },
+  accountNotificationButton: {
     alignItems: "center",
-    alignSelf: "flex-start",
-    backgroundColor: "#e8f0ff",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 44,
+    justifyContent: "center",
+    width: 44
+  },
+  accountBalanceCard: {
+    alignItems: "center",
+    borderRadius: 20,
+    flexDirection: "row",
+    gap: spacing.md,
+    justifyContent: "space-between",
+    minHeight: 104,
+    overflow: "hidden",
+    paddingHorizontal: 20,
+    paddingVertical: spacing.md
+  },
+  accountBalanceCopy: { flex: 1, minWidth: 0 },
+  accountBalanceLabel: { color: "#dbeafe", fontSize: 12, fontWeight: "600" },
+  accountBalanceValue: { color: "#ffffff", fontSize: 31, fontWeight: "900", letterSpacing: -0.7, marginTop: 4 },
+  accountWithdrawButton: {
+    alignItems: "center",
+    backgroundColor: "#ffffff",
     borderRadius: 999,
     flexDirection: "row",
-    gap: 7,
-    maxWidth: "100%",
-    paddingHorizontal: 13,
-    paddingVertical: 9
+    gap: 6,
+    justifyContent: "center",
+    minHeight: 44,
+    paddingHorizontal: 14
   },
-  heroBadgeText: { color: "#3b82f6", flexShrink: 1, fontSize: 12, fontWeight: "800", lineHeight: 17 },
+  accountWithdrawText: { color: "#3b82f6", fontSize: 12, fontWeight: "900" },
+  accountStatsRow: { flexDirection: "row", gap: 10 },
+  accountStatCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    minHeight: 94,
+    paddingHorizontal: 13,
+    paddingVertical: 12,
+    shadowColor: "#0f172a",
+    shadowOffset: { height: 3, width: 0 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1
+  },
+  accountStatValue: { fontSize: 18, fontWeight: "900", marginTop: 7 },
+  accountStatLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
   metricCard: {
     backgroundColor: colors.surface, borderColor: "#f1f5f9", borderRadius: 18, borderWidth: 1,
     flexBasis: "47%", flexGrow: 1, minHeight: 112, padding: spacing.md,
@@ -1045,19 +1112,10 @@ const styles = StyleSheet.create({
   metricMark: { borderRadius: 3, height: 6, marginBottom: 12, width: 28 },
   metricLabel: { color: colors.mutedText, fontSize: 11, fontWeight: "800", minHeight: 28, textTransform: "uppercase" },
   metricValue: { color: colors.text, fontSize: 18, fontWeight: "900", marginTop: 6 },
-  statsCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, padding: spacing.md },
-  sectionLabel: { color: colors.text, fontSize: 13, fontWeight: "900", marginBottom: spacing.md, textTransform: "uppercase" },
-  statsRow: { flexDirection: "row", gap: spacing.sm },
-  statPill: { alignItems: "center", backgroundColor: "#f8fafc", borderRadius: 14, flex: 1, paddingHorizontal: 6, paddingVertical: 12 },
-  statValue: { fontSize: 19, fontWeight: "900" },
-  statLabel: { color: colors.mutedText, fontSize: 10, fontWeight: "700", marginTop: 2 },
   creatorCard: {
     backgroundColor: colors.surface, borderColor: "#fed7c7", borderRadius: 24, borderWidth: 1, gap: spacing.md,
     padding: spacing.lg, shadowColor: "#f97316", shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3
   },
-  creatorTitle: { color: colors.text, fontSize: 29, fontWeight: "900", letterSpacing: -0.8, lineHeight: 36 },
-  creatorTitleAccent: { color: "#3b82f6" },
-  creatorCaption: { color: colors.mutedText, fontSize: 15, lineHeight: 24 },
   supportBlock: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 9, justifyContent: "space-between" },
   supportLabel: { color: colors.mutedText, fontSize: 10, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },

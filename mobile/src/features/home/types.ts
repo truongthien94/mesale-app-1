@@ -2,6 +2,7 @@ export type Marketplace = "shopee" | "tiktok" | "lazada";
 
 export type AccountWallet = {
   balance: number;
+  pendingCashback: number | null;
   totalCashback: number;
   totalReferralEarned: number;
   totalWithdrawn: number;

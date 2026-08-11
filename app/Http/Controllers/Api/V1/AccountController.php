@@ -38,9 +38,12 @@ class AccountController extends ApiController
 
         // Thống kê nhanh số lượng đơn hoàn tiền theo trạng thái và số người giới thiệu
         $cashbackStats = CashbackHistory::where('user_id', $user->id)
-            ->selectRaw('status, COUNT(*) as total')
+            ->selectRaw('status, COUNT(*) as total, COALESCE(SUM(cashback_amount), 0) as cashback_total')
             ->groupBy('status')
-            ->pluck('total', 'status');
+            ->get()
+            ->keyBy('status');
+
+        $pendingCashback = $cashbackStats->get('pending');
 
         $pendingWithdraw = Withdrawal::where('user_id', $user->id)->where('status', 'pending')->count();
 
@@ -59,16 +62,17 @@ class AccountController extends ApiController
             'wallet' => [
                 // Số dư khả dụng có thể rút
                 'balance' => (int) MoneyHelper::round($user->balance),
+                'pending_cashback' => (int) MoneyHelper::round($pendingCashback?->cashback_total),
                 'total_cashback' => (int) MoneyHelper::round($user->total_cashback),
                 'total_referral_earned' => (int) MoneyHelper::round($user->total_referral_earned),
                 'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),
                 'currency' => 'VND',
             ],
             'stats' => [
-                'orders_total' => (int) $cashbackStats->sum(),
-                'orders_pending' => (int) ($cashbackStats['pending'] ?? 0),
-                'orders_approved' => (int) ($cashbackStats['approved'] ?? 0),
-                'orders_rejected' => (int) ($cashbackStats['rejected'] ?? 0),
+                'orders_total' => (int) $cashbackStats->sum('total'),
+                'orders_pending' => (int) ($cashbackStats->get('pending')?->total ?? 0),
+                'orders_approved' => (int) ($cashbackStats->get('approved')?->total ?? 0),
+                'orders_rejected' => (int) ($cashbackStats->get('rejected')?->total ?? 0),
                 'referrals_count' => (int) $user->referredUsers()->count(),
                 'withdrawals_pending' => (int) $pendingWithdraw,
             ],

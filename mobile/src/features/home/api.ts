@@ -46,6 +46,10 @@ function requireInteger(value: unknown, field: string): number {
   return value;
 }
 
+function requireIntegerOrNullIfMissing(value: unknown, field: string): number | null {
+  return value === undefined ? null : requireInteger(value, field);
+}
+
 function optionalNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
@@ -135,6 +139,7 @@ export async function fetchAccountSummary(signal?: AbortSignal): Promise<Account
     referralCode: optionalString(value.referral_code),
     wallet: {
       balance: requireInteger(wallet.balance, "wallet balance"),
+      pendingCashback: requireIntegerOrNullIfMissing(wallet.pending_cashback, "pending cashback"),
       totalCashback: requireInteger(wallet.total_cashback, "total cashback"),
       totalReferralEarned: requireInteger(wallet.total_referral_earned, "referral earnings"),
       totalWithdrawn: requireInteger(wallet.total_withdrawn, "total withdrawn"),

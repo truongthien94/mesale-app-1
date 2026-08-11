@@ -2,6 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { idempotencyHeaders, type IdempotentVariables } from "@/api/idempotency";
 import { getNextPageParam } from "@/api/pagination";
 import { request } from "@/api/client";
+import { homeQueryKeys } from "@/features/home/hooks";
 import type {
   AccountSummary,
   AppConfig,
@@ -105,6 +106,7 @@ export function useCreateWithdrawal() {
       }),
     onSuccess: async () => {
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: homeQueryKeys.account }),
         queryClient.invalidateQueries({ queryKey: walletKeys.account }),
         queryClient.invalidateQueries({ queryKey: walletKeys.withdrawals }),
         queryClient.invalidateQueries({ queryKey: walletKeys.balanceLogs })
