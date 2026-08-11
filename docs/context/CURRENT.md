@@ -1,16 +1,16 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-009`
-- Session: `SES-20260811-006`
+- Latest checkpoint: `CKP-20260811-010`
+- Session: `SES-20260811-007`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; compact Home greeting header implemented and published
+- Phase: M0 P0 remediation and M1 MVP foundation; Home content cutoff at the phone walkthrough implemented and published
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: compact Home greeting header source commit `538f543` is published; GitHub Actions run `31476719324` passed all jobs
+- Remote `main`: Home phone-walkthrough cutoff source commit `4680f70` is published; GitHub Actions run `31477892613` passed all jobs
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -52,6 +52,18 @@
 - Source commit `538f543` was fast-forwarded directly to `origin/main`; GitHub Actions run `31476719324` passed Laravel, mobile/export and context/secret jobs.
 - Operational IDs: `SES-20260811-006`, `CKP-20260811-009`, `TSK-MOB-021`, `CHG-20260811-006`, and `TST-20260811-006`.
 - No Laravel, API, database, production setting, credential or member data changed.
+
+## 2026-08-11 Home Ends At Phone Walkthrough
+
+- Made `PhoneFlowDemo` the final rendered child of the Home ScrollView.
+- Removed the complete Round C coupon, cashback timeline and ranking sections that previously appeared below the phone walkthrough.
+- Removed their live Home observers, scroll anchors, components, icons and types; Home no longer fetches coupon or ranking data for hidden content.
+- Kept the existing Quick Access layout. Because no native coupon route exists, `Săn mã` now displays an honest localized unavailable message instead of opening Blade/WebView or a fake route.
+- Android emulator verification passed at the bottom of Home: only the phone walkthrough remains above the tab bar, with no trailing section or empty wrapper.
+- Local verification passed: mobile tests `51/51`, TypeScript, Expo Doctor `18/18`, diff check and staged credential-pattern scan.
+- Source commit `4680f70` was fast-forwarded directly to `origin/main`; GitHub Actions run `31477892613` passed Laravel, mobile/export and context/secret jobs.
+- Operational IDs: `SES-20260811-007`, `CKP-20260811-010`, `TSK-MOB-022`, `CHG-20260811-007`, and `TST-20260811-007`.
+- No Laravel, API contract, database, production setting, credential or member data changed.
 
 ## 2026-08-11 Claude Code Handoff
 
