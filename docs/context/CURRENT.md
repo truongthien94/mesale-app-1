@@ -3,15 +3,15 @@
 - Latest checkpoint: `CKP-20260811-015`
 - Session: `SES-20260811-010`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Account/avatar/referral source published directly to `origin/main` and CI verified
+- Phase: M0 P0 remediation and M1 MVP foundation; Account/avatar/referral source and final context published directly to `origin/main` with both CI runs verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-025` / `CHG-20260811-010`; source commit `f9d87c9` is published directly to `origin/main` and CI verified by run `31494516026`; no production migration, deployment, or production-data change
-- Remote `main`: source commit `f9d87c9` is published directly; GitHub Actions run `31494516026` passed workflow `CI, Context, and Secret Checks`
+- Current batch: `TSK-MOB-025` / `CHG-20260811-010`; source `f9d87c9` and context `4eeafff` are published directly to `origin/main`; runs `31494516026` and `31494964995` passed; no production migration, deployment, or production-data change
+- Remote `main`: context commit `4eeafff` contains source commit `f9d87c9`; final Actions run `31494964995` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -26,7 +26,7 @@
 - Verification passed: Laravel `89/89` with `840` assertions; focused backend `11/109`; mobile `63/63`; TypeScript; Expo Doctor `18/18`; iOS/Android exports; Android native debug, emulator Account/header, and Photo Picker interaction; diff check.
 - SQLite coverage does not prove production-database concurrency. Production migrations and deployment were not run.
 - Operational IDs: `SES-20260811-010`, local checkpoint `CKP-20260811-014`, final checkpoint `CKP-20260811-015`, `TSK-MOB-025`, `DEC-20260811-006`, `CHG-20260811-010`, `TST-20260811-010`, and `GATE-BOTH-015`.
-- Source commit `f9d87c9` is published directly to `origin/main`; GitHub Actions run `31494516026` passed. App Store and Google Play remain `NOT READY`.
+- Source commit `f9d87c9` and context commit `4eeafff` are published directly to `origin/main`. Runs `31494516026` and `31494964995` passed; the final run passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Native Account Tab Redesign
 
@@ -211,6 +211,6 @@
 
 ## Handoff
 
-Keep M0/M1 open and store verdicts at `NOT READY`. The Account/avatar/referral source is published directly at `f9d87c9` under `CKP-20260811-015`, and GitHub Actions run `31494516026` passed; production deployment was not performed. Continue with staging migration/rollback rehearsal, production-engine concurrency validation, OAuth owner inputs, push transport, physical-device evidence, the staged Expo dependency upgrade, and signed-artifact/store verification. Source and tests are authoritative if any log disagrees.
+Keep M0/M1 open and store verdicts at `NOT READY`. Source `f9d87c9` and context `4eeafff` are published directly under `CKP-20260811-015`; runs `31494516026` and `31494964995` passed, while production deployment was not performed. Continue with staging migration/rollback rehearsal, production-engine concurrency validation, OAuth owner inputs, push transport, physical-device evidence, the staged Expo dependency upgrade, and signed-artifact/store verification. Source and tests are authoritative if any log disagrees.
 
 No secrets, service-account information, raw HTTP responses, or member data are included in this context.
