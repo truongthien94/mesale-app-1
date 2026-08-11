@@ -1,9 +1,9 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-010`
-- Session: `SES-20260811-007`
+- Latest checkpoint: `CKP-20260811-011`
+- Session: `SES-20260811-008`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Home content cutoff at the phone walkthrough implemented and published
+- Phase: M0 P0 remediation and M1 MVP foundation; native Orders redesign and additive API contract verified locally
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
@@ -11,9 +11,20 @@
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Remote `main`: Home phone-walkthrough cutoff source commit `4680f70` is published; GitHub Actions run `31477892613` passed all jobs
+- Local Orders source: commit `439c1da` is verified but not published by the operational logging task
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-11 Native Orders Tracking Redesign
+
+- Rebuilt the native Orders screen from the latest blue process-guide reference using Mê Sale copy, two server-backed summary cards, exactly four status chips, native list cards, and an empty-state Home CTA.
+- Unrecorded marketplace clicks remain explicitly labelled and appear only inside `Tất cả`; recorded pending, approved, and rejected filters remain server-side.
+- Laravel now returns an additive recorded/unrecorded union feed with stable pagination, integer VND fields, and a dedicated approved-order cashback amount. Bot API remains recorded-order-only.
+- Verification passed: mobile `54/54`, TypeScript, Laravel `66` tests / `646` assertions, diff check, staged sensitive-data scan, Android emulator visual inspection, and empty CTA routing.
+- Source commit `439c1da` is locally verified. This logging task does not stage, commit, push, deploy production, or change credentials/member data.
+- Operational IDs: `SES-20260811-008`, `CKP-20260811-011`, `TSK-MOB-023`, `DEC-20260811-004`, `CHG-20260811-008`, `TST-20260811-008`, and `GATE-BOTH-013`.
+- Production deployment, physical iOS/Android, signed artifacts, accessibility/performance matrices, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Home Wallet Summary
 
