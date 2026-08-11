@@ -1,19 +1,31 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260810-012`
-- Session: `SES-20260810-005`
+- Latest checkpoint: `CKP-20260811-001`
+- Session: `SES-20260811-001`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; Round C Home snapshot and Wallet dashboard locally verified
+- Phase: M0 P0 remediation and M1 MVP foundation; native Home parity and animated phone walkthrough locally verified
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
-- Push gate: received and completed for Round C
+- Push gate: received for the current Home parity batch; publication pending
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Remote `main`: Round C implementation and local context published through `2032b99`; final push-checkpoint commit follows this code head
+- Remote `main`: `b91eb02`; locally verified Home parity code commit: `88e2095`
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-11 Home Parity Work
+
+- Rebuilt the native Home hero around the current Mesale branding and Vietnamese copy, with paste, help/caution, theme, notifications, and More controls.
+- Vietnamese is now the deterministic default; English is used only when the authenticated account explicitly prefers `en`.
+- Home, More, tab labels, and Android status-bar icons now resolve from the active light/dark theme and account locale.
+- The enabled coupon and ranking sections use existing live `/coupons` and `/ranking` contracts; the disabled blog block is no longer rendered. Page Builder ordering/toggle synchronization remains incomplete.
+- Added `PhoneFlowDemo.tsx`, a native self-running walkthrough with hardcoded sample values and no API/database writes. It covers link paste, product/cashback details, marketplace checkout, order confirmation, and cashback tracking.
+- Replaced the square fake phone with an iPhone Pro Max-style titanium frame, rounded screen clipping, and Dynamic Island. The visible illustration heading/caption was removed at owner request.
+- Verification passed: TypeScript, mobile `46/46`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check, and staged sensitive-data scan.
+- Operational IDs: `SES-20260811-001`, `CKP-20260811-001`, `TSK-MOB-016`, `DEC-20260811-001`, `CHG-20260811-001`, `TST-20260811-001`, `BLK-UI-002`, and `GATE-BOTH-012`.
+- Code commit: `88e2095`; publication to `origin/main` is pending in this checkpoint.
 
 ## Historical Round 5 Work
 
@@ -99,6 +111,7 @@
 - `BLK-DEVICE-001`: physical iOS/Android, screenshot regression, accessibility, offline, keyboard, and performance evidence.
 - `BLK-UI-001`: orange/white primary action contrast is approximately `2.80:1`; product decision requires screenshot evidence.
 - `BLK-HOME-001`: coupon/blog static snapshot can become stale because the current site blocks are dynamic and no public mobile content API exists.
+- `BLK-UI-002`: the native phone walkthrough contains hardcoded order/cashback values without a visible illustration label; owner-approved store/user disclosure is required before release.
 - `BLK-TEST-001`: resolved for remote `bd1b802`; GitHub Actions run `31325812368` passed. Device/store evidence remains separate.
 
 ## Handoff

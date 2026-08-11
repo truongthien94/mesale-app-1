@@ -8,6 +8,7 @@ Current verdicts:
 - Production Open API config returned HTTP `200` on 2026-08-10; activation provenance, auth/security validation, staging, monitoring, and rollback evidence remain open.
 - Round 5 referral prompt implementation is published and CI verified (`77/702` PHPUnit, `37/37` mobile, TypeScript, Expo Doctor `18/18`, and both exports in run `31330756601`); it does not change the store verdict.
 - Round 4 evidence: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed; remote CI run `31328158427` passed all jobs.
+- Home parity evidence: code commit `88e2095`; mobile `46/46`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check, and sensitive-data scan passed. Physical-device and store-copy evidence remain open.
 
 An ID is complete only when source, tests, generated artifact, device behavior, and store-console evidence agree. Local checks do not substitute for staging, remote CI, signed artifact, or device evidence.
 
@@ -24,12 +25,13 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 | `GATE-AND-004` | Blocked | Production AAB, Play App Signing, 16 KB compatibility, App Links, and rollout | Android App Links intent filters and `assetlinks.json` groundwork exist, but no release fingerprint, signed AAB, Play App Signing evidence, native-library 16 KB scan, or staged rollout evidence exists. |
 | `GATE-BOTH-001` | Open | Physical-goods payment classification and truthful cashback claims | Marketplace handoff is native and concerns physical goods; copy, terms, attribution, and end-to-end evidence remain unverified. |
 | `GATE-BOTH-002` | Partial | Minimal permissions, HTTPS, credential hygiene, and dependency/test quality | Local source checks pass; 22 npm advisories have no safe SDK 53 fix and now have a staged SDK 54-to-57 plan. Remote CI, signed artifacts, upgraded native builds, and device checks remain open. |
-| `GATE-BOTH-003` | Open | No fake earnings, hidden features, incentivized reviews, or dynamic native code | No prohibited behavior is present in the current source; complete product, metadata, remote-config, and reviewer-path audit remains open. |
+| `GATE-BOTH-003` | Open | No fake earnings, hidden features, incentivized reviews, or dynamic native code | The animated Home walkthrough is native and isolated from business APIs, but it displays hardcoded sample order/cashback values without a visible illustration caption. Owner-approved disclosure and final metadata/reviewer-path audit remain required. |
 | `GATE-BOTH-006` | Partial / blocked | Round 3 store-compliance source groundwork | Source groundwork and local checks pass; staging, owner inputs, signed artifacts, devices, and store-console evidence remain missing. |
 | `GATE-BOTH-007` | Partial / blocked | Round 4 idempotency retention and dependency remediation | Local pruning/tests, dependency plan, direct push, and remote CI pass; production scheduler evidence, SDK upgrade, signed artifacts, devices, and store-console proof remain missing. |
 | `GATE-BOTH-008` | Partial / blocked | Round 5 one-time post-registration referral decision | Local backend/mobile implementation and test/export evidence pass; production API activation, staging OAuth, physical devices, signed artifacts, push, and store-console proof remain missing. |
 | `GATE-BOTH-010` | Partial / blocked | Round B website-parity bottom navigation and More sheet | Source is published to `main`; TypeScript, `43/43` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass. Physical tab/back click-through, screenshots, accessibility, signed artifacts, and store evidence remain missing. |
 | `GATE-BOTH-011` | Partial / blocked | Round C Home snapshot and Wallet dashboard | TypeScript, `45/45` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass locally. Dynamic coupon/blog freshness, physical screenshots, device interaction, signed artifacts, and store evidence remain missing. |
+| `GATE-BOTH-012` | Partial / blocked | Native Home parity, locale/theme behavior, and animated iPhone walkthrough | TypeScript, `46/46` mobile tests, Expo Doctor `18/18`, iOS/Android exports, and Android emulator inspection pass. Physical iOS/Android matrices, accessibility/offline/performance evidence, signed artifacts, and owner-approved walkthrough disclosure remain missing. |
 
 ## Required Release Evidence
 
@@ -40,3 +42,4 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 - iOS Privacy Manifest/Required Reason APIs, App Privacy answers, Android Data Safety/Financial Features answers, current target API, and minimal permissions.
 - AASA/Asset Links, push/APNs/Firebase setup, signed IPA/AAB, Play App Signing, 16 KB compatibility, and release metadata.
 - Physical iOS/Android screenshots for parity states, accessibility/font scaling, offline/retry/expired-session checks, performance baseline, and reviewer accounts.
+- Owner-approved user/store disclosure for hardcoded walkthrough order and cashback values so the animation cannot be read as real member data or guaranteed earnings.

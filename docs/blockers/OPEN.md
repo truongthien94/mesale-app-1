@@ -1,6 +1,6 @@
 # Open Blockers
 
-Round 5 checkpoint `CKP-20260810-006`: local Laravel `77` tests / `702` assertions, mobile `37/37`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, lint, diff, and secret checks passed. Commits `72a1f14` and `a9c7659` are published on `main`; CI run `31330756601` passed all jobs. Production API, staging, device, and store evidence remain open.
+Home parity checkpoint `CKP-20260811-001`: mobile `46/46`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff, and sensitive-data checks passed. Code commit `88e2095` is locally verified. Production API governance, staging, physical devices, signed artifacts, and store evidence remain open.
 
 | ID | Priority | Area | Description | Owner | Status |
 |---|---|---|---|---|---|
@@ -18,7 +18,8 @@ Round 5 checkpoint `CKP-20260810-006`: local Laravel `77` tests / `702` assertio
 | `BLK-PUSH-001` | P1 | Push transport | The current Laravel push service sends through FCM HTTP v1 and cannot accept a raw iOS APNs token as an FCM registration token. Owner must choose FCM for both platforms or approve an APNs bridge, then supply Firebase/APNs/EAS configuration and tests. | Product/backend/release | Open |
 | `BLK-DEVICE-001` | P1 | QA | No physical iOS/Android verification, screenshot regression, font scaling, accessibility, keyboard, offline, retry, performance, or signed-artifact evidence exists. GitHub Issue #20. | Mobile/QA/release | Open |
 | `BLK-UI-001` | P1 | Accessibility/parity | Approved orange `#f97316` with white text measures about `2.80:1`; do not change the visual reference without product approval and screenshot evidence. | Product/design | Open |
-| `BLK-HOME-001` | P1 | Home content parity | Coupons and blog are live database-backed homepage blocks without a public mobile JSON contract. Round C uses the observed production snapshot; codes, expiry, view counts, thumbnails, and copy may become stale. GitHub Issue #24. | Product/backend/mobile | Open |
+| `BLK-HOME-001` | P1 | Home content parity | Current coupon/ranking content now uses existing live API contracts and the disabled blog block is omitted. Page Builder order and enable/disable state still have no reviewed mobile config contract, so admin configuration can drift from the app. GitHub Issue #24. | Product/backend/mobile | Partially resolved locally |
+| `BLK-UI-002` | P1 | Store copy / walkthrough | The native phone walkthrough uses hardcoded sample order and cashback values. Its visible illustration caption was removed at owner request, so users or reviewers may interpret the amounts as real or guaranteed earnings. | Product/release | Open |
 | `BLK-TEST-001` | P2 | Test quality | Remote CI run `31325626880` passed for commit `62e6678`; device/store evidence remains outside CI. | Backend/CI | Resolved |
 
 Resolved in this checkpoint:
