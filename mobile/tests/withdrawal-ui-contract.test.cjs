@@ -7,6 +7,15 @@ function read(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, relativePath), "utf8");
 }
 
+function assertInOrder(source, markers) {
+  let cursor = -1;
+  for (const marker of markers) {
+    const next = source.indexOf(marker, cursor + 1);
+    assert.ok(next > cursor, `Expected ${JSON.stringify(marker)} after the previous withdrawal field`);
+    cursor = next;
+  }
+}
+
 test("withdrawal form uses server financial terms and saved payment accounts in the native layout", () => {
   const source = read("../app/(tabs)/wallet/withdrawals/create.tsx");
   const layout = read("../app/(tabs)/wallet/_layout.tsx");
@@ -36,20 +45,62 @@ test("withdrawal form uses server financial terms and saved payment accounts in 
   assert.match(source, /accountsQuery\.data\.items\.filter/);
   assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/payment-accounts\/create"\)/);
   assert.match(source, /Cần liên kết ngân hàng trước/);
-  assert.match(source, /Tiền chỉ về đúng tài khoản đã lưu trong hồ sơ của bạn/);
-  assert.match(source, /Lịch sử rút tiền/);
-  assert.match(source, /styles\.footer/);
+  assert.match(source, /Tiền chỉ chuyển về tài khoản đã lưu trong hồ sơ/);
   assert.match(source, /stableSubmission\.getVariables\(payload\)/);
-  assert.doesNotMatch(source, /Matumi|30[.]000|24h/);
+  assert.doesNotMatch(source, /Matumi|30[.]000|24h|sk_live_/);
+});
+
+test("withdrawal form follows the compact native field order and server-enabled receiving methods", () => {
+  const source = read("../app/(tabs)/wallet/withdrawals/create.tsx");
+
+  assertInOrder(source, [
+    "SỐ TIỀN CẦN RÚT (VND)",
+    "HÌNH THỨC NHẬN TIỀN",
+    "TÊN NGÂN HÀNG NHẬN",
+    "SỐ TÀI KHOẢN NGÂN HÀNG",
+    "HỌ TÊN CHỦ TÀI KHOẢN",
+    "MÃ XÁC MINH OTP",
+    "styles.submitButton"
+  ]);
+  assert.match(source, /styles\.balanceStrip/);
+  assert.match(source, /styles\.formCard/);
+  assert.match(source, /balanceStrip: \{[^\n]*minHeight: 48/);
+  assert.doesNotMatch(source, /styles\.amountCard|styles\.footer|fontSize: 47/);
+  assert.match(source, /const \[selectedMethod, setSelectedMethod\]/);
+  assert.match(source, /account\.payment_method === selectedMethod/);
+  assert.match(source, /method === "bank" \? withdrawConfig\.bank_enabled : withdrawConfig\.wallet_enabled/);
+  assert.match(source, /if \(!enabled\) return/);
+  assert.match(source, /accessibilityState=\{\{ checked: selected, disabled: !enabled \}\}/);
+  assert.match(source, /disabled=\{!enabled\}/);
+  assert.match(source, /Chưa hỗ trợ/);
+});
+
+test("withdrawal destination stays saved-account-derived and server authoritative", () => {
+  const source = read("../app/(tabs)/wallet/withdrawals/create.tsx");
+
+  assert.match(source, /selectedAccount\?\.account_number/);
+  assert.match(source, /selectedAccount\?\.account_name\.trim\(\)\.toUpperCase\(\)/);
+  assert.match(source, /payment_method: selectedAccount\.payment_method/);
+  assert.match(source, /account_number: selectedAccount\.account_number/);
+  assert.match(source, /account_name: selectedAccount\.account_name\.trim\(\)\.toUpperCase\(\)/);
+  assert.match(source, /bank_name: selectedAccount\.bank_name/);
+  assert.match(source, /wallet_name: selectedAccount\.bank_name/);
+  assert.match(source, /styles\.readOnlyInput/);
+  assert.doesNotMatch(source, /placeholder="Nhập số tài khoản|placeholder="Nhập họ tên chủ tài khoản/);
 });
 
 test("withdrawal creation keeps validation, OTP, retry, success and keyboard states", () => {
   const source = read("../app/(tabs)/wallet/withdrawals/create.tsx");
 
   assert.match(source, /KeyboardAvoidingView/);
+  assert.match(source, /keyboardShouldPersistTaps="handled"/);
+  assert.match(source, /useBottomTabBarHeight\(\)/);
+  assert.match(source, /Math\.max\(tabBarHeight, insets\.bottom \+ 16\) \+ 24/);
   assert.match(source, /validateAmount\(amount\)/);
   assert.match(source, /\^\\d\{6\}\$/);
   assert.match(source, /useSendWithdrawalOtp\(\)/);
+  assert.match(source, /styles\.otpRow/);
+  assert.match(source, /styles\.submitButton/);
   assert.match(source, /InlineError error=\{mutation\.error\} onRetry=\{\(\) => void submit\(\)\}/);
   assert.match(source, /if \(created\)/);
   assert.match(source, /router\.replace\("\/\(tabs\)\/wallet\/withdrawals"\)/);

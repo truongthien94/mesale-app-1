@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { useRouter } from "expo-router";
 import {
   ActivityIndicator,
@@ -11,7 +12,7 @@ import {
   TextInput,
   View
 } from "react-native";
-import { ChevronRight, CirclePlus, Clock3, CreditCard, LockKeyhole, ReceiptText } from "lucide-react-native";
+import { Building2, CheckCircle2, ChevronDown, ChevronRight, CirclePlus, WalletCards } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState, LoadingState } from "@/components/AsyncState";
 import { InlineError, PrimaryButton, QueryFailure } from "@/features/wallet/components";
@@ -53,6 +54,7 @@ function accountMethodLabel(account: PaymentAccount): string {
 export default function CreateWithdrawalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabBarHeight = useBottomTabBarHeight();
   const { colors, scheme } = useTheme();
   const styles = useMemo(() => createStyles(colors, scheme), [colors, scheme]);
   const accountQuery = useAccountSummary();
@@ -64,6 +66,7 @@ export default function CreateWithdrawalScreen() {
   const didPrefill = useRef(false);
 
   const [amountText, setAmountText] = useState("");
+  const [selectedMethod, setSelectedMethod] = useState<PaymentAccount["payment_method"]>("bank");
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [otpCode, setOtpCode] = useState("");
@@ -85,13 +88,22 @@ export default function CreateWithdrawalScreen() {
       ? config.bank_enabled
       : config.wallet_enabled);
   }, [accountsQuery.data, config]);
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId) ?? null;
+  const methodAccounts = useMemo(
+    () => accounts.filter((account) => account.payment_method === selectedMethod),
+    [accounts, selectedMethod]
+  );
+  const selectedAccount = methodAccounts.find((account) => account.id === selectedAccountId) ?? null;
 
   useEffect(() => {
     if (!config || accountsQuery.isPending || didPrefill.current) return;
     didPrefill.current = true;
     const defaultAccount = accounts.find((item) => item.is_default) ?? accounts[0];
-    if (defaultAccount) setSelectedAccountId(defaultAccount.id);
+    if (defaultAccount) {
+      setSelectedMethod(defaultAccount.payment_method);
+      setSelectedAccountId(defaultAccount.id);
+    } else if (!config.bank_enabled && config.wallet_enabled) {
+      setSelectedMethod("wallet");
+    }
   }, [accounts, accountsQuery.isPending, config]);
 
   if (accountQuery.isPending || configQuery.isPending || accountsQuery.isPending) return <LoadingState label="Đang chuẩn bị biểu mẫu..." />;
@@ -121,8 +133,8 @@ export default function CreateWithdrawalScreen() {
   const amountIsValid = amount >= withdrawConfig.min_amount && amount <= balance;
   const otpIsValid = !withdrawConfig.otp_required || /^\d{6}$/.test(otpCode);
   const canSubmit = Boolean(selectedAccount) && amountIsValid && otpIsValid && !mutation.isPending;
-  const footerLabel = accounts.length === 0
-    ? "Cần liên kết ngân hàng trước"
+  const footerLabel = !selectedAccount
+    ? selectedMethod === "bank" ? "Cần liên kết ngân hàng trước" : "Cần liên kết ví điện tử trước"
     : !amountIsValid
       ? "Nhập số tiền hợp lệ"
       : withdrawConfig.otp_required && !otpIsValid
@@ -131,7 +143,20 @@ export default function CreateWithdrawalScreen() {
   const feeCopy = fee > 0 ? `Phí dự kiến ${formatVnd(fee)}` : "Mê Sale không thu phí xử lý";
 
   function selectSavedAccount(account: PaymentAccount) {
+    setSelectedMethod(account.payment_method);
     setSelectedAccountId(account.id);
+    setShowAccountPicker(false);
+    setErrors((current) => ({ ...current, account: undefined }));
+  }
+
+  function selectMethod(method: PaymentAccount["payment_method"]) {
+    const enabled = method === "bank" ? withdrawConfig.bank_enabled : withdrawConfig.wallet_enabled;
+    if (!enabled) return;
+    const nextAccount = accounts.find((account) => account.payment_method === method && account.is_default)
+      ?? accounts.find((account) => account.payment_method === method)
+      ?? null;
+    setSelectedMethod(method);
+    setSelectedAccountId(nextAccount?.id ?? null);
     setShowAccountPicker(false);
     setErrors((current) => ({ ...current, account: undefined }));
   }
@@ -177,182 +202,202 @@ export default function CreateWithdrawalScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.screen}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: 28 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Math.max(tabBarHeight, insets.bottom + 16) + 24 }]}
         contentInsetAdjustmentBehavior="automatic"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.balanceRow}>
+        <View style={styles.balanceStrip}>
           <Text style={styles.balanceLabel}>Số dư khả dụng</Text>
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatVnd(balance)}</Text>
         </View>
 
-        <View style={styles.amountCard}>
-          <Text style={styles.amountLabel}>Số tiền muốn rút</Text>
-          <View style={styles.amountInputRow}>
-            <TextInput
-              accessibilityLabel="Số tiền muốn rút"
-              keyboardType="number-pad"
-              onBlur={() => setErrors((current) => ({ ...current, amount: amountText ? validateAmount(amount) : undefined }))}
-              onChangeText={(value) => {
-                const normalized = value.replace(/\D/g, "");
-                const nextAmount = Number(normalized) || 0;
-                setAmountText(normalized);
-                setErrors((current) => ({ ...current, amount: normalized ? validateAmount(nextAmount) : undefined }));
-              }}
-              placeholder="0"
-              placeholderTextColor={styles.amountPlaceholder.color}
-              selectionColor="#2f9af5"
-              style={styles.amountInput}
-              value={amountInput(amount)}
-            />
-            <Text style={styles.amountUnit}>đ</Text>
-          </View>
-          <Text style={styles.amountCaption}>Tối thiểu {formatVnd(withdrawConfig.min_amount)} · {feeCopy}</Text>
-          {amount > 0 ? <Text style={styles.receiveCaption}>Dự kiến thực nhận: {formatVnd(Math.max(0, amount - fee))}</Text> : null}
-          {errors.amount ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.amount}</Text> : null}
-        </View>
-
-        <Text style={styles.sectionLabel}>Tiền về tài khoản</Text>
-        {selectedAccount ? (
-          <View style={styles.accountCard}>
-            <View style={styles.accountIcon}><CreditCard color="#2f9af5" size={24} strokeWidth={2.2} /></View>
-            <View style={styles.accountCopy}>
-              <View style={styles.accountTitleRow}>
-                <Text numberOfLines={1} style={styles.accountTitle}>{accountMethodLabel(selectedAccount)}</Text>
-                {selectedAccount.is_default ? <Text style={styles.defaultBadge}>Mặc định</Text> : null}
-              </View>
-              <Text numberOfLines={1} style={styles.accountNumber}>{accountSuffix(selectedAccount.account_number)} · {selectedAccount.account_name}</Text>
-            </View>
-            <Pressable
-              accessibilityLabel={accounts.length > 1 ? "Đổi tài khoản nhận tiền" : "Quản lý tài khoản nhận tiền"}
-              accessibilityRole="button"
-              onPress={() => accounts.length > 1
-                ? setShowAccountPicker((value) => !value)
-                : router.push("/(tabs)/wallet/payment-accounts")}
-              style={({ pressed }) => [styles.accountAction, pressed && styles.pressed]}
-            >
-              <Text style={styles.accountActionText}>{accounts.length > 1 ? "Đổi" : "Quản lý"}</Text>
-              <ChevronRight color="#64748b" size={18} />
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            accessibilityLabel="Thêm tài khoản nhận tiền"
-            accessibilityRole="button"
-            onPress={() => router.push("/(tabs)/wallet/payment-accounts/create")}
-            style={({ pressed }) => [styles.missingAccountCard, pressed && styles.pressed]}
-          >
-            <View style={styles.missingAccountIcon}><CirclePlus color="#f59e0b" size={25} strokeWidth={2.1} /></View>
-            <View style={styles.accountCopy}>
-              <Text style={styles.missingAccountTitle}>Chưa liên kết ngân hàng</Text>
-              <Text style={styles.missingAccountCaption}>Bấm để thêm tài khoản nhận tiền</Text>
-            </View>
-            <ChevronRight color="#64748b" size={24} />
-          </Pressable>
-        )}
-        {errors.account ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.account}</Text> : null}
-
-        {showAccountPicker ? (
-          <View accessibilityRole="radiogroup" style={styles.accountPicker}>
-            {accounts.map((account) => {
-              const selected = account.id === selectedAccountId;
-              return (
-                <Pressable
-                  accessibilityLabel={`${accountMethodLabel(account)}, ${accountSuffix(account.account_number)}, ${account.account_name}`}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: selected }}
-                  key={account.id}
-                  onPress={() => selectSavedAccount(account)}
-                  style={({ pressed }) => [styles.accountOption, selected && styles.accountOptionSelected, pressed && styles.pressed]}
-                >
-                  <View style={styles.optionRadio}>{selected ? <View style={styles.optionRadioDot} /> : null}</View>
-                  <View style={styles.accountCopy}>
-                    <Text style={styles.optionTitle}>{accountMethodLabel(account)}</Text>
-                    <Text style={styles.optionCaption}>{accountSuffix(account.account_number)} · {account.account_name}</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push("/(tabs)/wallet/payment-accounts")}
-              style={({ pressed }) => [styles.manageAccounts, pressed && styles.pressed]}
-            >
-              <Text style={styles.manageAccountsText}>Quản lý tài khoản đã lưu</Text>
-              <ChevronRight color="#2f9af5" size={18} />
-            </Pressable>
-          </View>
-        ) : null}
-
-        {withdrawConfig.otp_required ? (
-          <View style={styles.otpCard}>
-            <Text style={styles.otpTitle}>Xác minh yêu cầu</Text>
-            <Text style={styles.otpCaption}>Nhập mã OTP 6 số do Mê Sale gửi để bảo vệ giao dịch.</Text>
-            <View style={styles.otpRow}>
+        <View style={styles.formCard}>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>SỐ TIỀN CẦN RÚT (VND)</Text>
+            <View style={[styles.inputShell, errors.amount && styles.inputError]}>
+              <WalletCards color={colors.mutedText} size={19} />
               <TextInput
-                accessibilityLabel="Mã xác minh OTP"
+                accessibilityLabel="Số tiền cần rút"
                 keyboardType="number-pad"
-                maxLength={6}
+                onBlur={() => setErrors((current) => ({ ...current, amount: amountText ? validateAmount(amount) : undefined }))}
                 onChangeText={(value) => {
-                  setOtpCode(value.replace(/\D/g, "").slice(0, 6));
-                  setErrors((current) => ({ ...current, otp: undefined }));
+                  const normalized = value.replace(/\D/g, "");
+                  const nextAmount = Number(normalized) || 0;
+                  setAmountText(normalized);
+                  setErrors((current) => ({ ...current, amount: normalized ? validateAmount(nextAmount) : undefined }));
                 }}
-                placeholder="Mã OTP 6 số"
+                placeholder="Ví dụ: 50000"
                 placeholderTextColor={colors.mutedText}
-                style={[styles.otpInput, errors.otp && styles.inputError]}
-                value={otpCode}
+                selectionColor="#2f9af5"
+                style={styles.textInput}
+                value={amountInput(amount)}
               />
+            </View>
+            <View style={styles.helperRow}>
+              <Text style={styles.helperText}>Số tiền tối thiểu: <Text style={styles.helperStrong}>{formatVnd(withdrawConfig.min_amount)}</Text></Text>
+              <Text style={styles.helperDot}>·</Text>
+              <Text style={styles.helperText}>{feeCopy}</Text>
+            </View>
+            {amount > 0 ? <Text style={styles.receiveCaption}>Dự kiến thực nhận: {formatVnd(Math.max(0, amount - fee))}</Text> : null}
+            {errors.amount ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.amount}</Text> : null}
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>HÌNH THỨC NHẬN TIỀN</Text>
+            <View accessibilityRole="radiogroup" style={styles.methodRow}>
+              {(["bank", "wallet"] as const).map((method) => {
+                const enabled = method === "bank" ? withdrawConfig.bank_enabled : withdrawConfig.wallet_enabled;
+                const selected = selectedMethod === method;
+                const MethodIcon = method === "bank" ? Building2 : WalletCards;
+                return (
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected, disabled: !enabled }}
+                    disabled={!enabled}
+                    key={method}
+                    onPress={() => selectMethod(method)}
+                    style={({ pressed }) => [styles.methodOption, selected && styles.methodOptionSelected, !enabled && styles.disabled, pressed && styles.pressed]}
+                  >
+                    <MethodIcon color={selected ? "#2f9af5" : colors.mutedText} size={19} />
+                    <View style={styles.methodCopy}>
+                      <Text style={[styles.methodTitle, selected && styles.methodTitleSelected]}>{method === "bank" ? "Ngân hàng" : "Ví điện tử"}</Text>
+                      {!enabled ? <Text style={styles.unavailableText}>Chưa hỗ trợ</Text> : null}
+                    </View>
+                    {selected ? <CheckCircle2 color="#2f9af5" size={19} /> : <View style={styles.radioRing} />}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>{selectedMethod === "bank" ? "TÊN NGÂN HÀNG NHẬN" : "TÊN VÍ ĐIỆN TỬ"}</Text>
+            {methodAccounts.length > 0 ? (
+              <Pressable
+                accessibilityLabel="Chọn tài khoản nhận tiền đã lưu"
+                accessibilityRole="button"
+                onPress={() => setShowAccountPicker((value) => !value)}
+                style={({ pressed }) => [styles.inputShell, errors.account && styles.inputError, pressed && styles.pressed]}
+              >
+                {selectedMethod === "bank" ? <Building2 color={colors.mutedText} size={19} /> : <WalletCards color={colors.mutedText} size={19} />}
+                <Text numberOfLines={1} style={[styles.selectText, !selectedAccount && styles.placeholderText]}>
+                  {selectedAccount ? accountMethodLabel(selectedAccount) : `-- Chọn ${selectedMethod === "bank" ? "ngân hàng" : "ví điện tử"} --`}
+                </Text>
+                <ChevronDown color={colors.mutedText} size={19} />
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityLabel="Thêm tài khoản nhận tiền"
+                accessibilityRole="button"
+                onPress={() => router.push("/(tabs)/wallet/payment-accounts/create")}
+                style={({ pressed }) => [styles.addAccountButton, pressed && styles.pressed]}
+              >
+                <CirclePlus color="#f59e0b" size={21} />
+                <Text style={styles.addAccountText}>Thêm {selectedMethod === "bank" ? "tài khoản ngân hàng" : "ví điện tử"}</Text>
+                <ChevronRight color={colors.mutedText} size={19} />
+              </Pressable>
+            )}
+            {errors.account ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.account}</Text> : null}
+          </View>
+
+          {showAccountPicker && methodAccounts.length > 0 ? (
+            <View accessibilityRole="radiogroup" style={styles.accountPicker}>
+              {methodAccounts.map((account) => {
+                const selected = account.id === selectedAccountId;
+                return (
+                  <Pressable
+                    accessibilityLabel={`${accountMethodLabel(account)}, ${accountSuffix(account.account_number)}, ${account.account_name}`}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: selected }}
+                    key={account.id}
+                    onPress={() => selectSavedAccount(account)}
+                    style={({ pressed }) => [styles.accountOption, selected && styles.accountOptionSelected, pressed && styles.pressed]}
+                  >
+                    <View style={styles.optionRadio}>{selected ? <View style={styles.optionRadioDot} /> : null}</View>
+                    <View style={styles.accountCopy}>
+                      <Text style={styles.optionTitle}>{accountMethodLabel(account)}</Text>
+                      <Text numberOfLines={1} style={styles.optionCaption}>{accountSuffix(account.account_number)} · {account.account_name}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ busy: otpMutation.isPending }}
-                disabled={otpMutation.isPending}
-                onPress={() => otpMutation.mutate()}
-                style={({ pressed }) => [styles.otpButton, otpMutation.isPending && styles.disabled, pressed && styles.pressed]}
+                onPress={() => router.push("/(tabs)/wallet/payment-accounts")}
+                style={({ pressed }) => [styles.manageAccounts, pressed && styles.pressed]}
               >
-                {otpMutation.isPending
-                  ? <ActivityIndicator color="#2f9af5" />
-                  : <Text style={styles.otpButtonText}>{otpMutation.isSuccess ? "Gửi lại OTP" : "Gửi mã OTP"}</Text>}
+                <Text style={styles.manageAccountsText}>Quản lý tài khoản đã lưu</Text>
+                <ChevronRight color="#2f9af5" size={18} />
               </Pressable>
             </View>
-            {errors.otp ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.otp}</Text> : null}
-            <InlineError error={otpMutation.error} onRetry={() => otpMutation.mutate()} />
-          </View>
-        ) : null}
+          ) : null}
 
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Clock3 color="#16a34a" size={20} />
-            <Text style={styles.infoText}>Mê Sale xử lý yêu cầu sau khi xác minh số dư và điều kiện rút tiền.</Text>
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>{selectedMethod === "bank" ? "SỐ TÀI KHOẢN NGÂN HÀNG" : "SỐ ĐIỆN THOẠI NHẬN TIỀN"}</Text>
+            <View style={styles.readOnlyInput}>
+              <Text numberOfLines={1} style={[styles.readOnlyText, !selectedAccount && styles.placeholderText]}>{selectedAccount?.account_number || "Chọn tài khoản nhận tiền"}</Text>
+            </View>
           </View>
-          <View style={styles.infoRow}>
-            <LockKeyhole color="#16a34a" size={20} />
-            <Text style={styles.infoText}>Tiền chỉ về đúng tài khoản đã lưu trong hồ sơ của bạn.</Text>
+
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>HỌ TÊN CHỦ TÀI KHOẢN</Text>
+            <View style={styles.readOnlyInput}>
+              <Text numberOfLines={1} style={[styles.readOnlyText, !selectedAccount && styles.placeholderText]}>{selectedAccount?.account_name.trim().toUpperCase() || "Tên chủ tài khoản đã xác minh"}</Text>
+            </View>
           </View>
+
+          {withdrawConfig.otp_required ? (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>MÃ XÁC MINH OTP <Text style={styles.requiredMark}>*</Text></Text>
+              <View style={styles.otpRow}>
+                <TextInput
+                  accessibilityLabel="Mã xác minh OTP"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  onChangeText={(value) => {
+                    setOtpCode(value.replace(/\D/g, "").slice(0, 6));
+                    setErrors((current) => ({ ...current, otp: undefined }));
+                  }}
+                  placeholder="Nhập mã OTP 6 số..."
+                  placeholderTextColor={colors.mutedText}
+                  style={[styles.otpInput, errors.otp && styles.inputError]}
+                  value={otpCode}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ busy: otpMutation.isPending }}
+                  disabled={otpMutation.isPending}
+                  onPress={() => otpMutation.mutate()}
+                  style={({ pressed }) => [styles.otpButton, otpMutation.isPending && styles.disabled, pressed && styles.pressed]}
+                >
+                  {otpMutation.isPending
+                    ? <ActivityIndicator color="#2f9af5" />
+                    : <Text style={styles.otpButtonText}>{otpMutation.isSuccess ? "Gửi lại OTP" : "Gửi mã OTP"}</Text>}
+                </Pressable>
+              </View>
+              <Text style={styles.helperText}>Mã OTP được gửi về email đăng ký tài khoản của bạn.</Text>
+              {errors.otp ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.otp}</Text> : null}
+              <InlineError error={otpMutation.error} onRetry={() => otpMutation.mutate()} />
+            </View>
+          ) : null}
+
+          <InlineError error={mutation.error} onRetry={() => void submit()} />
+
           <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push("/(tabs)/wallet/withdrawals")}
-            style={({ pressed }) => [styles.infoRow, pressed && styles.pressed]}
+            accessibilityRole="button"
+            accessibilityState={{ busy: mutation.isPending, disabled: !canSubmit }}
+            disabled={!canSubmit}
+            onPress={() => void submit()}
+            style={({ pressed }) => [styles.submitButton, !canSubmit && styles.submitButtonDisabled, pressed && styles.pressed]}
           >
-            <ReceiptText color="#16a34a" size={20} />
-            <Text style={styles.infoText}>Theo dõi từng lệnh ở mục <Text style={styles.infoStrong}>Lịch sử rút tiền.</Text></Text>
+            {mutation.isPending ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>{footerLabel}</Text>}
           </Pressable>
+
+          <Text style={styles.securityNote}>Tiền chỉ chuyển về tài khoản đã lưu trong hồ sơ. Số dư, mức tối thiểu và phí được Mê Sale xác nhận khi gửi yêu cầu.</Text>
         </View>
-
-        <InlineError error={mutation.error} onRetry={() => void submit()} />
       </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ busy: mutation.isPending, disabled: !canSubmit }}
-          disabled={!canSubmit}
-          onPress={() => void submit()}
-          style={({ pressed }) => [styles.submitButton, !canSubmit && styles.submitButtonDisabled, pressed && styles.pressed]}
-        >
-          {mutation.isPending ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.submitButtonText}>{footerLabel}</Text>}
-        </Pressable>
-      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -361,58 +406,55 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
   const dark = scheme === "dark";
   return StyleSheet.create({
     screen: { backgroundColor: dark ? "#08111f" : "#f2f7fc", flex: 1 },
-    content: { gap: 18, paddingHorizontal: 18, paddingTop: 14 },
-    balanceRow: { alignItems: "center", flexDirection: "row", gap: 16, justifyContent: "space-between", paddingHorizontal: 4 },
-    balanceLabel: { color: colors.mutedText, fontSize: 16, fontWeight: "700" },
-    balanceValue: { color: colors.text, flexShrink: 1, fontSize: 21, fontWeight: "900" },
-    amountCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 24, borderWidth: 1, gap: 12, padding: 20, shadowColor: "#2563eb", shadowOffset: { width: 0, height: 8 }, shadowOpacity: dark ? 0.14 : 0.04, shadowRadius: 18, elevation: 2 },
-    amountLabel: { color: colors.mutedText, fontSize: 16, fontWeight: "700" },
-    amountInputRow: { alignItems: "center", flexDirection: "row", gap: 10 },
-    amountInput: { color: colors.text, flex: 1, fontSize: 47, fontWeight: "900", letterSpacing: -1.6, minHeight: 74, padding: 0 },
-    amountPlaceholder: { color: dark ? "#475569" : "#e2e8f0" },
-    amountUnit: { color: colors.mutedText, fontSize: 36, fontWeight: "900" },
-    amountCaption: { color: colors.mutedText, fontSize: 13, lineHeight: 19 },
-    receiveCaption: { color: "#16a34a", fontSize: 13, fontWeight: "800" },
-    sectionLabel: { color: colors.mutedText, fontSize: 16, fontWeight: "900", letterSpacing: 0.6, marginLeft: 4, marginTop: 8 },
-    accountCard: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, flexDirection: "row", gap: 12, minHeight: 92, padding: 14 },
-    accountIcon: { alignItems: "center", backgroundColor: dark ? "#102a44" : "#eaf5ff", borderRadius: 15, height: 52, justifyContent: "center", width: 52 },
+    content: { gap: 12, paddingHorizontal: 16, paddingTop: 10 },
+    balanceStrip: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 14, justifyContent: "space-between", minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
+    balanceLabel: { color: colors.mutedText, fontSize: 13, fontWeight: "700" },
+    balanceValue: { color: colors.text, flexShrink: 1, fontSize: 17, fontWeight: "900" },
+    formCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 18, padding: 16, shadowColor: "#2563eb", shadowOffset: { width: 0, height: 8 }, shadowOpacity: dark ? 0.12 : 0.035, shadowRadius: 16, elevation: 2 },
+    fieldGroup: { gap: 8 },
+    fieldLabel: { color: colors.text, fontSize: 12, fontWeight: "900", letterSpacing: 0.35 },
+    inputShell: { alignItems: "center", backgroundColor: dark ? "#111c2c" : "#fbfcfe", borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 10, minHeight: 48, paddingHorizontal: 13 },
+    textInput: { color: colors.text, flex: 1, fontSize: 14.5, fontWeight: "700", minHeight: 46, padding: 0 },
+    helperRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 5 },
+    helperText: { color: colors.mutedText, fontSize: 11.5, lineHeight: 17 },
+    helperStrong: { color: colors.text, fontWeight: "900" },
+    helperDot: { color: colors.mutedText, fontSize: 11.5 },
+    receiveCaption: { color: "#16a34a", fontSize: 11.5, fontWeight: "800", lineHeight: 17 },
+    methodRow: { flexDirection: "row", gap: 10 },
+    methodOption: { alignItems: "center", backgroundColor: dark ? "#111c2c" : "#fbfcfe", borderColor: colors.border, borderRadius: 12, borderWidth: 1, flex: 1, flexDirection: "row", gap: 8, minHeight: 50, minWidth: 0, paddingHorizontal: 11, paddingVertical: 8 },
+    methodOptionSelected: { backgroundColor: dark ? "#102a44" : "#f0f8ff", borderColor: "#2f9af5" },
+    methodCopy: { flex: 1, gap: 1, minWidth: 0 },
+    methodTitle: { color: colors.text, fontSize: 12.5, fontWeight: "800" },
+    methodTitleSelected: { color: "#2f9af5" },
+    unavailableText: { color: colors.mutedText, fontSize: 9.5, lineHeight: 13 },
+    radioRing: { borderColor: colors.border, borderRadius: 999, borderWidth: 1.5, height: 18, width: 18 },
+    selectText: { color: colors.text, flex: 1, fontSize: 13.5, fontWeight: "700" },
+    placeholderText: { color: colors.mutedText, fontWeight: "600" },
+    addAccountButton: { alignItems: "center", backgroundColor: dark ? "#302512" : "#fffaf0", borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 10, minHeight: 50, paddingHorizontal: 13 },
+    addAccountText: { color: dark ? "#fbbf24" : "#d97706", flex: 1, fontSize: 13, fontWeight: "900" },
     accountCopy: { flex: 1, gap: 4, minWidth: 0 },
-    accountTitleRow: { alignItems: "center", flexDirection: "row", gap: 7 },
-    accountTitle: { color: colors.text, flexShrink: 1, fontSize: 16, fontWeight: "900" },
-    accountNumber: { color: colors.mutedText, fontSize: 12.5 },
-    defaultBadge: { backgroundColor: dark ? "#0d3327" : "#ecfdf5", borderRadius: 999, color: "#16a34a", fontSize: 9, fontWeight: "900", overflow: "hidden", paddingHorizontal: 7, paddingVertical: 3 },
-    accountAction: { alignItems: "center", flexDirection: "row", gap: 2, minHeight: 44, paddingLeft: 8 },
-    accountActionText: { color: "#2f9af5", fontSize: 12, fontWeight: "900" },
-    missingAccountCard: { alignItems: "center", backgroundColor: colors.surface, borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 20, borderWidth: 1, flexDirection: "row", gap: 12, minHeight: 92, padding: 14 },
-    missingAccountIcon: { alignItems: "center", backgroundColor: dark ? "#3b2910" : "#fff7e6", borderRadius: 15, height: 52, justifyContent: "center", width: 52 },
-    missingAccountTitle: { color: dark ? "#fbbf24" : "#f59e0b", fontSize: 16, fontWeight: "900" },
-    missingAccountCaption: { color: colors.mutedText, fontSize: 12.5 },
-    accountPicker: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: "hidden" },
-    accountOption: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 12, minHeight: 72, paddingHorizontal: 15 },
+    accountPicker: { backgroundColor: dark ? "#111c2c" : "#fbfcfe", borderColor: colors.border, borderRadius: 12, borderWidth: 1, overflow: "hidden" },
+    accountOption: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 10, minHeight: 60, paddingHorizontal: 13 },
     accountOptionSelected: { backgroundColor: dark ? "#102a44" : "#f0f8ff" },
-    optionRadio: { alignItems: "center", borderColor: "#2f9af5", borderRadius: 999, borderWidth: 2, height: 20, justifyContent: "center", width: 20 },
-    optionRadioDot: { backgroundColor: "#2f9af5", borderRadius: 999, height: 10, width: 10 },
-    optionTitle: { color: colors.text, fontSize: 14, fontWeight: "800" },
-    optionCaption: { color: colors.mutedText, fontSize: 12 },
-    manageAccounts: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minHeight: 52, paddingHorizontal: 16 },
-    manageAccountsText: { color: "#2f9af5", fontSize: 13, fontWeight: "900" },
-    otpCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, gap: 10, padding: 16 },
-    otpTitle: { color: colors.text, fontSize: 16, fontWeight: "900" },
-    otpCaption: { color: colors.mutedText, fontSize: 12.5, lineHeight: 18 },
+    optionRadio: { alignItems: "center", borderColor: "#2f9af5", borderRadius: 999, borderWidth: 1.5, height: 18, justifyContent: "center", width: 18 },
+    optionRadioDot: { backgroundColor: "#2f9af5", borderRadius: 999, height: 9, width: 9 },
+    optionTitle: { color: colors.text, fontSize: 13, fontWeight: "800" },
+    optionCaption: { color: colors.mutedText, fontSize: 11.5 },
+    manageAccounts: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", minHeight: 48, paddingHorizontal: 13 },
+    manageAccountsText: { color: "#2f9af5", fontSize: 12.5, fontWeight: "900" },
+    readOnlyInput: { backgroundColor: dark ? "#0d1725" : "#f6f8fb", borderColor: colors.border, borderRadius: 12, borderWidth: 1, justifyContent: "center", minHeight: 48, paddingHorizontal: 13 },
+    readOnlyText: { color: colors.text, fontSize: 13.5, fontWeight: "700" },
+    requiredMark: { color: colors.danger },
     otpRow: { alignItems: "center", flexDirection: "row", gap: 10 },
-    otpInput: { backgroundColor: dark ? "#111c2c" : "#f8fafc", borderColor: colors.border, borderRadius: 13, borderWidth: 1, color: colors.text, flex: 1, fontSize: 15, minHeight: 48, paddingHorizontal: 13 },
-    otpButton: { alignItems: "center", backgroundColor: dark ? "#102a44" : "#eaf5ff", borderRadius: 13, justifyContent: "center", minHeight: 48, minWidth: 112, paddingHorizontal: 12 },
-    otpButtonText: { color: "#2f9af5", fontSize: 12, fontWeight: "900" },
+    otpInput: { backgroundColor: dark ? "#111c2c" : "#fbfcfe", borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, flex: 1, fontSize: 13.5, minHeight: 48, minWidth: 0, paddingHorizontal: 13 },
+    otpButton: { alignItems: "center", backgroundColor: dark ? "#102a44" : "#eaf5ff", borderRadius: 12, justifyContent: "center", minHeight: 48, minWidth: 106, paddingHorizontal: 11 },
+    otpButtonText: { color: "#2f9af5", fontSize: 11.5, fontWeight: "900" },
     inputError: { borderColor: colors.danger },
-    errorText: { color: colors.danger, fontSize: 12.5, lineHeight: 18, marginHorizontal: 4 },
-    infoCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, gap: 17, padding: 18 },
-    infoRow: { alignItems: "flex-start", flexDirection: "row", gap: 12, minHeight: 24 },
-    infoText: { color: colors.mutedText, flex: 1, fontSize: 13, lineHeight: 20 },
-    infoStrong: { color: colors.text, fontWeight: "900" },
-    footer: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 18, paddingTop: 12 },
-    submitButton: { alignItems: "center", backgroundColor: "#2f9af5", borderRadius: 17, justifyContent: "center", minHeight: 58, paddingHorizontal: 18 },
+    errorText: { color: colors.danger, fontSize: 11.5, lineHeight: 17, marginHorizontal: 2 },
+    submitButton: { alignItems: "center", backgroundColor: "#2f9af5", borderRadius: 12, justifyContent: "center", minHeight: 52, paddingHorizontal: 16 },
     submitButtonDisabled: { backgroundColor: dark ? "#233348" : "#c7dcef" },
-    submitButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "900", textAlign: "center" },
+    submitButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "900", textAlign: "center" },
+    securityNote: { color: colors.mutedText, fontSize: 11, lineHeight: 17, textAlign: "center" },
     disabled: { opacity: 0.5 },
     pressed: { opacity: 0.75 },
     successScreen: { alignItems: "center", backgroundColor: dark ? "#08111f" : "#f2f7fc", flex: 1, justifyContent: "center", padding: 20 },
