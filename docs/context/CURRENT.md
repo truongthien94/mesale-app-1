@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-006`
-- Session: `SES-20260811-003`
+- Latest checkpoint: `CKP-20260811-007`
+- Session: `SES-20260811-004`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; Home wallet-summary parity implemented and published
 - Milestone status: M0 open; M1 open and not complete
@@ -20,12 +20,13 @@
 - Replaced the old promotional Home hero with the owner-approved member summary: greeting and notification action, wallet balance and withdrawal action, and exactly two statistics for total received and pending cashback.
 - The cashback-link form remains immediately below the summary; `% HH ròng` is intentionally absent.
 - Laravel `/account` now returns integer VND `wallet.pending_cashback`, scoped to the authenticated user and calculated server-side.
-- Mobile treats an omitted pending field as unavailable (`--`) during rolling deployment instead of inventing a zero value.
+- By explicit product decision, Home displays an omitted pending field as `0đ`; the API parser remains nullable and real supplied values remain server-authoritative.
 - Successful withdrawals refresh both Wallet and Home account caches.
-- Verification passed: TypeScript, mobile `49/49`, Laravel `77/708`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check and staged credential-pattern scan.
+- Verification passed: TypeScript, mobile `50/50`, Laravel `77/708`, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check and staged credential-pattern scan.
 - Implementation commit `0a375b0` and context commit `e989475` are published on `origin/main`; GitHub Actions runs `31471558647` and `31471865183` passed.
 - Operational IDs `SES-20260811-003`, `CKP-20260811-005`, `TSK-MOB-018`, `DEC-20260811-002`, `CHG-20260811-003`, and `TST-20260811-003` were synchronized uniquely; final handoff checkpoint is `CKP-20260811-006`.
 - Production deployment of the additive pending field and physical-device/store evidence remain open; M0/M1 and release gates are not complete.
+- Product override commit `d8263f8` is published on `origin/main`; GitHub Actions run `31472999223` passed. Operational handoff is `CKP-20260811-007`.
 
 ## 2026-08-11 Claude Code Handoff
 
