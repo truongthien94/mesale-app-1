@@ -146,7 +146,7 @@ test("home has no banner block, matching the live classic hero layout which rend
   assert.doesNotMatch(source, /config\?\.banners/);
 });
 
-test("home replaces the promotional hero with a live two-card account summary", () => {
+test("home replaces the promotional hero with a live three-card account summary", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
   const accountStats = source.match(/<AccountStat\b/g) ?? [];
   const bellIcons = source.match(/<Bell\b/g) ?? [];
@@ -156,16 +156,38 @@ test("home replaces the promotional hero with a live two-card account summary", 
   assert.match(source, /account\.wallet\.balance/);
   assert.match(source, /account\.wallet\.totalCashback/);
   assert.match(source, /account\.wallet\.pendingCashback/);
+  assert.match(source, /account\.wallet\.totalWithdrawn/);
   assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/withdrawals"\)/);
   assert.match(source, /import \{ formatAccountMoney \} from "@\/features\/home\/format"/);
   assert.match(source, /minHeight: 44/);
-  assert.equal(accountStats.length, 2);
+  assert.equal(accountStats.length, 3);
   assert.equal(bellIcons.length, 1);
   assert.equal(inboxActions.length, 1);
-  assert.equal(compactAccountValues.length, 4);
+  assert.equal(compactAccountValues.length, 5);
   assert.doesNotMatch(source, /strings\.(heroBadge|cashbackTitle|cashbackCaption)/);
   assert.doesNotMatch(source, /Hệ Thống Mua Sắm|Cashback Shopping for/);
   assert.doesNotMatch(source, /% HH ròng|% net commission/i);
+});
+
+test("home adds the approved cashback claim and live Quick Access actions before the phone demo", () => {
+  const source = read("../src/features/home/HomeScreen.tsx");
+  const quickAccessIndex = source.indexOf("<QuickAccessSection");
+  const phoneDemoIndex = source.indexOf("<PhoneFlowDemo");
+
+  assert.match(source, /Hoàn tiền mua sắm Shopee - Tiktok Shop lên đến 15% giá trị đơn hàng/);
+  for (const label of ["Truy cập nhanh", "Săn mã", "Điểm danh", "Tips & Trick", "Hỗ trợ"]) {
+    assert.match(source, new RegExp(label));
+  }
+  assert.match(source, /router\.push\("\/\(tabs\)\/earn\/checkin"\)/);
+  assert.match(source, /const SUPPORT_URL = "https:\/\/mesale\.vn\/support"/);
+  assert.match(source, /onCoupons=\{openCouponsQuickAccess\}/);
+  assert.match(source, /onTips=\{\(\) => Alert\.alert\(strings\.usageCautionTitle, strings\.usageCautionMessage\)\}/);
+  assert.match(source, /if \(\(couponsQuery\.data\?\.length \?\? 0\) === 0\)/);
+  assert.match(source, /Alert\.alert\(strings\.huntCoupons, strings\.couponsEmpty\)/);
+  assert.match(source, /Alert\.alert\(strings\.quickAccess, strings\.quickAccessUnavailable\)/);
+  assert.doesNotMatch(source, /scrollToEnd|tipsSectionY|onTipsLayout/);
+  assert.ok(quickAccessIndex > source.indexOf("styles.creatorCard"));
+  assert.ok(phoneDemoIndex > quickAccessIndex);
 });
 
 test("Round C renders the enabled homepage blocks with live coupon and ranking data, no disabled blog block", () => {

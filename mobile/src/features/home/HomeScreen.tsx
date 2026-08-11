@@ -23,6 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   Banknote,
   Bell,
+  CalendarDays,
   CircleAlert,
   CirclePlay,
   CheckCircle2,
@@ -30,15 +31,18 @@ import {
   Copy,
   Crown,
   Hourglass,
+  Lightbulb,
   Link2,
   Menu,
+  MessageCircle,
   Moon,
   Search,
   ShoppingBag,
   Sun,
   Ticket,
   TrendingUp,
-  Trophy
+  Trophy,
+  WalletCards
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
@@ -74,7 +78,19 @@ const copy = {
     withdraw: "Rút tiền",
     totalCashback: "Tổng đã nhận",
     pending: "Chờ duyệt",
+    totalWithdrawn: "Tổng đã rút",
+    creatorPromo: "Hoàn tiền mua sắm Shopee - Tiktok Shop lên đến 15% giá trị đơn hàng",
     supported: "Nền tảng hỗ trợ:",
+    quickAccess: "Truy cập nhanh",
+    huntCoupons: "Săn mã",
+    dailyCheckin: "Điểm danh",
+    tips: "Tips & Trick",
+    support: "Hỗ trợ",
+    supportError: "Không thể mở trang hỗ trợ lúc này.",
+    couponsLoading: "Danh sách mã đang được tải. Vui lòng thử lại sau giây lát.",
+    couponsUnavailable: "Chưa thể tải danh sách mã lúc này. Vui lòng thử lại sau.",
+    couponsEmpty: "Hiện chưa có mã khuyến mãi khả dụng.",
+    quickAccessUnavailable: "Chưa thể chuyển tới nội dung này. Vui lòng thử lại.",
     configLoading: "Đang kiểm tra trạng thái các sàn...",
     configOffline: "Chưa thể kiểm tra trạng thái sàn vì thiết bị đang offline.",
     configError: "Chưa thể tải cấu hình sàn. Tính năng tạo link tạm khóa để bảo đảm an toàn.",
@@ -126,7 +142,19 @@ const copy = {
     withdraw: "Withdraw",
     totalCashback: "Total received",
     pending: "Pending",
+    totalWithdrawn: "Total withdrawn",
+    creatorPromo: "Get up to 15% cashback on the value of Shopee - TikTok Shop orders",
     supported: "Supported platforms:",
+    quickAccess: "Quick access",
+    huntCoupons: "Find coupons",
+    dailyCheckin: "Daily check-in",
+    tips: "Tips & Trick",
+    support: "Support",
+    supportError: "The support page cannot be opened right now.",
+    couponsLoading: "Coupons are still loading. Please try again shortly.",
+    couponsUnavailable: "Coupons are unavailable right now. Please try again later.",
+    couponsEmpty: "There are no coupons available right now.",
+    quickAccessUnavailable: "This content cannot be opened yet. Please try again.",
     configLoading: "Checking marketplace availability...",
     configOffline: "Marketplace availability cannot be checked while offline.",
     configError: "Marketplace configuration is unavailable. Link creation is locked for safety.",
@@ -173,6 +201,8 @@ const platformPresentation: Record<Marketplace, { label: string; color: string }
   tiktok: { label: "TikTok Shop", color: "#111827" },
   lazada: { label: "Lazada", color: "#0f146d" }
 };
+
+const SUPPORT_URL = "https://mesale.vn/support";
 
 function isOfflineError(error: unknown): boolean {
   return error instanceof ApiError && (error.isNetworkError || error.isTimeout || error.status === 0);
@@ -254,7 +284,67 @@ function AccountStat({ icon, label, value }: { icon: ReactNode; label: string; v
     <View style={[styles.accountStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {icon}
       <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.accountStatValue, { color: colors.text }]}>{value}</Text>
-      <Text numberOfLines={1} style={[styles.accountStatLabel, { color: colors.mutedText }]}>{label}</Text>
+      <Text numberOfLines={2} style={[styles.accountStatLabel, { color: colors.mutedText }]}>{label}</Text>
+    </View>
+  );
+}
+
+function QuickAccessItem({ icon, label, onPress, role = "button" }: {
+  icon: ReactNode;
+  label: string;
+  onPress: () => void;
+  role?: "button" | "link";
+}) {
+  const { colors } = useTheme();
+
+  return (
+    <Pressable
+      accessibilityLabel={label}
+      accessibilityRole={role}
+      onPress={onPress}
+      style={({ pressed }) => [styles.quickAccessItem, pressed && styles.pressed]}
+    >
+      {icon}
+      <Text numberOfLines={2} style={[styles.quickAccessLabel, { color: colors.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function QuickAccessSection({ language, onCoupons, onTips, onSupport }: {
+  language: "vi" | "en";
+  onCoupons: () => void;
+  onTips: () => void;
+  onSupport: () => void;
+}) {
+  const { colors } = useTheme();
+  const strings = copy[language];
+
+  return (
+    <View style={styles.quickAccessSection}>
+      <Text accessibilityRole="header" style={[styles.quickAccessTitle, { color: colors.text }]}>{strings.quickAccess}</Text>
+      <View style={styles.quickAccessRow}>
+        <QuickAccessItem
+          icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fef2f2" }]}><Ticket color="#ef4444" size={23} strokeWidth={2.1} /></View>}
+          label={strings.huntCoupons}
+          onPress={onCoupons}
+        />
+        <QuickAccessItem
+          icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#eff6ff" }]}><CalendarDays color="#3b82f6" size={23} strokeWidth={2.1} /></View>}
+          label={strings.dailyCheckin}
+          onPress={() => router.push("/(tabs)/earn/checkin")}
+        />
+        <QuickAccessItem
+          icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fff7ed" }]}><Lightbulb color="#f97316" size={23} strokeWidth={2.1} /></View>}
+          label={strings.tips}
+          onPress={onTips}
+        />
+        <QuickAccessItem
+          icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#ecfdf5" }]}><MessageCircle color="#16a34a" size={23} strokeWidth={2.1} /></View>}
+          label={strings.support}
+          onPress={onSupport}
+          role="link"
+        />
+      </View>
     </View>
   );
 }
@@ -687,7 +777,9 @@ function RoundCHomeBlocks() {
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const homeScrollRef = useRef<ScrollView>(null);
   const productInputRef = useRef<TextInput>(null);
+  const couponsSectionY = useRef<number | null>(null);
   const openMoreSheet = useMoreSheetStore((state) => state.open);
   const { colors: themeColors, scheme, setPreference } = useTheme();
   // Keep Vietnamese as the default while honoring an explicit account choice.
@@ -695,6 +787,7 @@ export function HomeScreen() {
   const strings = copy[language];
   const accountQuery = useAccountSummary();
   const configQuery = useHomeConfig();
+  const couponsQuery = useCoupons();
   const cashbackMutation = useCreateCashbackLink();
   const [productUrl, setProductUrl] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
@@ -756,6 +849,39 @@ export function HomeScreen() {
     : null;
   const displayName = account.name?.trim() || user?.name?.trim() || (language === "vi" ? "bạn" : "there");
 
+  function scrollToQuickContent(position: number | null) {
+    if (position === null) {
+      Alert.alert(strings.quickAccess, strings.quickAccessUnavailable);
+      return;
+    }
+    homeScrollRef.current?.scrollTo({ animated: true, y: Math.max(0, position - spacing.md) });
+  }
+
+  function openCouponsQuickAccess() {
+    if (couponsQuery.isPending) {
+      Alert.alert(strings.huntCoupons, strings.couponsLoading);
+      return;
+    }
+    if (couponsQuery.isError) {
+      Alert.alert(strings.huntCoupons, strings.couponsUnavailable);
+      return;
+    }
+    if ((couponsQuery.data?.length ?? 0) === 0) {
+      Alert.alert(strings.huntCoupons, strings.couponsEmpty);
+      return;
+    }
+    scrollToQuickContent(couponsSectionY.current);
+  }
+
+  async function openSupport() {
+    try {
+      if (!await Linking.canOpenURL(SUPPORT_URL)) throw new Error("Unsupported support URL");
+      await Linking.openURL(SUPPORT_URL);
+    } catch {
+      Alert.alert(strings.support, strings.supportError);
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -773,6 +899,7 @@ export function HomeScreen() {
         ]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
+        ref={homeScrollRef}
         refreshControl={(
           <RefreshControl
             onRefresh={() => {
@@ -894,10 +1021,16 @@ export function HomeScreen() {
               label={strings.pending}
               value={formatAccountMoney(account.wallet.pendingCashback, language)}
             />
+            <AccountStat
+              icon={<WalletCards color="#8b5cf6" size={20} strokeWidth={2.2} />}
+              label={strings.totalWithdrawn}
+              value={formatAccountMoney(account.wallet.totalWithdrawn, language)}
+            />
           </View>
         </View>
 
         <View style={[styles.creatorCard, { backgroundColor: themeColors.surface, borderColor: scheme === "dark" ? themeColors.border : "#fed7c7" }]}>
+          <Text style={[styles.creatorPromo, { color: themeColors.text }]}>{strings.creatorPromo}</Text>
           <View style={styles.supportBlock}>
             <Text style={[styles.supportLabel, { color: themeColors.mutedText }]}>{strings.supported}</Text>
             {config ? <PlatformBadges config={config} /> : null}
@@ -1000,6 +1133,13 @@ export function HomeScreen() {
           ) : null}
         </View>
 
+        <QuickAccessSection
+          language={language}
+          onCoupons={openCouponsQuickAccess}
+          onSupport={() => void openSupport()}
+          onTips={() => Alert.alert(strings.usageCautionTitle, strings.usageCautionMessage)}
+        />
+
         {cashbackMutation.data ? (
           <ProductResult
             language={language}
@@ -1022,7 +1162,13 @@ export function HomeScreen() {
           <PhoneFlowDemo />
         </View>
 
-        <RoundCHomeBlocks />
+        <View
+          onLayout={(event) => {
+            couponsSectionY.current = event.nativeEvent.layout.y;
+          }}
+        >
+          <RoundCHomeBlocks />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -1081,22 +1227,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14
   },
   accountWithdrawText: { color: "#3b82f6", fontSize: 12, fontWeight: "900" },
-  accountStatsRow: { flexDirection: "row", gap: 10 },
+  accountStatsRow: { flexDirection: "row", gap: 8 },
   accountStatCard: {
     borderRadius: 16,
     borderWidth: 1,
     flex: 1,
-    minHeight: 94,
-    paddingHorizontal: 13,
-    paddingVertical: 12,
+    minHeight: 96,
+    paddingHorizontal: 9,
+    paddingVertical: 11,
     shadowColor: "#0f172a",
     shadowOffset: { height: 3, width: 0 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1
   },
-  accountStatValue: { fontSize: 18, fontWeight: "900", marginTop: 7 },
-  accountStatLabel: { fontSize: 11, fontWeight: "600", marginTop: 2 },
+  accountStatValue: { fontSize: 15, fontWeight: "900", marginTop: 7 },
+  accountStatLabel: { fontSize: 9.5, fontWeight: "600", lineHeight: 13, marginTop: 2, minHeight: 26 },
   metricCard: {
     backgroundColor: colors.surface, borderColor: "#f1f5f9", borderRadius: 18, borderWidth: 1,
     flexBasis: "47%", flexGrow: 1, minHeight: 112, padding: spacing.md,
@@ -1109,11 +1255,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface, borderColor: "#fed7c7", borderRadius: 24, borderWidth: 1, gap: spacing.md,
     padding: spacing.lg, shadowColor: "#f97316", shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3
   },
+  creatorPromo: { fontSize: 13, fontWeight: "900", lineHeight: 19 },
   supportBlock: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 9, justifyContent: "space-between" },
   supportLabel: { color: colors.mutedText, fontSize: 10, fontWeight: "900", letterSpacing: 0.8, textTransform: "uppercase" },
   badgeRow: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   platformBadge: { alignItems: "center", borderRadius: 999, flexDirection: "row", gap: 5, paddingHorizontal: 11, paddingVertical: 7 },
   platformBadgeText: { color: "#ffffff", fontSize: 11, fontWeight: "900" },
+  quickAccessSection: { gap: spacing.sm, paddingVertical: spacing.xs },
+  quickAccessTitle: { fontSize: 16, fontWeight: "900" },
+  quickAccessRow: { alignItems: "flex-start", flexDirection: "row", gap: 6, justifyContent: "space-between" },
+  quickAccessItem: { alignItems: "center", flex: 1, gap: 7, justifyContent: "flex-start", minHeight: 82, minWidth: 0, paddingVertical: 4 },
+  quickAccessIcon: { alignItems: "center", borderRadius: 14, height: 50, justifyContent: "center", width: 50 },
+  quickAccessLabel: { fontSize: 10.5, fontWeight: "600", lineHeight: 14, textAlign: "center" },
   notice: { alignItems: "center", backgroundColor: "#f1f5f9", borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 10, padding: 12 },
   noticeDanger: { backgroundColor: "#fff1f2", borderColor: "#fecdd3" },
   noticeWarning: { backgroundColor: "#fffbeb", borderColor: "#fde68a" },
