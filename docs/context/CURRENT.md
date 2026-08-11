@@ -27,6 +27,7 @@
 - Verification passed: mobile `71/71`; TypeScript; Expo Doctor `18/18`; iOS/Android exports; Android emulator light/dark checks; wallet header font scaling; diff and staged credential checks.
 - Source `305838c` and context `33a90cd` are published directly to `origin/main`; GitHub Actions runs `31500747827` and `31501266934` passed all jobs, including both exports.
 - Operational IDs: `SES-20260811-011`, `CKP-20260811-016`, `CKP-20260811-017`, `TSK-MOB-026`, `DEC-20260811-007`, `CHG-20260811-011`, `TST-20260811-011`, and `GATE-BOTH-016`.
+- The redacted operational rows were synchronized and verified unique by ID; `BLK-DEVICE-001` was updated in place with the new emulator evidence.
 - Physical devices, full accessibility/offline/performance matrices, signed artifacts, privacy declarations, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Account, Avatar, And Referral Hardening
