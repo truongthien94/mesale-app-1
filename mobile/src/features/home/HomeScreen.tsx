@@ -33,12 +33,9 @@ import {
   Hourglass,
   Lightbulb,
   Link2,
-  Menu,
   MessageCircle,
-  Moon,
   Search,
   ShoppingBag,
-  Sun,
   Ticket,
   TrendingUp,
   Trophy,
@@ -60,7 +57,6 @@ import {
   useRanking
 } from "@/features/home/hooks";
 import { PhoneFlowDemo } from "@/features/home/PhoneFlowDemo";
-import { useMoreSheetStore } from "@/features/navigation/moreStore";
 import type { CashbackProduct, Coupon, HomeConfig, Marketplace, RankingBoard, RankingEntry } from "@/features/home/types";
 
 const copy = {
@@ -778,10 +774,8 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const homeScrollRef = useRef<ScrollView>(null);
-  const productInputRef = useRef<TextInput>(null);
   const couponsSectionY = useRef<number | null>(null);
-  const openMoreSheet = useMoreSheetStore((state) => state.open);
-  const { colors: themeColors, scheme, setPreference } = useTheme();
+  const { colors: themeColors, scheme } = useTheme();
   // Keep Vietnamese as the default while honoring an explicit account choice.
   const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
   const strings = copy[language];
@@ -891,7 +885,7 @@ export function HomeScreen() {
         contentContainerStyle={[
           styles.content,
           {
-            paddingTop: insets.top + spacing.md,
+            paddingTop: insets.top + spacing.sm,
             paddingBottom: insets.bottom + spacing.xl,
             paddingLeft: insets.left + spacing.md,
             paddingRight: insets.right + spacing.md
@@ -920,53 +914,19 @@ export function HomeScreen() {
           />
         ) : null}
 
-        <View style={[styles.brandBar, { backgroundColor: themeColors.surface, borderBottomColor: themeColors.border }]}>
-          <Image
-            accessibilityLabel="Mê Sale"
-            resizeMode="contain"
-            source={require("../../../assets/mesale-logo.png")}
-            style={styles.brandLogo}
-          />
-          <View style={styles.brandActions}>
-            <Pressable
-              accessibilityLabel={language === "vi" ? "Tìm kiếm sản phẩm" : "Search products"}
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={() => productInputRef.current?.focus()}
-              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
-            >
-              <Search color={themeColors.mutedText} size={18} strokeWidth={2} />
-            </Pressable>
-            <Pressable
-              accessibilityLabel={scheme === "dark"
-                ? (language === "vi" ? "Chuyển sang giao diện sáng" : "Switch to light theme")
-                : (language === "vi" ? "Chuyển sang giao diện tối" : "Switch to dark theme")}
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={() => setPreference(scheme === "dark" ? "light" : "dark")}
-              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
-            >
-              {scheme === "dark"
-                ? <Sun color="#f59e0b" size={18} strokeWidth={2} />
-                : <Moon color={themeColors.mutedText} size={18} strokeWidth={2} />}
-            </Pressable>
-            <Pressable
-              accessibilityLabel={language === "vi" ? "Mở thêm tùy chọn" : "Open more options"}
-              accessibilityRole="button"
-              hitSlop={6}
-              onPress={openMoreSheet}
-              style={({ pressed }) => [styles.brandAction, { backgroundColor: themeColors.background, borderColor: themeColors.border }, pressed && styles.pressed]}
-            >
-              <Menu color={themeColors.mutedText} size={19} strokeWidth={2} />
-            </Pressable>
-          </View>
-        </View>
-
         <View style={styles.accountSummary}>
           <View style={styles.accountGreetingRow}>
-            <Text accessibilityRole="header" style={[styles.accountGreeting, { color: themeColors.text }]}>
-              {strings.greeting} {displayName} 👋
-            </Text>
+            <View style={styles.accountGreetingIdentity}>
+              <Image
+                accessibilityLabel="Mê Sale"
+                resizeMode="contain"
+                source={require("../../../assets/mesale-logo.png")}
+                style={styles.accountGreetingLogo}
+              />
+              <Text accessibilityRole="header" style={[styles.accountGreeting, { color: themeColors.text }]}>
+                {strings.greeting} {displayName} 👋
+              </Text>
+            </View>
             <Pressable
               accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
               accessibilityRole="button"
@@ -1067,7 +1027,6 @@ export function HomeScreen() {
               onSubmitEditing={() => submitProductUrl()}
               placeholder={strings.urlPlaceholder}
               placeholderTextColor={themeColors.mutedText}
-              ref={productInputRef}
               returnKeyType="search"
               style={[styles.input, { color: themeColors.text }]}
               value={productUrl}
@@ -1175,24 +1134,13 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  brandBar: {
-    alignItems: "center",
-    backgroundColor: colors.surface,
-    borderBottomColor: colors.border,
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    justifyContent: "center",
-    minHeight: 64,
-    paddingHorizontal: spacing.sm
-  },
-  brandLogo: { height: 50, width: 50 },
-  brandActions: { alignItems: "center", flex: 1, flexDirection: "row", gap: 8, justifyContent: "flex-end" },
-  brandAction: { alignItems: "center", borderRadius: 11, borderWidth: 1, height: 38, justifyContent: "center", width: 38 },
   demoSection: { marginBottom: spacing.sm },
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing.md },
-  accountSummary: { gap: spacing.md, paddingTop: spacing.sm },
+  accountSummary: { gap: spacing.md },
   accountGreetingRow: { alignItems: "center", flexDirection: "row", gap: spacing.sm, justifyContent: "space-between" },
+  accountGreetingIdentity: { alignItems: "center", flex: 1, flexDirection: "row", gap: spacing.sm, minWidth: 0 },
+  accountGreetingLogo: { height: 38, width: 38 },
   accountGreeting: { flex: 1, fontSize: 20, fontWeight: "900", lineHeight: 27 },
   accountNotificationButton: {
     alignItems: "center",

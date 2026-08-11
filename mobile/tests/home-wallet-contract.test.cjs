@@ -159,11 +159,16 @@ test("home replaces the promotional hero with a live three-card account summary"
   assert.match(source, /account\.wallet\.totalWithdrawn/);
   assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/withdrawals"\)/);
   assert.match(source, /import \{ formatAccountMoney \} from "@\/features\/home\/format"/);
-  assert.match(source, /minHeight: 44/);
+  assert.match(source, /accountNotificationButton:\s*\{[^}]*height: 44,[^}]*width: 44/);
+  assert.match(source, /accountWithdrawButton:\s*\{[^}]*minHeight: 44/);
+  assert.match(source, /paddingTop: insets\.top \+ spacing\.sm/);
+  assert.doesNotMatch(source, /accountSummary:\s*\{[^}]*paddingTop/);
   assert.equal(accountStats.length, 3);
   assert.equal(bellIcons.length, 1);
   assert.equal(inboxActions.length, 1);
   assert.equal(compactAccountValues.length, 5);
+  assert.match(source, /styles\.accountGreetingIdentity[\s\S]*mesale-logo\.png[\s\S]*strings\.greeting/);
+  assert.doesNotMatch(source, /styles\.brandBar|useMoreSheetStore|productInputRef|\.current\?\.focus|<Menu\b|<Moon\b|<Sun\b/);
   assert.doesNotMatch(source, /strings\.(heroBadge|cashbackTitle|cashbackCaption)/);
   assert.doesNotMatch(source, /Hệ Thống Mua Sắm|Cashback Shopping for/);
   assert.doesNotMatch(source, /% HH ròng|% net commission/i);
