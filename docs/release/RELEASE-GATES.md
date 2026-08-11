@@ -10,6 +10,7 @@ Current verdicts:
 - Round 4 evidence: local Laravel `72` tests / `664` assertions, focused pruning `4` tests / `16` assertions, mobile `34/34`, TypeScript, Expo Doctor `18/18`, dependency check, exports, lint, diff, and secret checks passed; remote CI run `31328158427` passed all jobs.
 - Home parity evidence: code commit `88e2095`; mobile `46/46`, TypeScript, Expo Doctor `18/18`, iOS/Android exports, Android emulator visual inspection, diff check, and sensitive-data scan passed. Physical-device and store-copy evidence remain open.
 - Native Orders evidence: source `439c1da` and context `c14a5ac` are published; mobile `54/54`, TypeScript, Laravel `66/646`, diff and staged sensitive-data checks, Android emulator visual/empty-CTA checks, and remote CI run `31482816055` pass. Production API deployment, physical devices, signed artifacts, and store evidence remain open.
+- Native Account evidence: three mobile files are verified locally; mobile `54/54`, TypeScript, Android Expo export, diff check, Android light/dark visual checks, and HTTP 200 privacy/terms/support checks pass. Physical devices, signed artifacts, accessibility/performance, and store evidence remain open.
 
 An ID is complete only when source, tests, generated artifact, device behavior, and store-console evidence agree. Local checks do not substitute for staging, remote CI, signed artifact, or device evidence.
 
@@ -34,6 +35,7 @@ An ID is complete only when source, tests, generated artifact, device behavior, 
 | `GATE-BOTH-011` | Partial / blocked | Round C Home snapshot and Wallet dashboard | TypeScript, `45/45` mobile tests, Expo Doctor `18/18`, and iOS/Android exports pass locally. Dynamic coupon/blog freshness, physical screenshots, device interaction, signed artifacts, and store evidence remain missing. |
 | `GATE-BOTH-012` | Partial / blocked | Native Home parity, locale/theme behavior, and animated iPhone walkthrough | TypeScript, `46/46` mobile tests, Expo Doctor `18/18`, iOS/Android exports, and Android emulator inspection pass. Physical iOS/Android matrices, accessibility/offline/performance evidence, signed artifacts, and owner-approved walkthrough disclosure remain missing. |
 | `GATE-BOTH-013` | Partial / blocked | Native Orders tracking parity and additive order-feed contract | Source `439c1da` and context `c14a5ac` are published; mobile `54/54`, TypeScript, Laravel `66/646`, diff and staged sensitive-data checks, Android emulator Orders/empty-CTA evidence, and remote CI run `31482816055` pass. Production API deployment, physical iOS/Android matrices, signed artifacts, accessibility/performance evidence, and store-console proof remain missing. |
+| `GATE-BOTH-014` | Partial / blocked | Native Account primary tab and member-hub parity | Three mobile files are verified locally; mobile `54/54`, TypeScript, Android Expo export, diff check, Android light/dark screenshots, and HTTP 200 privacy/terms/support checks pass. Physical iOS/Android, accessibility/font-scaling/offline/performance evidence, signed artifacts, privacy/store declarations, and store-console proof remain missing. |
 
 ## Required Release Evidence
 

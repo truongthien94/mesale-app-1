@@ -1,9 +1,9 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260811-011`
-- Session: `SES-20260811-008`
+- Latest checkpoint: `CKP-20260811-012`
+- Session: `SES-20260811-009`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; native Orders redesign and additive API contract published and CI verified
+- Phase: M0 P0 remediation and M1 MVP foundation; native Account tab redesign verified locally
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
@@ -11,9 +11,20 @@
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Remote `main`: Orders source commit `439c1da` and context commit `c14a5ac` are published; GitHub Actions run `31482816055` passed all jobs
+- Local Account worktree: three mobile files are verified but remain unstaged and uncommitted
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-11 Native Account Tab Redesign
+
+- Replaced the primary `Thêm` button and More sheet with a real `Tài khoản` tab based on the latest owner-provided Account reference.
+- Rebuilt Account as a native hub for profile, wallet, bank accounts, withdrawals, referrals, security, preferences, legal/support, theme, and logout.
+- Wallet, payment-account, withdrawal, and referral states use existing Laravel APIs; no mobile database, fake member data, Laravel route, controller, schema, or production-data change was introduced.
+- Android light and dark screenshots passed visual inspection. Mobile tests `54/54`, TypeScript, Android Expo export, diff check, and HTTP 200 checks for privacy, terms, and support passed.
+- The implementation currently modifies exactly three mobile files and remains unstaged/uncommitted. This operational task does not push or deploy it.
+- Operational IDs: `SES-20260811-009`, `CKP-20260811-012`, `TSK-MOB-024`, `DEC-20260811-005`, `CHG-20260811-009`, `TST-20260811-009`, and `GATE-BOTH-014`.
+- M0/M1, physical-device, signed-artifact, accessibility/performance, and store-console gates remain open. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Native Orders Tracking Redesign
 
