@@ -47,6 +47,7 @@ import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { colors, spacing } from "@/theme/tokens";
 import { isSafeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
+import { formatAccountMoney } from "@/features/home/format";
 import {
   useAccountSummary,
   useCoupons,
@@ -187,14 +188,6 @@ function formatVnd(value: number, language: "vi" | "en"): string {
     currency: "VND",
     maximumFractionDigits: 0
   }).format(value);
-}
-
-function formatAccountMoney(value: number | null, language: "vi" | "en"): string {
-  if (value === null) return "--";
-  if (language === "vi") {
-    return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(value)}đ`;
-  }
-  return formatVnd(value, language);
 }
 
 function secureRemoteUri(value: string | null): string | null {

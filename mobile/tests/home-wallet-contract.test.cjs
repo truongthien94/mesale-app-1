@@ -40,6 +40,14 @@ test("Vietnamese remains the default locale unless English is explicitly preferr
   assert.equal(resolveLocale(" EN "), "en");
 });
 
+test("account money formatting renders rolling-deploy nulls as zero", () => {
+  const { formatAccountMoney } = loadTypeScriptModule("../src/features/home/format.ts");
+
+  assert.equal(formatAccountMoney(null, "vi"), "0đ");
+  assert.equal(formatAccountMoney(1250, "vi"), "1.250đ");
+  assert.equal(formatAccountMoney(null, "en"), "₫0");
+});
+
 test("home normalizes product URLs and only accepts HTTPS affiliate handoff", () => {
   const { isSafeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
     "@/api/client": { request: async () => { throw new Error("not called"); } }
@@ -149,9 +157,7 @@ test("home replaces the promotional hero with a live two-card account summary", 
   assert.match(source, /account\.wallet\.totalCashback/);
   assert.match(source, /account\.wallet\.pendingCashback/);
   assert.match(source, /router\.push\("\/\(tabs\)\/wallet\/withdrawals"\)/);
-  assert.match(source, /function formatAccountMoney\(value: number \| null/);
-  assert.match(source, /if \(value === null\) return "--"/);
-  assert.match(source, /\.format\(value\)\}đ/);
+  assert.match(source, /import \{ formatAccountMoney \} from "@\/features\/home\/format"/);
   assert.match(source, /minHeight: 44/);
   assert.equal(accountStats.length, 2);
   assert.equal(bellIcons.length, 1);
