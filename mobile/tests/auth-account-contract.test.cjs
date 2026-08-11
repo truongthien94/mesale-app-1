@@ -74,6 +74,10 @@ test("keeps account categories collapsed on the hub and preserves the existing c
   for (const route of ["information", "finance", "settings"]) {
     assert.match(hubSource, new RegExp(`account/${route}`));
   }
+  for (const removedLabel of ["TÀI KHOẢN", "TÀI CHÍNH", "THÔNG BÁO", "CÀI ĐẶT"]) {
+    assert.doesNotMatch(hubSource, new RegExp(`>${removedLabel}<`));
+  }
+  assert.match(hubSource, /primaryMenuStack: \{ gap: 10 \}/);
   for (const title of ["Thông tin cá nhân", "Bảo mật tài khoản", "Phiên đăng nhập"]) {
     assert.match(informationSource, new RegExp(title));
     assert.doesNotMatch(hubSource, new RegExp(`title="${title}"`));
@@ -82,6 +86,21 @@ test("keeps account categories collapsed on the hub and preserves the existing c
   assert.match(financeSource, /useWithdrawals\(\)/);
   assert.match(settingsSource, /useAccount\(\)/);
   assert.match(settingsSource, /accountQuery\.data\?\.wallet\?\.currency/);
+});
+
+test("shows referral entry from Laravel account or auth eligibility without trusting device time", () => {
+  const hubSource = fs.readFileSync(accountHubPath, "utf8");
+  assert.match(hubSource, /typeof account\.referral_code_eligible === "boolean"/);
+  assert.match(hubSource, /\? account\.referral_code_eligible[\s\S]*: user\?\.referralCodeEligible === true/);
+  assert.match(hubSource, /account\.referral_code_expires_at !== undefined/);
+  assert.match(hubSource, /: user\?\.referralCodeExpiresAt/);
+  assert.match(hubSource, /\{referralCodeEligible \? \(/);
+  assert.match(hubSource, /referralEntryExpanded \? "Thu gọn" : "Nhập ngay"/);
+  assert.match(hubSource, /setReferralEntryExpanded\(\(value\) => !value\)/);
+  assert.match(hubSource, /referralEntryPanel/);
+  assert.match(hubSource, /Hạn nhập mã do máy chủ Mê Sale xác nhận/);
+  assert.match(hubSource, /Chỉ áp dụng trong 3 ngày đầu sau khi đăng ký/);
+  assert.doesNotMatch(hubSource, /Date\.now\(\)|85%|24h/i);
 });
 
 test("maps Laravel confirmation fields and the mobile device name", () => {

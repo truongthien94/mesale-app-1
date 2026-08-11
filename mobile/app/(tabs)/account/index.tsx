@@ -19,7 +19,6 @@ import {
   Tag,
   Trash2,
   UserRound,
-  UsersRound
 } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -111,9 +110,9 @@ function formatRate(value: number): string {
 }
 
 function referralDeadlineCopy(expiresAt: string | null | undefined): string {
-  if (!expiresAt) return "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi.";
+  if (!expiresAt) return "Mê Sale sẽ kiểm tra thời hạn 72 giờ trên máy chủ khi bạn gửi mã.";
   const expiryTimestamp = Date.parse(expiresAt);
-  if (!Number.isFinite(expiryTimestamp)) return "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi.";
+  if (!Number.isFinite(expiryTimestamp)) return "Mê Sale sẽ kiểm tra thời hạn 72 giờ trên máy chủ khi bạn gửi mã.";
 
   const deadline = new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -122,18 +121,7 @@ function referralDeadlineCopy(expiresAt: string | null | undefined): string {
     month: "2-digit",
     year: "numeric"
   }).format(expiryTimestamp);
-  const remainingMilliseconds = expiryTimestamp - Date.now();
-  if (remainingMilliseconds <= 0) {
-    return `Hạn máy chủ cung cấp: ${deadline}. Máy chủ sẽ xác nhận lại thời hạn khi bạn gửi.`;
-  }
-
-  const remainingHours = Math.ceil(remainingMilliseconds / 3_600_000);
-  const days = Math.floor(remainingHours / 24);
-  const hours = remainingHours % 24;
-  const remaining = days > 0
-    ? `${days} ngày${hours > 0 ? ` ${hours} giờ` : ""}`
-    : `${remainingHours} giờ`;
-  return `Hạn máy chủ cung cấp: ${deadline} · còn khoảng ${remaining} theo giờ trên thiết bị.`;
+  return `Hạn nhập mã do máy chủ Mê Sale xác nhận: ${deadline}.`;
 }
 
 const REFERRAL_STATE_MESSAGES: Record<string, string> = {
@@ -156,7 +144,7 @@ function secureAvatarUri(value: string | null): string | null {
 export default function AccountRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { logout, refreshUser } = useAuth();
+  const { logout, refreshUser, user } = useAuth();
   const { colors, scheme } = useTheme();
   const accountQuery = useAccount();
   const paymentAccountsQuery = usePaymentAccounts();
@@ -169,6 +157,7 @@ export default function AccountRoute() {
   const logoutInFlight = useRef(false);
   const [referralEntryCode, setReferralEntryCode] = useState("");
   const [referralEntryError, setReferralEntryError] = useState<ApiError | null>(null);
+  const [referralEntryExpanded, setReferralEntryExpanded] = useState(false);
   const [submittingReferral, setSubmittingReferral] = useState(false);
   const referralEntryInFlight = useRef(false);
 
@@ -193,7 +182,13 @@ export default function AccountRoute() {
   const hasConfirmedNoPaymentAccount = paymentAccountsQuery.isSuccess && paymentAccountCount === 0;
   const referralRate = referralsQuery.data?.rates.f1_rate;
   const normalizedReferralEntryCode = referralEntryCode.trim();
-  const referralWindowCopy = referralDeadlineCopy(account.referral_code_expires_at);
+  const referralCodeEligible = typeof account.referral_code_eligible === "boolean"
+    ? account.referral_code_eligible
+    : user?.referralCodeEligible === true;
+  const referralCodeExpiresAt = account.referral_code_expires_at !== undefined
+    ? account.referral_code_expires_at
+    : user?.referralCodeExpiresAt;
+  const referralWindowCopy = referralDeadlineCopy(referralCodeExpiresAt);
   const screenBackground = scheme === "dark" ? "#08111f" : "#f2f7fc";
   const softBlue = scheme === "dark" ? "#102a44" : "#eaf5ff";
   const softGreen = scheme === "dark" ? "#0d3327" : "#eaf9f1";
@@ -244,6 +239,7 @@ export default function AccountRoute() {
     try {
       await applyReferralCode(normalizedReferralEntryCode);
       setReferralEntryCode("");
+      setReferralEntryExpanded(false);
       await refreshReferralState();
       Alert.alert("Đã liên kết", "Mã giới thiệu đã được áp dụng thành công.");
     } catch (reason) {
@@ -377,103 +373,109 @@ export default function AccountRoute() {
         <Gift color="#93c5fd" size={38} />
       </Pressable>
 
-      {account.referral_code_eligible === true ? (
-        <View style={[styles.referralEntryCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.referralEntryHeader}>
-            <View style={[styles.menuIcon, { backgroundColor: softBlue }]}>
-              <UsersRound color="#2f9af5" size={21} />
-            </View>
-            <View style={styles.referralEntryHeading}>
-              <Text style={[styles.referralEntryTitle, { color: colors.text }]}>Nhập mã giới thiệu</Text>
-              <Text style={[styles.referralEntryLead, { color: colors.mutedText }]}>Chỉ áp dụng trong 3 ngày đầu sau khi đăng ký.</Text>
-            </View>
-          </View>
-          <Text style={[styles.referralEntryDeadline, { color: colors.mutedText }]}>{referralWindowCopy}</Text>
-          <View style={styles.referralEntryControls}>
-            <TextInput
-              accessibilityLabel="Mã giới thiệu"
-              autoCapitalize="characters"
-              autoComplete="off"
-              editable={!submittingReferral}
-              maxLength={50}
-              onChangeText={(value) => {
-                setReferralEntryCode(value);
+      {referralCodeEligible ? (
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <AccountMenuRow
+              actionLabel={referralEntryExpanded ? "Thu gọn" : "Nhập ngay"}
+              icon={Gift}
+              iconBackground={softBlue}
+              iconColor="#2f9af5"
+              onPress={() => {
+                setReferralEntryExpanded((value) => !value);
                 setReferralEntryError(null);
               }}
-              onSubmitEditing={() => void submitReferralCode()}
-              placeholder="REFXXXXXX"
-              placeholderTextColor={colors.mutedText}
-              returnKeyType="done"
-              style={[styles.referralEntryInput, { backgroundColor: screenBackground, borderColor: referralEntryError ? colors.danger : colors.border, color: colors.text }]}
-              value={referralEntryCode}
+              showDivider={referralEntryExpanded}
+              subtitle="Chỉ áp dụng trong 3 ngày đầu sau khi đăng ký"
+              title="Nhập mã giới thiệu"
             />
-            <Pressable
-              accessibilityLabel="Xác nhận mã giới thiệu"
-              accessibilityRole="button"
-              accessibilityState={{ busy: submittingReferral, disabled: submittingReferral || !normalizedReferralEntryCode }}
-              disabled={submittingReferral || !normalizedReferralEntryCode}
-              onPress={() => void submitReferralCode()}
-              style={({ pressed }) => [styles.referralEntryButton, (submittingReferral || !normalizedReferralEntryCode) && styles.disabledAction, pressed && styles.pressed]}
-            >
-              {submittingReferral
-                ? <ActivityIndicator color="#ffffff" />
-                : <Text style={styles.referralEntryButtonText}>Xác nhận</Text>}
-            </Pressable>
-          </View>
-          <FormErrorSummary errors={referralEntryError?.errors} message={referralEntryError?.message} />
+          {referralEntryExpanded ? (
+            <View style={[styles.referralEntryPanel, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.referralEntryDeadline, { color: colors.mutedText }]}>{referralWindowCopy}</Text>
+                <View style={styles.referralEntryControls}>
+                  <TextInput
+                    accessibilityLabel="Mã giới thiệu"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    editable={!submittingReferral}
+                    maxLength={50}
+                    onChangeText={(value) => {
+                      setReferralEntryCode(value);
+                      setReferralEntryError(null);
+                    }}
+                    onSubmitEditing={() => void submitReferralCode()}
+                    placeholder="Nhập mã giới thiệu"
+                    placeholderTextColor={colors.mutedText}
+                    returnKeyType="done"
+                    style={[styles.referralEntryInput, { backgroundColor: screenBackground, borderColor: referralEntryError ? colors.danger : colors.border, color: colors.text }]}
+                    value={referralEntryCode}
+                  />
+                  <Pressable
+                    accessibilityLabel="Xác nhận mã giới thiệu"
+                    accessibilityRole="button"
+                    accessibilityState={{ busy: submittingReferral, disabled: submittingReferral || !normalizedReferralEntryCode }}
+                    disabled={submittingReferral || !normalizedReferralEntryCode}
+                    onPress={() => void submitReferralCode()}
+                    style={({ pressed }) => [styles.referralEntryButton, (submittingReferral || !normalizedReferralEntryCode) && styles.disabledAction, pressed && styles.pressed]}
+                  >
+                    {submittingReferral
+                      ? <ActivityIndicator color="#ffffff" />
+                      : <Text style={styles.referralEntryButtonText}>Áp dụng</Text>}
+                  </Pressable>
+                </View>
+                <FormErrorSummary errors={referralEntryError?.errors} message={referralEntryError?.message} />
+            </View>
+          ) : null}
         </View>
       ) : null}
 
-      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>TÀI KHOẢN</Text>
-      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
-        <AccountMenuRow
-          icon={UserRound}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/account/information")}
-          showDivider={false}
-          subtitle="Hồ sơ, bảo mật và phiên đăng nhập"
-          title="Thông tin tài khoản"
-        />
-      </View>
+      <View style={styles.primaryMenuStack}>
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <AccountMenuRow
+            icon={UserRound}
+            iconBackground={softBlue}
+            iconColor="#2f9af5"
+            onPress={() => navigateTo("/(tabs)/account/information")}
+            showDivider={false}
+            subtitle="Hồ sơ, bảo mật và phiên đăng nhập"
+            title="Thông tin tài khoản"
+          />
+        </View>
 
-      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>TÀI CHÍNH</Text>
-      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
-        <AccountMenuRow
-          icon={CreditCard}
-          iconBackground={softOrange}
-          iconColor="#f59e0b"
-          onPress={() => navigateTo("/(tabs)/account/finance")}
-          showDivider={false}
-          subtitle="Tài khoản ngân hàng và lịch sử rút tiền"
-          title="Tài chính"
-        />
-      </View>
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <AccountMenuRow
+            icon={CreditCard}
+            iconBackground={softOrange}
+            iconColor="#f59e0b"
+            onPress={() => navigateTo("/(tabs)/account/finance")}
+            showDivider={false}
+            subtitle="Tài khoản ngân hàng và lịch sử rút tiền"
+            title="Tài chính"
+          />
+        </View>
 
-      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>THÔNG BÁO</Text>
-      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
-        <AccountMenuRow
-          icon={Bell}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/inbox")}
-          showDivider={false}
-          subtitle="Thông báo và biến động tài khoản"
-          title="Thông báo"
-        />
-      </View>
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <AccountMenuRow
+            icon={Bell}
+            iconBackground={softBlue}
+            iconColor="#2f9af5"
+            onPress={() => navigateTo("/(tabs)/inbox")}
+            showDivider={false}
+            subtitle="Thông báo và biến động tài khoản"
+            title="Thông báo"
+          />
+        </View>
 
-      <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>CÀI ĐẶT</Text>
-      <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
-        <AccountMenuRow
-          icon={Languages}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/account/settings")}
-          showDivider={false}
-          subtitle="Ngôn ngữ, tiền tệ và giao diện"
-          title="Cài đặt"
-        />
+        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+          <AccountMenuRow
+            icon={Languages}
+            iconBackground={softBlue}
+            iconColor="#2f9af5"
+            onPress={() => navigateTo("/(tabs)/account/settings")}
+            showDivider={false}
+            subtitle="Ngôn ngữ, tiền tệ và giao diện"
+            title="Cài đặt"
+          />
+        </View>
       </View>
 
       <Text style={[styles.sectionLabel, { color: colors.mutedText }]}>KHÁM PHÁ</Text>
@@ -619,17 +621,14 @@ const styles = StyleSheet.create({
   referralRateText: { color: "#16a34a", fontSize: 11, fontWeight: "900" },
   referralDescription: { fontSize: 13, lineHeight: 19 },
   referralLink: { color: "#2f9af5", fontSize: 14, fontWeight: "900" },
-  referralEntryCard: { borderRadius: 22, borderWidth: 1, gap: 13, padding: 16 },
-  referralEntryHeader: { alignItems: "center", flexDirection: "row", gap: 12 },
-  referralEntryHeading: { flex: 1, gap: 3, minWidth: 0 },
-  referralEntryTitle: { fontSize: 17, fontWeight: "900" },
-  referralEntryLead: { fontSize: 12, lineHeight: 17 },
+  referralEntryPanel: { borderBottomWidth: StyleSheet.hairlineWidth, gap: 10, paddingBottom: 14, paddingHorizontal: 14 },
   referralEntryDeadline: { fontSize: 11, lineHeight: 17 },
   referralEntryControls: { alignItems: "center", flexDirection: "row", gap: 9 },
   referralEntryInput: { borderRadius: 13, borderWidth: 1, flex: 1, fontSize: 14, minHeight: 48, paddingHorizontal: 13 },
   referralEntryButton: { alignItems: "center", backgroundColor: "#2f9af5", borderRadius: 13, justifyContent: "center", minHeight: 48, minWidth: 104, paddingHorizontal: 14 },
   referralEntryButtonText: { color: "#ffffff", fontSize: 13, fontWeight: "900" },
   disabledAction: { opacity: 0.45 },
+  primaryMenuStack: { gap: 10 },
   sectionLabel: { fontSize: 13, fontWeight: "900", letterSpacing: 1.4, marginLeft: 4, marginTop: 4 },
   menuCard: { borderRadius: 22, overflow: "hidden" },
   menuRow: { alignItems: "center", flexDirection: "row", minHeight: 74, paddingLeft: 14 },

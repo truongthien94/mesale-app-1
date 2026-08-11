@@ -94,3 +94,15 @@ test("Round A keeps current UI stable while mounting the theme boundary", () => 
   assert.match(layout, /style=\{scheme === "dark" \? "light" : "dark"\}/);
   assert.match(layout, /<ThemedStatusBar \/>/);
 });
+
+test("shared async states use the active theme in light and dark mode", () => {
+  const source = read("../src/components/AsyncState.tsx");
+
+  assert.match(source, /import \{ useTheme \} from "@\/theme\/ThemeProvider"/);
+  assert.match(source, /const \{ colors \} = useTheme\(\)/g);
+  assert.match(source, /backgroundColor: colors\.background/g);
+  assert.match(source, /color: colors\.text/);
+  assert.match(source, /color: colors\.mutedText/g);
+  assert.match(source, /backgroundColor: colors\.primary/);
+  assert.doesNotMatch(source, /import \{ colors, spacing \} from "@\/theme\/tokens"/);
+});

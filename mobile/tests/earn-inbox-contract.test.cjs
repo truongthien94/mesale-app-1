@@ -30,6 +30,8 @@ const notificationApiPath = path.resolve(__dirname, "../src/features/notificatio
 const taskScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/tasks.tsx");
 const giftScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gifts.tsx");
 const giftCodeScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gift-code.tsx");
+const checkinPresentationPath = path.resolve(__dirname, "../src/features/earn/checkinPresentation.ts");
+const referralScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/referrals.tsx");
 
 const {
   referralsPath,
@@ -41,11 +43,73 @@ const {
   requiresPhysicalAddress
 } = loadTypeScriptModule(earnContractsPath);
 const { notificationsPath } = loadTypeScriptModule(notificationContractsPath);
+const {
+  buildStreakDays,
+  findNextMilestone,
+  milestoneProgress,
+  normalizeMilestones
+} = loadTypeScriptModule(checkinPresentationPath);
 
 test("builds the existing referral and nested check-in pagination contracts", () => {
   assert.equal(referralsPath(3, "2", "approved"), "referrals?level=2&status=approved&page=3&per_page=15");
   assert.equal(referralsPath(1), "referrals?page=1&per_page=15");
   assert.equal(checkinPath(4), "checkin?page=4");
+});
+
+test("derives the seven-day check-in presentation from server values", () => {
+  const available = buildStreakDays(2, false, true, 375);
+  assert.deepEqual(available.map((item) => item.day), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(available.map((item) => item.state), ["claimed", "claimed", "current", "locked", "locked", "locked", "locked"]);
+  assert.ok(available.every((item) => item.reward === 375));
+
+  const completed = buildStreakDays(7, true, false, 500);
+  assert.equal(completed[6].state, "current");
+  assert.equal(completed[6].day, 7);
+
+  const nextCycle = buildStreakDays(7, false, true, 500);
+  assert.deepEqual(nextCycle.map((item) => item.day), [8, 9, 10, 11, 12, 13, 14]);
+  assert.equal(nextCycle[0].state, "current");
+});
+
+test("normalizes cumulative milestones and calculates the next server milestone", () => {
+  const milestones = normalizeMilestones({ "30": 10000, "7": 2000, invalid: 500, "14": 4000 });
+  assert.deepEqual(milestones, [
+    { days: 7, amount: 2000 },
+    { days: 14, amount: 4000 },
+    { days: 30, amount: 10000 }
+  ]);
+  assert.deepEqual(findNextMilestone(milestones, 8), { days: 14, amount: 4000 });
+  assert.equal(findNextMilestone(milestones, 30), null);
+  assert.equal(milestoneProgress(7, 14), 50);
+  assert.equal(milestoneProgress(20, 14), 100);
+});
+
+test("keeps the check-in redesign virtualized and free of sample reward amounts", () => {
+  const source = fs.readFileSync(path.resolve(__dirname, "../app/(tabs)/earn/checkin.tsx"), "utf8");
+  assert.match(source, /<FlatList/);
+  assert.match(source, /buildStreakDays\(/);
+  assert.match(source, /normalizeMilestones\(firstPage\.milestones\)/);
+  assert.match(source, /firstPage\.reward_coins/);
+  assert.match(source, /style=\{styles\.historyCard\}/);
+  assert.match(source, /historyCard: \{ backgroundColor: colors\.surface/);
+  assert.match(source, /stateScreen: \{ alignItems: "center", backgroundColor: dark \? "#08111f" : "#f4f1ed"/);
+  assert.doesNotMatch(source, /<Card>|<LoadingState/);
+  assert.doesNotMatch(source, /\+500đ|\+2[,.]000đ/);
+});
+
+test("renders the native referral overview from live API rates without store-link cards", () => {
+  const source = fs.readFileSync(referralScreenPath, "utf8");
+  assert.match(source, /firstPage\.rates\.f1_rate/);
+  assert.match(source, /firstPage\.stats\.f1_count/);
+  assert.match(source, /firstPage\.stats\.total_referral_earned/);
+  assert.match(source, /Clipboard\.setStringAsync\(referralCode\)/);
+  assert.match(source, /Share\.share/);
+  assert.match(source, /Xem danh sách người đã mời/);
+  assert.match(source, /Cách hoạt động/);
+  assert.match(source, /view === "network"/);
+  assert.match(source, /view === "history"/);
+  assert.doesNotMatch(source, /apps\.apple\.com|play\.google\.com|Link App Store|Link Google Play/);
+  assert.doesNotMatch(source, /5% hoa hồng/);
 });
 
 test("builds gift catalog and redemption history filters without inventing endpoints", () => {

@@ -1,6 +1,7 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { colors, spacing } from "@/theme/tokens";
+import { useTheme } from "@/theme/ThemeProvider";
+import { spacing } from "@/theme/tokens";
 
 type StateAction = {
   actionLabel?: string;
@@ -16,6 +17,7 @@ type StateProps = StateAction & {
 
 function StateFrame({ alert = false, title, message, actionLabel, onAction, style }: StateProps) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <View
@@ -24,6 +26,7 @@ function StateFrame({ alert = false, title, message, actionLabel, onAction, styl
       style={[
         styles.frame,
         {
+          backgroundColor: colors.background,
           paddingTop: spacing.lg + insets.top,
           paddingBottom: spacing.lg + insets.bottom,
           paddingLeft: spacing.lg + insets.left,
@@ -32,14 +35,14 @@ function StateFrame({ alert = false, title, message, actionLabel, onAction, styl
         style
       ]}
     >
-      {title ? <Text accessibilityRole="header" style={styles.title}>{title}</Text> : null}
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {title ? <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>{title}</Text> : null}
+      {message ? <Text style={[styles.message, { color: colors.mutedText }]}>{message}</Text> : null}
       {actionLabel && onAction ? (
         <Pressable
           accessibilityLabel={actionLabel}
           accessibilityRole="button"
           onPress={onAction}
-          style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
+          style={({ pressed }) => [styles.action, { backgroundColor: colors.primary }, pressed && styles.actionPressed]}
         >
           <Text style={styles.actionText}>{actionLabel}</Text>
         </Pressable>
@@ -50,6 +53,7 @@ function StateFrame({ alert = false, title, message, actionLabel, onAction, styl
 
 export function LoadingState({ label, style }: { label?: string; style?: StyleProp<ViewStyle> }) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
 
   return (
     <View
@@ -58,6 +62,7 @@ export function LoadingState({ label, style }: { label?: string; style?: StylePr
       style={[
         styles.frame,
         {
+          backgroundColor: colors.background,
           paddingTop: spacing.lg + insets.top,
           paddingBottom: spacing.lg + insets.bottom,
           paddingLeft: spacing.lg + insets.left,
@@ -67,7 +72,7 @@ export function LoadingState({ label, style }: { label?: string; style?: StylePr
       ]}
     >
       <ActivityIndicator color={colors.primary} size="large" />
-      {label ? <Text style={styles.message}>{label}</Text> : null}
+      {label ? <Text style={[styles.message, { color: colors.mutedText }]}>{label}</Text> : null}
     </View>
   );
 }
@@ -87,26 +92,22 @@ export function OfflineState(props: StateProps) {
 const styles = StyleSheet.create({
   frame: {
     alignItems: "center",
-    backgroundColor: colors.background,
     flex: 1,
     gap: spacing.sm,
     justifyContent: "center"
   },
   title: {
-    color: colors.text,
     fontSize: 20,
     fontWeight: "800",
     textAlign: "center"
   },
   message: {
-    color: colors.mutedText,
     fontSize: 15,
     lineHeight: 22,
     textAlign: "center"
   },
   action: {
     alignItems: "center",
-    backgroundColor: colors.primary,
     borderRadius: 12,
     justifyContent: "center",
     marginTop: spacing.sm,
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
     opacity: 0.8
   },
   actionText: {
-    color: colors.surface,
+    color: "#ffffff",
     fontSize: 15,
     fontWeight: "700"
   }
