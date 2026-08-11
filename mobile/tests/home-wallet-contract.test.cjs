@@ -185,27 +185,18 @@ test("home adds the approved cashback claim and live Quick Access actions before
   }
   assert.match(source, /router\.push\("\/\(tabs\)\/earn\/checkin"\)/);
   assert.match(source, /const SUPPORT_URL = "https:\/\/mesale\.vn\/support"/);
-  assert.match(source, /onCoupons=\{openCouponsQuickAccess\}/);
+  assert.match(source, /onPress=\{\(\) => Alert\.alert\(strings\.huntCoupons, strings\.couponsUnavailable\)\}/);
   assert.match(source, /onTips=\{\(\) => Alert\.alert\(strings\.usageCautionTitle, strings\.usageCautionMessage\)\}/);
-  assert.match(source, /if \(\(couponsQuery\.data\?\.length \?\? 0\) === 0\)/);
-  assert.match(source, /Alert\.alert\(strings\.huntCoupons, strings\.couponsEmpty\)/);
-  assert.match(source, /Alert\.alert\(strings\.quickAccess, strings\.quickAccessUnavailable\)/);
-  assert.doesNotMatch(source, /scrollToEnd|tipsSectionY|onTipsLayout/);
+  assert.doesNotMatch(source, /openCouponsQuickAccess|couponsSectionY|homeScrollRef|scrollToQuickContent|scrollToEnd/);
   assert.ok(quickAccessIndex > source.indexOf("styles.creatorCard"));
   assert.ok(phoneDemoIndex > quickAccessIndex);
 });
 
-test("Round C renders the enabled homepage blocks with live coupon and ranking data, no disabled blog block", () => {
+test("home ends at PhoneFlowDemo and does not mount the removed Round C blocks", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
-  assert.match(source, /RoundCHomeBlocks/);
-  assert.match(source, /RoundCCouponSection/);
-  assert.match(source, /useCoupons\(\)/);
-  assert.match(source, /RoundCTimelineSection/);
-  assert.match(source, /RoundCLeaderboardSection/);
-  assert.match(source, /useRanking\(\)/);
-  assert.match(source, /useTheme/);
-  assert.doesNotMatch(source, /RoundCBlogSection/);
-  assert.doesNotMatch(source, /route\(['"]blog\./);
+  assert.match(source, /<View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View>\s*<\/ScrollView>/);
+  assert.doesNotMatch(source, /RoundCHomeBlocks|RoundCCouponSection|RoundCTimelineSection|RoundCLeaderboardSection/);
+  assert.doesNotMatch(source, /useCoupons|useRanking|RankingBoard|RankingEntry|couponDaysLeft|roundCStaticTimeline/);
 });
 
 test("Round C wallet uses the orange dashboard, shared orders cache, and status borders", () => {

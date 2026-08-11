@@ -1,4 +1,4 @@
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,10 +26,7 @@ import {
   CalendarDays,
   CircleAlert,
   CirclePlay,
-  CheckCircle2,
-  Clock3,
   Copy,
-  Crown,
   Hourglass,
   Lightbulb,
   Link2,
@@ -38,7 +35,6 @@ import {
   ShoppingBag,
   Ticket,
   TrendingUp,
-  Trophy,
   WalletCards
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
@@ -51,13 +47,11 @@ import { isSafeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
 import { formatAccountMoney } from "@/features/home/format";
 import {
   useAccountSummary,
-  useCoupons,
   useCreateCashbackLink,
-  useHomeConfig,
-  useRanking
+  useHomeConfig
 } from "@/features/home/hooks";
 import { PhoneFlowDemo } from "@/features/home/PhoneFlowDemo";
-import type { CashbackProduct, Coupon, HomeConfig, Marketplace, RankingBoard, RankingEntry } from "@/features/home/types";
+import type { CashbackProduct, HomeConfig, Marketplace } from "@/features/home/types";
 
 const copy = {
   vi: {
@@ -83,10 +77,7 @@ const copy = {
     tips: "Tips & Trick",
     support: "Hỗ trợ",
     supportError: "Không thể mở trang hỗ trợ lúc này.",
-    couponsLoading: "Danh sách mã đang được tải. Vui lòng thử lại sau giây lát.",
-    couponsUnavailable: "Chưa thể tải danh sách mã lúc này. Vui lòng thử lại sau.",
-    couponsEmpty: "Hiện chưa có mã khuyến mãi khả dụng.",
-    quickAccessUnavailable: "Chưa thể chuyển tới nội dung này. Vui lòng thử lại.",
+    couponsUnavailable: "Tính năng Săn mã hiện chưa khả dụng trong ứng dụng.",
     configLoading: "Đang kiểm tra trạng thái các sàn...",
     configOffline: "Chưa thể kiểm tra trạng thái sàn vì thiết bị đang offline.",
     configError: "Chưa thể tải cấu hình sàn. Tính năng tạo link tạm khóa để bảo đảm an toàn.",
@@ -147,10 +138,7 @@ const copy = {
     tips: "Tips & Trick",
     support: "Support",
     supportError: "The support page cannot be opened right now.",
-    couponsLoading: "Coupons are still loading. Please try again shortly.",
-    couponsUnavailable: "Coupons are unavailable right now. Please try again later.",
-    couponsEmpty: "There are no coupons available right now.",
-    quickAccessUnavailable: "This content cannot be opened yet. Please try again.",
+    couponsUnavailable: "Coupon hunting is not available in the app yet.",
     configLoading: "Checking marketplace availability...",
     configOffline: "Marketplace availability cannot be checked while offline.",
     configError: "Marketplace configuration is unavailable. Link creation is locked for safety.",
@@ -306,9 +294,8 @@ function QuickAccessItem({ icon, label, onPress, role = "button" }: {
   );
 }
 
-function QuickAccessSection({ language, onCoupons, onTips, onSupport }: {
+function QuickAccessSection({ language, onTips, onSupport }: {
   language: "vi" | "en";
-  onCoupons: () => void;
   onTips: () => void;
   onSupport: () => void;
 }) {
@@ -322,7 +309,7 @@ function QuickAccessSection({ language, onCoupons, onTips, onSupport }: {
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fef2f2" }]}><Ticket color="#ef4444" size={23} strokeWidth={2.1} /></View>}
           label={strings.huntCoupons}
-          onPress={onCoupons}
+          onPress={() => Alert.alert(strings.huntCoupons, strings.couponsUnavailable)}
         />
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#eff6ff" }]}><CalendarDays color="#3b82f6" size={23} strokeWidth={2.1} /></View>}
@@ -499,289 +486,15 @@ function ProductResult({ product, language, notice, strings }: {
   );
 }
 
-// Timeline copy mirrors the "timeline" Page Builder block, which is enabled
-// in the current homepage configuration (sort_order 2). Coupons and the
-// leaderboard render live data via the /coupons and /ranking endpoints
-// instead of static copy, since both are already exposed by the API and
-// match the same business scope as their website blocks. The "steps",
-// "features" and "blog" blocks are disabled in the current configuration and
-// intentionally have no mobile section. If the Page Builder is reordered or
-// toggled later from /admin/appearance, this screen will not follow until
-// updated to match.
-const roundCStaticTimeline = [
-  {
-    badge: "Bước 1: Mua hàng",
-    title: "Ngày mua",
-    tag: "Hôm nay",
-    description: "Bạn copy link Shopee dán vào hệ thống, nhận link rút gọn và tiến hành đặt mua hàng."
-  },
-  {
-    badge: "Bước 2: Đối soát",
-    title: "Ghi nhận",
-    tag: "Ngày mai",
-    description: "Shopee ghi nhận đơn hàng tạm tính và tự động đồng bộ hiển thị trong lịch sử ví của bạn."
-  },
-  {
-    badge: "Bước 3: Thực nhận",
-    title: "Có thể rút",
-    tag: "7 ngày",
-    description: "Sau khi Shopee đối soát kỳ hoàn thành (khoảng 7 ngày khi nhận hàng), tiền khả dụng sẽ được cộng vào ví và có thể rút ngay."
-  }
-] as const;
-
-function RoundCSectionShell({
-  children,
-  tone = "orange"
-}: {
-  children: ReactNode;
-  tone?: "orange" | "blue";
-}) {
-  const { colors, spacing, radius } = useTheme();
-  const accent = tone === "blue" ? "#2563eb" : colors.primary;
-  return (
-    <View
-      style={{
-        backgroundColor: colors.surface,
-        borderColor: `${accent}35`,
-        borderRadius: radius.lg,
-        borderWidth: 1,
-        gap: spacing.md,
-        padding: spacing.lg
-      }}
-    >
-      {children}
-    </View>
-  );
-}
-
-function couponDaysLeft(expiredAt: string | null): number | null {
-  if (!expiredAt) return null;
-  const expiry = new Date(expiredAt).getTime();
-  if (Number.isNaN(expiry)) return null;
-  const diff = Math.ceil((expiry - Date.now()) / 86400000);
-  return diff >= 0 ? diff : 0;
-}
-
-function CouponCard({ coupon }: { coupon: Coupon }) {
-  const { colors, spacing } = useTheme();
-  const daysLeft = couponDaysLeft(coupon.expiredAt);
-  const discountLabel = coupon.discountPercentage > 0
-    ? `${coupon.discountPercentage}%`
-    : formatVnd(coupon.discountAmount, "vi");
-
-  return (
-    <View style={{ backgroundColor: colors.background, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", minHeight: 158, overflow: "hidden", width: 300 }}>
-      <View style={{ alignItems: "center", backgroundColor: colors.primary, justifyContent: "center", padding: spacing.sm, width: 104 }}>
-        <Text style={{ color: "#ffffff", fontSize: 9, fontWeight: "900", letterSpacing: 1 }}>ƯU ĐÃI</Text>
-        <Text adjustsFontSizeToFit numberOfLines={1} style={{ color: "#ffffff", fontSize: 24, fontWeight: "900", marginTop: 4 }}>{discountLabel}</Text>
-        {coupon.minSpend > 0 ? (
-          <Text style={{ borderTopColor: "rgba(255,255,255,0.35)", borderTopWidth: 1, color: "#ffffff", fontSize: 8, fontWeight: "900", marginTop: 8, paddingTop: 7, textAlign: "center" }}>ĐƠN TỪ {formatVnd(coupon.minSpend, "vi")}</Text>
-        ) : null}
-      </View>
-      <View style={{ flex: 1, gap: 8, justifyContent: "space-between", padding: spacing.md }}>
-        <View style={{ gap: 6 }}>
-          <Text numberOfLines={2} style={{ color: colors.text, fontSize: 12, fontWeight: "800", lineHeight: 17 }}>{coupon.title}</Text>
-          {coupon.category ? (
-            <Text style={{ backgroundColor: `${colors.primary}18`, alignSelf: "flex-start", borderRadius: 6, color: colors.primary, fontSize: 9, fontWeight: "800", paddingHorizontal: 6, paddingVertical: 3 }}>{coupon.category}</Text>
-          ) : null}
-        </View>
-        <View style={{ alignItems: "flex-end", flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-          {daysLeft !== null ? (
-            <View style={{ alignItems: "center", flexDirection: "row", gap: 4 }}>
-              <Clock3 color={colors.mutedText} size={12} />
-              <Text style={{ color: colors.mutedText, fontSize: 9, fontWeight: "800" }}>CÒN {daysLeft} NGÀY</Text>
-            </View>
-          ) : <View />}
-          <Pressable
-            accessibilityHint="Sao chép mã giảm giá vào bộ nhớ tạm"
-            accessibilityLabel={`Sao chép mã ${coupon.code}`}
-            accessibilityRole="button"
-            onPress={() => {
-              void Clipboard.setStringAsync(coupon.code);
-            }}
-            style={({ pressed }) => [{ alignItems: "center", backgroundColor: `${colors.primary}18`, borderColor: `${colors.primary}40`, borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 7 }, pressed && { opacity: 0.72 }]}
-          >
-            <Copy color={colors.primary} size={13} />
-            <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900" }}>{coupon.code}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function RoundCCouponSection() {
-  const { colors, spacing } = useTheme();
-  const couponsQuery = useCoupons();
-  const coupons = couponsQuery.data ?? [];
-
-  if (!couponsQuery.isPending && !couponsQuery.isError && coupons.length === 0) return null;
-
-  return (
-    <RoundCSectionShell>
-      <View style={{ gap: spacing.xs }}>
-        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: `${colors.primary}18`, borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Ticket color={colors.primary} size={14} />
-          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900" }}>Ưu đãi hot hôm nay</Text>
-        </View>
-        <Text style={{ color: colors.text, fontSize: 24, fontWeight: "900", lineHeight: 30 }}>
-          Mã khuyến mãi <Text style={{ color: colors.primary }}>Shopee</Text>
-        </Text>
-      </View>
-      {couponsQuery.isPending ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : couponsQuery.isError ? (
-        <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>Chưa thể tải mã khuyến mãi lúc này.</Text>
-      ) : (
-        <ScrollView contentContainerStyle={{ gap: spacing.md }} horizontal showsHorizontalScrollIndicator={false}>
-          {coupons.map((coupon) => <CouponCard coupon={coupon} key={coupon.id} />)}
-        </ScrollView>
-      )}
-    </RoundCSectionShell>
-  );
-}
-
-function RoundCTimelineSection() {
-  const { colors, spacing } = useTheme();
-  return (
-    <RoundCSectionShell>
-      <View style={{ alignItems: "center", gap: spacing.xs }}>
-        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900", textTransform: "uppercase" }}>Lộ trình hoàn tiền Shopee</Text>
-        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29, textAlign: "center" }}>Quy Trình Nhận Hoàn Tiền Siêu Tốc</Text>
-        <Text style={{ color: colors.mutedText, fontSize: 13, lineHeight: 20, textAlign: "center" }}>Hiểu rõ quy trình ghi nhận đơn hàng và thời gian tiền hoàn về tài khoản của bạn.</Text>
-      </View>
-      <View style={{ gap: spacing.md }}>
-        {roundCStaticTimeline.map((step, index) => (
-          <View key={step.title} style={{ flexDirection: "row", gap: spacing.md }}>
-            <View style={{ alignItems: "center", width: 28 }}>
-              <View style={{ alignItems: "center", backgroundColor: colors.primary, borderRadius: 999, height: 28, justifyContent: "center", width: 28 }}>
-                <CheckCircle2 color="#ffffff" size={17} />
-              </View>
-              {index < roundCStaticTimeline.length - 1 ? <View style={{ backgroundColor: `${colors.primary}45`, flex: 1, marginVertical: 5, width: 2 }} /> : null}
-            </View>
-            <View style={{ flex: 1, gap: 4, paddingBottom: index < roundCStaticTimeline.length - 1 ? spacing.sm : 0 }}>
-              <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "900", textTransform: "uppercase" }}>{step.badge}</Text>
-              <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm }}>
-                <Text style={{ color: colors.text, flex: 1, fontSize: 17, fontWeight: "900" }}>{step.title}</Text>
-                <Text style={{ backgroundColor: `${colors.primary}18`, borderRadius: 999, color: colors.primary, fontSize: 10, fontWeight: "900", paddingHorizontal: 8, paddingVertical: 4 }}>{step.tag}</Text>
-              </View>
-              <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 19 }}>{step.description}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    </RoundCSectionShell>
-  );
-}
-
-const rankingTabs: { key: keyof RankingBoard; label: string }[] = [
-  { key: "topOrders", label: "Đơn hàng" },
-  { key: "topCashback", label: "Hoàn tiền" },
-  { key: "topCheckin", label: "Điểm danh" },
-  { key: "topReferral", label: "Giới thiệu" },
-  { key: "topBalance", label: "Số dư" }
-];
-
-function RankingRow({ entry, rank }: { entry: RankingEntry; rank: number }) {
-  const { colors, spacing } = useTheme();
-  const isTop = rank === 1;
-  return (
-    <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.sm, paddingVertical: 8 }}>
-      <View style={{ alignItems: "center", justifyContent: "center", width: 22 }}>
-        {isTop ? <Crown color="#f59e0b" size={17} /> : (
-          <Text style={{ color: colors.mutedText, fontSize: 12, fontWeight: "900" }}>{rank}</Text>
-        )}
-      </View>
-      {entry.avatar ? (
-        <Image accessibilityIgnoresInvertColors source={{ uri: entry.avatar }} style={{ backgroundColor: colors.border, borderRadius: 999, height: 30, width: 30 }} />
-      ) : (
-        <View style={{ alignItems: "center", backgroundColor: colors.border, borderRadius: 999, height: 30, justifyContent: "center", width: 30 }}>
-          <Text style={{ color: colors.mutedText, fontSize: 12, fontWeight: "900" }}>{entry.name.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-      <Text numberOfLines={1} style={{ color: colors.text, flex: 1, fontSize: 12, fontWeight: "800" }}>{entry.name}</Text>
-      <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "900" }}>{entry.value.toLocaleString("vi-VN")}</Text>
-    </View>
-  );
-}
-
-function RoundCLeaderboardSection() {
-  const { colors, spacing } = useTheme();
-  const rankingQuery = useRanking();
-  const board = rankingQuery.data;
-  const availableTabs = board
-    ? rankingTabs.filter((tab) => board[tab.key].length > 0)
-    : [];
-  const [activeKey, setActiveKey] = useState<keyof RankingBoard | null>(null);
-  const activeTab = availableTabs.find((tab) => tab.key === activeKey) ?? availableTabs[0];
-
-  if (!rankingQuery.isPending && !rankingQuery.isError && availableTabs.length === 0) return null;
-
-  return (
-    <RoundCSectionShell>
-      <View style={{ gap: spacing.xs }}>
-        <View style={{ alignItems: "center", alignSelf: "flex-start", backgroundColor: `${colors.primary}18`, borderRadius: 999, flexDirection: "row", gap: 6, paddingHorizontal: 12, paddingVertical: 6 }}>
-          <Trophy color={colors.primary} size={14} />
-          <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "900" }}>Bảng xếp hạng</Text>
-        </View>
-        <Text style={{ color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 29 }}>Thành Viên Xuất Sắc</Text>
-      </View>
-      {rankingQuery.isPending ? (
-        <ActivityIndicator color={colors.primary} />
-      ) : rankingQuery.isError ? (
-        <Text style={{ color: colors.mutedText, fontSize: 12, lineHeight: 18 }}>Chưa thể tải bảng xếp hạng lúc này.</Text>
-      ) : (
-        <>
-          <ScrollView contentContainerStyle={{ gap: 8 }} horizontal showsHorizontalScrollIndicator={false}>
-            {availableTabs.map((tab) => {
-              const selected = tab.key === activeTab?.key;
-              return (
-                <Pressable
-                  accessibilityRole="button"
-                  key={tab.key}
-                  onPress={() => setActiveKey(tab.key)}
-                  style={({ pressed }) => [{ backgroundColor: selected ? colors.primary : `${colors.primary}14`, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 }, pressed && { opacity: 0.8 }]}
-                >
-                  <Text style={{ color: selected ? "#ffffff" : colors.primary, fontSize: 11, fontWeight: "900" }}>{tab.label}</Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-          <View>
-            {activeTab && board
-              ? board[activeTab.key].slice(0, 10).map((entry, index) => (
-                  <RankingRow entry={entry} key={`${activeTab.key}-${entry.name}-${index}`} rank={index + 1} />
-                ))
-              : null}
-          </View>
-        </>
-      )}
-    </RoundCSectionShell>
-  );
-}
-
-function RoundCHomeBlocks() {
-  return (
-    <View style={{ gap: spacing.md }}>
-      <RoundCCouponSection />
-      <RoundCTimelineSection />
-      <RoundCLeaderboardSection />
-    </View>
-  );
-}
-
 export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const homeScrollRef = useRef<ScrollView>(null);
-  const couponsSectionY = useRef<number | null>(null);
   const { colors: themeColors, scheme } = useTheme();
   // Keep Vietnamese as the default while honoring an explicit account choice.
   const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
   const strings = copy[language];
   const accountQuery = useAccountSummary();
   const configQuery = useHomeConfig();
-  const couponsQuery = useCoupons();
   const cashbackMutation = useCreateCashbackLink();
   const [productUrl, setProductUrl] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
@@ -843,30 +556,6 @@ export function HomeScreen() {
     : null;
   const displayName = account.name?.trim() || user?.name?.trim() || (language === "vi" ? "bạn" : "there");
 
-  function scrollToQuickContent(position: number | null) {
-    if (position === null) {
-      Alert.alert(strings.quickAccess, strings.quickAccessUnavailable);
-      return;
-    }
-    homeScrollRef.current?.scrollTo({ animated: true, y: Math.max(0, position - spacing.md) });
-  }
-
-  function openCouponsQuickAccess() {
-    if (couponsQuery.isPending) {
-      Alert.alert(strings.huntCoupons, strings.couponsLoading);
-      return;
-    }
-    if (couponsQuery.isError) {
-      Alert.alert(strings.huntCoupons, strings.couponsUnavailable);
-      return;
-    }
-    if ((couponsQuery.data?.length ?? 0) === 0) {
-      Alert.alert(strings.huntCoupons, strings.couponsEmpty);
-      return;
-    }
-    scrollToQuickContent(couponsSectionY.current);
-  }
-
   async function openSupport() {
     try {
       if (!await Linking.canOpenURL(SUPPORT_URL)) throw new Error("Unsupported support URL");
@@ -893,7 +582,6 @@ export function HomeScreen() {
         ]}
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        ref={homeScrollRef}
         refreshControl={(
           <RefreshControl
             onRefresh={() => {
@@ -1094,7 +782,6 @@ export function HomeScreen() {
 
         <QuickAccessSection
           language={language}
-          onCoupons={openCouponsQuickAccess}
           onSupport={() => void openSupport()}
           onTips={() => Alert.alert(strings.usageCautionTitle, strings.usageCautionMessage)}
         />
@@ -1119,14 +806,6 @@ export function HomeScreen() {
 
         <View style={styles.demoSection}>
           <PhoneFlowDemo />
-        </View>
-
-        <View
-          onLayout={(event) => {
-            couponsSectionY.current = event.nativeEvent.layout.y;
-          }}
-        >
-          <RoundCHomeBlocks />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
