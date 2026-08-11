@@ -10,8 +10,8 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-027` / `CHG-20260811-012`; source `0548e23` is published directly to `origin/main`; run `31511866617` passed; no Laravel, database, production migration, deployment, or production-data change
-- Remote `main`: source commit `0548e23`; Actions run `31511866617` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-027` / `CHG-20260811-012`; source `0548e23` and context `3be7c0b` are published directly to `origin/main`; runs `31511866617` and `31512308009` passed; no Laravel, database, production migration, deployment, or production-data change
+- Remote `main`: source `0548e23`, context `3be7c0b`; both Actions runs passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -24,7 +24,9 @@
 - Bottom-tab-aware scroll padding keeps the action reachable above the tab bar and keyboard flow.
 - Verification passed: mobile `73/73`, TypeScript, Expo Doctor `18/18`, local iOS/Android exports, focused withdrawal contracts, scoped diff check, Android emulator light-mode inspection, and GitHub Actions run `31511866617`.
 - Operational IDs: `SES-20260811-012`, `CKP-20260811-018`, `TSK-MOB-027`, `DEC-20260811-008`, `CHG-20260811-012`, `TST-20260811-012`, and `GATE-BOTH-017`.
-- Source `0548e23` is published directly to `origin/main` and CI passed. Physical devices, dark mode, full accessibility/keyboard/offline/performance matrices, signed artifacts, privacy declarations, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
+- Source `0548e23` and context `3be7c0b` are published directly to `origin/main`; runs `31511866617` and `31512308009` passed.
+- Google Sheet records for the session, checkpoint, task, decision, change, test, blocker, and release gate were upserted and verified unique; `BLK-DEVICE-001` was updated without duplication.
+- Physical devices, dark mode, full accessibility/keyboard/offline/performance matrices, signed artifacts, privacy declarations, and store-console evidence remain open. App Store and Google Play remain `NOT READY`.
 
 ## 2026-08-11 Account, Check-in, Referral, And Withdrawal UI Parity
 
