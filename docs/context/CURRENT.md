@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-024`
-- Session: `SES-20260812-018`
+- Latest checkpoint: `CKP-20260812-025`
+- Session: `SES-20260812-019`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,22 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-033` / `CHG-20260812-018`; the login disclosure and legal links now consume the remaining viewport space and sit above the bottom safe area without absolute positioning.
-- Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
+- Current batch: `TSK-MOB-034` / `CHG-20260812-019`; Home now renders immediately from the authenticated financial preview while `/account` remains authoritative in the background.
+- Latest local source commit: `365b968`; direct fast-forward publication to `origin/main` is pending for this checkpoint.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Immediate Post-login Home Preview
+
+- Preserves the complete integer VND balance, total cashback, referral earnings, and total withdrawn snapshot returned by authentication.
+- Home uses the snapshot only as a component-local preview and still starts `/account` immediately; shared React Query account data is never seeded with a partial object.
+- Pending cashback remains unknown until `/account` responds and is rendered as an accessible skeleton instead of a fabricated value.
+- Failed `/account` refreshes retain the preview with the existing warning/retry action; successful refreshes replace it automatically.
+- Mobile `84/84`, TypeScript, Expo Doctor `18/18`, Android/iOS exports, emulator inspection, and diff checks pass.
+- Operational IDs: `SES-20260812-019`, `CKP-20260812-025`, `TSK-MOB-034`, `CHG-20260812-019`, and `TST-20260812-019`.
+- Google Sheet synchronization is pending because the required connector is unavailable in this session.
+- No Laravel, API, database, production, credential, token, or member-data change was made.
 
 ## 2026-08-12 Compact Native Login Copy
 
