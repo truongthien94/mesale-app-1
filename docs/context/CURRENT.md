@@ -11,7 +11,7 @@
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Current batch: `TSK-MOB-034` / `CHG-20260812-019`; Home now renders immediately from the authenticated financial preview while `/account` remains authoritative in the background.
-- Source `365b968` and checkpoint `f417a07` are published directly to `origin/main` without force-push.
+- Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
@@ -23,6 +23,7 @@
 - Pending cashback remains unknown until `/account` responds and is rendered as an accessible skeleton instead of a fabricated value.
 - Failed `/account` refreshes retain the preview with the existing warning/retry action; successful refreshes replace it automatically.
 - Mobile `84/84`, TypeScript, Expo Doctor `18/18`, Android/iOS exports, emulator inspection, and diff checks pass.
+- GitHub Actions run `31586236320` passed context/secret checks, Laravel tests, mobile tests, TypeScript, Expo Doctor, and both platform exports.
 - Operational IDs: `SES-20260812-019`, `CKP-20260812-025`, `TSK-MOB-034`, `CHG-20260812-019`, and `TST-20260812-019`.
 - Google Sheet synchronization is pending because the required connector is unavailable in this session.
 - No Laravel, API, database, production, credential, token, or member-data change was made.
