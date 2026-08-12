@@ -16,7 +16,8 @@ test("coupon screen uses the existing Laravel contract and native route", () => 
   assert.match(api, /current_page/);
   assert.match(api, /categories/);
   assert.match(source, /useInfiniteQuery/);
-  assert.match(source, /fetchCouponPage/);
+  assert.match(source, /couponQueryOptions/);
+  assert.match(api, /fetchCouponPage/);
   assert.match(source, /LoadingState/);
   assert.match(source, /OfflineState/);
   assert.match(source, /ErrorState/);
@@ -33,10 +34,16 @@ test("coupon screen uses the existing Laravel contract and native route", () => 
 test("coupon screen keeps pagination and category selection server-backed", () => {
   const source = read("../app/(tabs)/home/coupons.tsx");
 
-  assert.match(source, /queryKey: \["coupons", category \?\? "all"\]/);
-  assert.match(source, /getNextPageParam/);
+  const api = read("../src/features/coupons/api.ts");
+
+  assert.match(source, /useInfiniteQuery\(couponQueryOptions\(category\)\)/);
+  assert.match(api, /list: \(category\?\: string \| null\) => \["coupons", category \?\? "all"\]/);
+  assert.match(api, /initialPageParam: 1/);
+  assert.match(api, /getNextPageParam/);
   assert.match(source, /query\.fetchNextPage\(\)/);
   assert.match(source, /data=\{\[null, \.\.\.categories\]\}/);
   assert.match(source, /setCategory\(item\)/);
   assert.match(source, /firstPage\?\.pagination\.total/);
+  assert.doesNotMatch(source, /if \(query\.isPending\) return <LoadingState/);
+  assert.match(source, /query\.isPending[\s\S]*Đang cập nhật mã giảm giá/);
 });

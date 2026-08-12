@@ -18,7 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
-import { fetchCheckin, performCheckin, type CheckinResult } from "@/features/earn/api";
+import { checkinQueryOptions, performCheckin, type CheckinResult } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
 import {
   buildStreakDays,
@@ -42,6 +42,32 @@ function StreakIcon({ state, checkedToday }: { state: StreakDayState; checkedTod
   }
   if (state === "current") return <CalendarCheck color="#ea580c" size={18} strokeWidth={2.5} />;
   return <LockKeyhole color="#94a3b8" size={16} strokeWidth={2.2} />;
+}
+
+function CheckinLoadingShell({ insets, styles, vi }: {
+  insets: ReturnType<typeof useSafeAreaInsets>;
+  styles: ReturnType<typeof createStyles>;
+  vi: boolean;
+}) {
+  return (
+    <View style={[styles.loadingShell, { paddingTop: insets.top + 12 }]}>
+      <View style={styles.streakCard}>
+        <View style={styles.heroHeading}>
+          <View style={styles.heroIcon}><CalendarCheck color="#f97316" size={25} strokeWidth={2.4} /></View>
+          <View style={styles.heroCopy}>
+            <Text accessibilityRole="header" style={styles.heroTitle}>{vi ? "CHUỖI ĐIỂM DANH ✨" : "CHECK-IN STREAK ✨"}</Text>
+            <Text style={styles.heroSubtitle}>{vi ? "Đang cập nhật tiến độ của bạn..." : "Updating your progress..."}</Text>
+          </View>
+        </View>
+        <View accessibilityLabel={vi ? "Đang tải dữ liệu điểm danh" : "Loading check-in data"} accessibilityRole="progressbar" style={styles.loadingStreakRow}>
+          {Array.from({ length: 7 }, (_, index) => <View key={index} style={styles.loadingDay} />)}
+        </View>
+        <View style={styles.loadingButton} />
+      </View>
+      <View style={styles.loadingSection} />
+      <View style={styles.loadingSection} />
+    </View>
+  );
 }
 
 function FullScreenState({
@@ -102,14 +128,7 @@ export default function CheckinScreen() {
   const styles = useMemo(() => createStyles(colors, scheme), [colors, scheme]);
   const vi = getDeviceLocale() === "vi";
   const [result, setResult] = useState<CheckinResult | null>(null);
-  const query = useInfiniteQuery({
-    queryKey: ["earn", "checkin"],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => fetchCheckin(pageParam, signal),
-    getNextPageParam: (page) => page.history.pagination.current_page < page.history.pagination.last_page
-      ? page.history.pagination.current_page + 1
-      : undefined
-  });
+  const query = useInfiniteQuery(checkinQueryOptions());
   const mutation = useMutation({
     mutationFn: performCheckin,
     onSuccess: async (response) => {
@@ -122,7 +141,7 @@ export default function CheckinScreen() {
   });
 
   if (query.isPending) {
-    return <FullScreenState insets={insets} loading message={vi ? "Đang tải điểm danh..." : "Loading check-in..."} styles={styles} />;
+    return <CheckinLoadingShell insets={insets} styles={styles} vi={vi} />;
   }
   if (query.isError) {
     const offline = query.error instanceof ApiError && query.error.isNetworkError;
@@ -392,6 +411,11 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     stateActionText: { color: "#ffffff", fontSize: 15, fontWeight: "800" },
     empty: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 6, justifyContent: "center", minHeight: 180, padding: 18 },
     emptyTitle: { color: colors.text, fontSize: 18, fontWeight: "900", textAlign: "center" },
-    emptyMessage: { color: colors.mutedText, fontSize: 14, lineHeight: 21, textAlign: "center" }
+    emptyMessage: { color: colors.mutedText, fontSize: 14, lineHeight: 21, textAlign: "center" },
+    loadingShell: { backgroundColor: dark ? "#08111f" : "#f4f1ed", flex: 1, gap: 14, paddingHorizontal: 16 },
+    loadingStreakRow: { flexDirection: "row", gap: 8, justifyContent: "space-between", paddingVertical: 8 },
+    loadingDay: { backgroundColor: dark ? "#334155" : "#e2e8f0", borderRadius: 999, flex: 1, height: 38, maxWidth: 38 },
+    loadingButton: { alignSelf: "center", backgroundColor: dark ? "#475569" : "#cbd5e1", borderRadius: 12, height: 46, width: 210 },
+    loadingSection: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, height: 150 }
   });
 }

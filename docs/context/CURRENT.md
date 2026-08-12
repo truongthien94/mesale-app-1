@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-027`
-- Session: `SES-20260812-021`
+- Latest checkpoint: `CKP-20260812-028`
+- Session: `SES-20260812-022`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,22 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-036` / `CHG-20260812-021`; the second primary tab is now the existing native Referral screen while Wallet remains a hidden routable stack.
+- Current batch: `TSK-MOB-037` / `CHG-20260812-022`; Home Quick Access routes and read-only data are warmed after initial interactions, with immediate destination shells and direct support handoff.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Quick Access Latency Remediation
+
+- Added exact shared query contracts and post-interaction route/data prefetch for Coupons and Check-in.
+- Coupons and Check-in now render their native destination shell immediately instead of showing a full-screen loading gate while awaiting Laravel.
+- Support now opens the fixed HTTPS URL directly; `Tips & Trick` remains an immediate local alert.
+- Android emulator inspection showed warmed Coupons and Check-in content within the inspected 500 ms window.
+- Live read-only timings confirm backend variance remains possible, including a coupon request sample near 6.65 seconds; cache-first UI prevents that variance from blocking navigation presentation.
+- Mobile `94/94`, TypeScript, Expo Doctor `18/18`, and diff checks pass.
+- Operational IDs: `SES-20260812-022`, `CKP-20260812-028`, `TSK-MOB-037`, `CHG-20260812-022`, and `TST-20260812-022`.
+- Google Sheet synchronization is pending because no live connector is available; no credential fallback was used.
 
 ## 2026-08-12 Referral Primary Tab
 

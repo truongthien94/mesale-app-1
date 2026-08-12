@@ -23,7 +23,7 @@ import {
 } from "react-native";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
-import { fetchCouponPage } from "@/features/coupons/api";
+import { couponQueryOptions } from "@/features/coupons/api";
 import { formatAccountMoney } from "@/features/home/format";
 import type { Coupon } from "@/features/home/types";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -133,19 +133,13 @@ export default function CouponsScreen() {
   const insets = useSafeAreaInsets();
   const { colors, radius, scheme } = useTheme();
   const [category, setCategory] = useState<string | null>(null);
-  const query = useInfiniteQuery({
-    queryKey: ["coupons", category ?? "all"],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => fetchCouponPage({ category: category ?? undefined, page: pageParam }, signal),
-    getNextPageParam: (page) => page.pagination.currentPage < page.pagination.lastPage ? page.pagination.currentPage + 1 : undefined
-  });
+  const query = useInfiniteQuery(couponQueryOptions(category));
 
   const firstPage = query.data?.pages[0];
   const coupons = query.data?.pages.flatMap((page) => page.items) ?? [];
   const categories = Array.from(new Set(firstPage?.categories ?? []));
   const retry = () => void query.refetch();
 
-  if (query.isPending) return <LoadingState label="Đang tải mã giảm giá..." />;
   if (query.isError) {
     const props = { actionLabel: "Thử lại", message: query.error instanceof Error ? query.error.message : "Vui lòng thử lại sau.", onAction: retry, title: "Không thể tải mã giảm giá" };
     return query.error instanceof ApiError && query.error.isNetworkError ? <OfflineState {...props} title="Bạn đang ngoại tuyến" /> : <ErrorState {...props} />;
@@ -160,7 +154,9 @@ export default function CouponsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 24, paddingHorizontal: 16, paddingTop: insets.top + 8 }}
         data={coupons}
         keyExtractor={(item) => String(item.id)}
-        ListEmptyComponent={<EmptyState actionLabel={category ? "Xóa bộ lọc" : undefined} message={category ? "Không có mã phù hợp với bộ lọc này." : "Máy chủ chưa có mã giảm giá đang hiệu lực."} onAction={category ? () => setCategory(null) : undefined} title="Chưa có mã giảm giá" />}
+        ListEmptyComponent={query.isPending
+          ? <LoadingState label="Đang cập nhật mã giảm giá..." style={styles.initialLoading} />
+          : <EmptyState actionLabel={category ? "Xóa bộ lọc" : undefined} message={category ? "Không có mã phù hợp với bộ lọc này." : "Máy chủ chưa có mã giảm giá đang hiệu lực."} onAction={category ? () => setCategory(null) : undefined} title="Chưa có mã giảm giá" />}
         ListFooterComponent={query.isFetchingNextPage ? <LoadingState label="Đang tải thêm..." style={styles.footerLoading} /> : <View style={{ height: 16 }} />}
         ListHeaderComponent={<View style={styles.headerStack}>
           <View style={styles.headerRow}>
@@ -212,5 +208,6 @@ const styles = StyleSheet.create({
   buyButton: { alignItems: "center", backgroundColor: "#3b82f6", borderRadius: 12, flexDirection: "row", gap: 6, justifyContent: "center", minHeight: 50, paddingHorizontal: 17 },
   buyText: { color: "#ffffff", fontSize: 15, fontWeight: "900" },
   footerLoading: { minHeight: 72 },
+  initialLoading: { minHeight: 360 },
   pressed: { opacity: 0.76 }
 });

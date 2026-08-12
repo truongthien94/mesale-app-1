@@ -52,6 +52,7 @@ import {
   useHomeConfig
 } from "@/features/home/hooks";
 import { PhoneFlowDemo } from "@/features/home/PhoneFlowDemo";
+import { QuickAccessPrefetch } from "@/features/home/QuickAccessPrefetch";
 import type { CashbackProduct, HomeConfig, Marketplace } from "@/features/home/types";
 
 const copy = {
@@ -575,12 +576,7 @@ export function HomeScreen() {
   const displayName = account.name?.trim() || user?.name?.trim() || (language === "vi" ? "bạn" : "there");
 
   async function openSupport() {
-    try {
-      if (!await Linking.canOpenURL(SUPPORT_URL)) throw new Error("Unsupported support URL");
-      await Linking.openURL(SUPPORT_URL);
-    } catch {
-      Alert.alert(strings.support, strings.supportError);
-    }
+    void Linking.openURL(SUPPORT_URL).catch(() => Alert.alert(strings.support, strings.supportError));
   }
 
   return (
@@ -588,6 +584,7 @@ export function HomeScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={[styles.screen, { backgroundColor: themeColors.background }]}
     >
+      <QuickAccessPrefetch />
       <ScrollView
         contentContainerStyle={[
           styles.content,

@@ -19,6 +19,10 @@ export type CouponPage = {
   };
 };
 
+export const couponQueryKeys = {
+  list: (category?: string | null) => ["coupons", category ?? "all"] as const
+};
+
 class CouponContractError extends Error {
   constructor(message: string) {
     super(message);
@@ -95,5 +99,18 @@ export async function fetchCouponPage(filters: CouponFilters = {}, signal?: Abor
       perPage: requireInteger(rawPagination.per_page, "coupon per page"),
       total: requireInteger(rawPagination.total, "coupon total")
     }
+  };
+}
+
+export function couponQueryOptions(category?: string | null) {
+  return {
+    queryKey: couponQueryKeys.list(category),
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) =>
+      fetchCouponPage({ category: category ?? undefined, page: pageParam }, signal),
+    getNextPageParam: (page: CouponPage) =>
+      page.pagination.currentPage < page.pagination.lastPage
+        ? page.pagination.currentPage + 1
+        : undefined
   };
 }

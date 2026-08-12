@@ -93,6 +93,10 @@ test("keeps the check-in redesign virtualized and free of sample reward amounts"
   assert.match(source, /style=\{styles\.historyCard\}/);
   assert.match(source, /historyCard: \{ backgroundColor: colors\.surface/);
   assert.match(source, /stateScreen: \{ alignItems: "center", backgroundColor: dark \? "#08111f" : "#f4f1ed"/);
+  assert.match(source, /useInfiniteQuery\(checkinQueryOptions\(\)\)/);
+  assert.match(source, /return <CheckinLoadingShell/);
+  assert.match(source, /accessibilityRole="progressbar"/);
+  assert.doesNotMatch(source, /return <FullScreenState[\s\S]*Đang tải điểm danh/);
   assert.doesNotMatch(source, /<Card>|<LoadingState/);
   assert.doesNotMatch(source, /\+500đ|\+2[,.]000đ/);
 });

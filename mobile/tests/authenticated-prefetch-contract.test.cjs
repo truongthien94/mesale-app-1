@@ -21,6 +21,20 @@ test("authenticated tabs prefetch their server data without delaying navigation"
   assert.doesNotMatch(prefetch, /await Promise|setQueryData|initialData|placeholderData/);
 });
 
+test("Home warms Quick Access routes and data after initial interactions", () => {
+  const home = read("../src/features/home/HomeScreen.tsx");
+  const prefetch = read("../src/features/home/QuickAccessPrefetch.tsx");
+
+  assert.match(home, /<QuickAccessPrefetch \/>/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/home\/coupons"\)/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/earn\/checkin"\)/);
+  assert.match(prefetch, /InteractionManager\.runAfterInteractions\(\(\) => \{[\s\S]*router\.prefetch[\s\S]*prefetchInfiniteQuery/);
+  assert.match(prefetch, /prefetchInfiniteQuery\(couponQueryOptions\(\)\)/);
+  assert.match(prefetch, /prefetchInfiniteQuery\(checkinQueryOptions\(\)\)/);
+  assert.match(prefetch, /Promise\.allSettled/);
+  assert.doesNotMatch(prefetch, /await Promise|setQueryData|initialData|placeholderData/);
+});
+
 test("session restore and Home/Withdraw reuse complete cached server responses", () => {
   const provider = read("../src/auth/AuthProvider.tsx");
   const homeHooks = read("../src/features/home/hooks.ts");

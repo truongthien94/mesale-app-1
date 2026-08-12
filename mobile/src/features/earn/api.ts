@@ -63,6 +63,8 @@ export type CheckinResult = {
   new_balance: number;
 };
 
+export const checkinQueryKey = ["earn", "checkin"] as const;
+
 export type EarnTask = {
   id: number;
   title: string;
@@ -141,6 +143,17 @@ export function fetchReferrals(
 
 export function fetchCheckin(page: number, signal?: AbortSignal): Promise<CheckinData> {
   return request(checkinPath(page), { signal });
+}
+
+export function checkinQueryOptions() {
+  return {
+    queryKey: checkinQueryKey,
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) => fetchCheckin(pageParam, signal),
+    getNextPageParam: (page: CheckinData) => page.history.pagination.current_page < page.history.pagination.last_page
+      ? page.history.pagination.current_page + 1
+      : undefined
+  };
 }
 
 export function performCheckin(): Promise<ApiResponse<CheckinResult>> {
