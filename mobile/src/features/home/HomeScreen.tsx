@@ -188,7 +188,7 @@ const platformPresentation: Record<Marketplace, { label: string; color: string }
   lazada: { label: "Lazada", color: "#0f146d" }
 };
 
-const SUPPORT_URL = "https://mesale.vn/support";
+const SUPPORT_URL = "https://zalo.me/g/rb0b31ft7erer5slrcqb";
 
 function isOfflineError(error: unknown): boolean {
   return error instanceof ApiError && (error.isNetworkError || error.isTimeout || error.status === 0);
@@ -799,7 +799,7 @@ export function HomeScreen() {
         <QuickAccessSection
           language={language}
           onSupport={() => void openSupport()}
-          onTips={() => Alert.alert(strings.usageCautionTitle, strings.usageCautionMessage)}
+          onTips={() => router.push("/(tabs)/home/tips")}
         />
 
         {cashbackMutation.data ? (

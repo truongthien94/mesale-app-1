@@ -12,6 +12,7 @@ export function QuickAccessPrefetch() {
     const task = InteractionManager.runAfterInteractions(() => {
       router.prefetch("/(tabs)/home/coupons");
       router.prefetch("/(tabs)/earn/checkin");
+      router.prefetch("/(tabs)/home/tips");
 
       void Promise.allSettled([
         queryClient.prefetchInfiniteQuery(couponQueryOptions()),

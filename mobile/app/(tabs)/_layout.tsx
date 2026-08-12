@@ -1,4 +1,4 @@
-import { Redirect, Tabs } from "expo-router";
+import { Redirect, Tabs, usePathname } from "expo-router";
 import { Banknote, Home, ShoppingBag, UserRound, UsersRound } from "lucide-react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
@@ -10,7 +10,9 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function TabsLayout() {
   const { isLoading, pendingAuth, session, user } = useAuth();
   const { colors } = useTheme();
+  const pathname = usePathname();
   const isVietnamese = resolveLocale(user?.preferences?.locale ?? getDeviceLocale()) === "vi";
+  const hideTabBar = pathname === "/home/tips";
 
   if (isLoading) return <LoadingState />;
   const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
@@ -27,7 +29,8 @@ export default function TabsLayout() {
         tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopColor: colors.border
+          borderTopColor: colors.border,
+          display: hideTabBar ? "none" : "flex"
         }
       }}
     >

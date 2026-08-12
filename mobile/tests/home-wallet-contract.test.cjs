@@ -237,10 +237,10 @@ test("home adds the approved cashback claim and live Quick Access actions before
     assert.match(source, new RegExp(label));
   }
   assert.match(source, /router\.push\("\/\(tabs\)\/earn\/checkin"\)/);
-  assert.match(source, /const SUPPORT_URL = "https:\/\/mesale\.vn\/support"/);
+  assert.match(source, /const SUPPORT_URL = "https:\/\/zalo\.me\/g\/rb0b31ft7erer5slrcqb"/);
   assert.match(source, /<QuickAccessPrefetch \/>/);
   assert.match(source, /onPress=\{\(\) => router\.push\("\/\(tabs\)\/home\/coupons"\)\}/);
-  assert.match(source, /onTips=\{\(\) => Alert\.alert\(strings\.usageCautionTitle, strings\.usageCautionMessage\)\}/);
+  assert.match(source, /onTips=\{\(\) => router\.push\("\/\(tabs\)\/home\/tips"\)\}/);
   assert.doesNotMatch(source, /openCouponsQuickAccess|couponsSectionY|homeScrollRef|scrollToQuickContent|scrollToEnd/);
   assert.doesNotMatch(source, /canOpenURL\(SUPPORT_URL\)/);
   assert.ok(quickAccessIndex > source.indexOf("styles.creatorCard"));

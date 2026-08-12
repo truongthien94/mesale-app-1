@@ -28,6 +28,7 @@ test("Home warms Quick Access routes and data after initial interactions", () =>
   assert.match(home, /<QuickAccessPrefetch \/>/);
   assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/home\/coupons"\)/);
   assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/earn\/checkin"\)/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/home\/tips"\)/);
   assert.match(prefetch, /InteractionManager\.runAfterInteractions\(\(\) => \{[\s\S]*router\.prefetch[\s\S]*prefetchInfiniteQuery/);
   assert.match(prefetch, /prefetchInfiniteQuery\(couponQueryOptions\(\)\)/);
   assert.match(prefetch, /prefetchInfiniteQuery\(checkinQueryOptions\(\)\)/);

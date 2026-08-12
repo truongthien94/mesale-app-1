@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-028`
-- Session: `SES-20260812-022`
+- Latest checkpoint: `CKP-20260812-029`
+- Session: `SES-20260812-023`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,23 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-037` / `CHG-20260812-022`; Home Quick Access routes and read-only data are warmed after initial interactions, with immediate destination shells and direct support handoff.
+- Current batch: `TSK-MOB-038` / `CHG-20260812-023`; Home Tips & Trick now opens a native nine-case accordion and Support hands off directly to the requested Zalo group.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Native Tips & Zalo Support
+
+- Replaced the Home `Tips & Trick` alert with a themed native Home-stack screen modeled on the owner-provided references.
+- Added nine static cashback-tracking risk cards, multi-expand accordion behavior, the first card expanded by default, accessible expanded state, example/solution panels, and a Mê Sale disclosure footer.
+- Kept the content local and virtualized; no API, WebView, Laravel, database, financial mutation, credential, or production setting is involved.
+- Hid the primary tab bar while the full-screen Tips route is active and warmed the static route after Home interactions.
+- Changed Home Support from the website support page to the fixed HTTPS Zalo group requested by the owner, retaining direct asynchronous `Linking.openURL` handoff.
+- Android emulator light-mode screenshot and accordion interaction passed; Support launched Chrome with the requested `https://zalo.me/` group URL.
+- Mobile `98/98`, TypeScript, Expo Doctor `18/18`, Android/iOS export, and diff checks pass.
+- Operational IDs: `SES-20260812-023`, `CKP-20260812-029`, `TSK-MOB-038`, `CHG-20260812-023`, and `TST-20260812-023`.
+- Google Sheet synchronization is pending because no live connector is available; no local credential fallback was used.
 
 ## 2026-08-12 Quick Access Latency Remediation
 
