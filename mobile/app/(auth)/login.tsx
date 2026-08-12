@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   registerRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", paddingTop: 2 },
   registerCopy: { fontSize: 14 },
   registerLink: { color: BRAND_BLUE, fontSize: 14, fontWeight: "900" },
-  footer: { alignItems: "center", gap: 8, paddingHorizontal: 24, paddingTop: 22 },
+  footer: { alignItems: "center", gap: 8, marginTop: "auto", paddingHorizontal: 24, paddingTop: 22 },
   disclosure: { fontSize: 12, lineHeight: 18, textAlign: "center" },
   legalRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   legalSeparator: { fontSize: 13 },

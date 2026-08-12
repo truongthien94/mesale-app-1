@@ -134,5 +134,6 @@ test("login redesign follows the active theme and exposes password visibility", 
   assert.doesNotMatch(loginSource, /Đăng nhập an toàn qua máy chủ Mê Sale/);
   assert.doesNotMatch(loginSource, /<LegalLink label="Hỗ trợ"/);
   assert.doesNotMatch(loginSource, /<LegalLink label="Xóa tài khoản"/);
+  assert.match(loginSource, /footer: \{[^\n]*marginTop: "auto"/);
   assert.doesNotMatch(loginSource, /import \{ colors, spacing \} from "@\/theme\/tokens"/);
 });
