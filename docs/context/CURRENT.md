@@ -11,7 +11,7 @@
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Current batch: `TSK-MOB-034` / `CHG-20260812-019`; Home now renders immediately from the authenticated financial preview while `/account` remains authoritative in the background.
-- Latest local source commit: `365b968`; direct fast-forward publication to `origin/main` is pending for this checkpoint.
+- Source `365b968` and checkpoint `f417a07` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
