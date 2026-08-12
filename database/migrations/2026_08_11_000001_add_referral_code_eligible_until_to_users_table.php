@@ -8,10 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('users', 'referral_code_eligible_until')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table): void {
             $table->timestamp('referral_code_eligible_until')
-                ->nullable()
-                ->after('referral_prompt_decided_at');
+                ->nullable();
         });
     }
 

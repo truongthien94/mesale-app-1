@@ -288,6 +288,31 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertDatabaseCount('referrals', 0);
     }
 
+    public function test_self_referral_rejection_leaves_the_prompt_pending(): void
+    {
+        Setting::setVal('referral_enabled', '1');
+        Setting::setVal('block_same_ip_referral', '0');
+
+        $user = $this->createUser([
+            'email' => 'self-referral@example.test',
+            'referral_code' => 'SELFREF1',
+            'referral_prompt_decided_at' => null,
+            'referral_code_eligible_until' => now()->addHours(72),
+        ]);
+        [$plainToken] = ApiToken::generateFor($user, 'Referral Self Test', 30, '127.0.0.1');
+
+        $this->withToken($plainToken)
+            ->postJson('/api/v1/openapi/account/referral-code', ['referral_code' => strtolower($user->referral_code)])
+            ->assertStatus(422)
+            ->assertJsonPath('code', 'REFERRAL_CODE_INVALID');
+
+        $user->refresh();
+        $this->assertNull($user->referred_by);
+        $this->assertNull($user->referral_prompt_decided_at);
+        $this->assertDatabaseCount('referrals', 0);
+        $this->assertDatabaseCount('notifications', 0);
+    }
+
     public function test_skipping_referral_prompt_decides_it_without_side_effects(): void
     {
         Setting::setVal('referral_enabled', '1');
@@ -454,7 +479,7 @@ class AuthTokenResponseContractTest extends TestCase
         ]);
     }
 
-    public function test_referral_prompt_migration_backfills_existing_members_as_decided(): void
+    public function test_referral_prompt_migration_does_not_backfill_existing_members(): void
     {
         Schema::table('users', function (Blueprint $table): void {
             $table->dropColumn('referral_prompt_decided_at');
@@ -469,7 +494,7 @@ class AuthTokenResponseContractTest extends TestCase
         $migration = require database_path('migrations/2026_08_10_000001_add_referral_prompt_decided_at_to_users_table.php');
         $migration->up();
 
-        $this->assertNotNull(
+        $this->assertNull(
             DB::table('users')->where('id', $existingUser->id)->value('referral_prompt_decided_at')
         );
 
