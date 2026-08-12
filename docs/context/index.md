@@ -7,9 +7,8 @@
 - Current batch: `TSK-MOB-030` / `CHG-20260812-015` / `TST-20260812-015` / `GATE-BOTH-020`
 - Current source commit: `42abd4c` (published directly to `origin/main`)
 - Current context commit: `3e7425a` (published directly to `origin/main`)
-- Source GitHub Actions run: `31518925269` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
-- Context GitHub Actions run: `31519331351` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
-- Final context GitHub Actions run: `31501266934` (PASS: `context-log-check`, `laravel-tests`, `mobile-tests`, including both exports)
+- Source GitHub Actions run: `31564614647` (PASS)
+- Final context GitHub Actions run: `31564806218` (PASS: `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports)
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)
