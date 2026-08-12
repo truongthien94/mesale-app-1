@@ -25,6 +25,7 @@
 - Verification passed before publication: Laravel `94/94` with `866` assertions, focused Google `4/20`, focused Google/Apple exchange `12/98`, mobile `80/80`, TypeScript, Expo Doctor `18/18`, both exports, Android native activity, and diff checks.
 - Operational IDs: `SES-20260812-016`, `CKP-20260812-022`, `TSK-MOB-031`, `DEC-20260812-012`, `CHG-20260812-016`, `TST-20260812-016`, and `GATE-BOTH-021`.
 - Google Sheet synchronization is pending because the required Google Drive/Sheets connector is unavailable in this session; no service-account fallback or credential was copied into the repository.
+- Source commit `acfd137` and context commit `89e09b8` are published directly to `origin/main`; GitHub Actions run `31578792474` passed context/secret, Laravel, mobile, TypeScript, Expo Doctor, and both export jobs.
 - Real Google account-to-Bearer evidence and all signed iOS Google/Apple evidence remain pending. Release remains `NOT READY`.
 
 ## 2026-08-12 Production Referral Eligibility Patch

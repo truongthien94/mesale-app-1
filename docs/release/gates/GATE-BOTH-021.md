@@ -9,6 +9,7 @@
 - Native Google UI and Android Google Play Services activity.
 - Laravel Google identity verification and canonical Bearer contract tests.
 - Production UNIQUE identity invariant, default-off rollout, invalid-token canary, recursive token redaction, and live config evidence.
+- Source `acfd137`, context `89e09b8`, and GitHub Actions run `31578792474`.
 
 ## Blocked
 
