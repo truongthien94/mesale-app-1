@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-030` / `CHG-20260812-015`; source `42abd4c` is published directly to `origin/main`; production received only the reviewed referral snapshot patch and two exact referral migrations; route/schema/bootstrap checks, local focused `57/57` with `520` assertions, and unique operational Sheet read-back pass; CI and controlled new-account canary remain pending
+- Current batch: `TSK-MOB-030` / `CHG-20260812-015`; source `42abd4c` and context `3e7425a` are published directly to `origin/main`; production received only the reviewed referral snapshot patch and two exact referral migrations; route/schema/bootstrap checks, local focused `57/57` with `520` assertions, and unique operational Sheet read-back pass; CI and controlled new-account canary remain pending
 - Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
@@ -23,7 +23,7 @@
 - Patched the older production snapshot with reviewed route/controller/model/service hunks instead of copying current repository files wholesale.
 - Verified both columns and migration records, zero existing non-null prompt/deadline values, expected unauthenticated `401` on the referral endpoint instead of `404`, public homepage availability, zero reviewed-file mismatches, and cleanup of temporary deploy helpers.
 - Local source verification passed: focused Laravel `57/57` with `520` assertions, PHP syntax, diff check, and staged sensitive-pattern review.
-- Source commit `42abd4c` is published directly to `origin/main`; CI evidence remains pending.
+- Source commit `42abd4c` and context commit `3e7425a` are published directly to `origin/main`; CI evidence remains pending.
 - Operational IDs: `SES-20260812-015`, `CKP-20260812-021`, `TSK-MOB-030`, `DEC-20260812-011`, `CHG-20260812-015`, `TST-20260812-015`, and `GATE-BOTH-020`.
 - The seven redacted operational Sheet rows were appended once and every ID read back exactly once; GitHub Issue #23 has matching redacted evidence and remains open.
 - No disposable production account was created; registration/apply/skip/replay canary evidence remains pending. Release remains `NOT READY`.
