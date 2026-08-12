@@ -1,17 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { request, requestEnvelope } from "@/api/client";
 import { accountPaths, normalizePreferences, sessionRevokePath } from "@/features/account/contracts";
+import { accountDetailKey, accountDetailQueryOptions } from "@/features/account/query";
 import type { AccountData, AccountPreferences, SecurityStatus, SessionCollection, TwoFactorSetup } from "@/features/account/types";
 import { buildAppleDeletionRequest, type AppleNativeCredential } from "@/features/auth/nativeOAuthContract";
 
 export const accountKeys = {
-  detail: ["account", "detail"] as const,
+  detail: accountDetailKey,
   security: ["account", "security"] as const,
   sessions: ["account", "sessions"] as const
 };
 
-export function useAccount() {
-  return useQuery({ queryKey: accountKeys.detail, queryFn: ({ signal }) => request<AccountData>(accountPaths.account, { signal }) });
+export function useAccount(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    ...accountDetailQueryOptions(),
+    enabled: options.enabled
+  });
 }
 
 export function useUpdateProfile() {

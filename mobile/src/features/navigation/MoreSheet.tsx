@@ -56,7 +56,7 @@ export function MoreSheet() {
   const close = useMoreSheetStore((state) => state.close);
   const { logout, user } = useAuth();
   const { colors, preference, setPreference } = useTheme();
-  const accountQuery = useAccount();
+  const accountQuery = useAccount({ enabled: isOpen });
   const unreadQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: ({ signal }) => fetchUnreadCount(signal),
@@ -68,7 +68,7 @@ export function MoreSheet() {
     enabled: isOpen
   });
   const [loggingOut, setLoggingOut] = useState(false);
-  const account = accountQuery.data;
+  const account = user && accountQuery.data?.id === user.id ? accountQuery.data : null;
   const vi = resolveLocale(account?.preferences?.locale ?? user?.preferences?.locale ?? getDeviceLocale()) === "vi";
   const displayName = account?.name || user?.name || "Mesale";
   const displayEmail = account?.email || user?.email || (vi ? "Thành viên Mesale" : "Mesale member");

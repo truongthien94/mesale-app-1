@@ -141,6 +141,26 @@ function secureAvatarUri(value: string | null): string | null {
   }
 }
 
+type AccountPreview = {
+  id: number;
+  name: string;
+  email: string | null;
+  avatar: string | null;
+  referral_code: string | null;
+  referral_code_eligible?: boolean;
+  referral_code_expires_at?: string | null;
+  wallet: {
+    balance: number;
+    total_cashback: number;
+    total_referral_earned: number;
+    total_withdrawn: number;
+  } | null;
+};
+
+function formatKnownMoney(value: number | null | undefined): string {
+  return typeof value === "number" ? formatAccountMoney(value, "vi") : "—";
+}
+
 export default function AccountRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -161,8 +181,26 @@ export default function AccountRoute() {
   const [submittingReferral, setSubmittingReferral] = useState(false);
   const referralEntryInFlight = useRef(false);
 
-  if (accountQuery.isPending) return <LoadingState label="Đang tải tài khoản..." />;
-  if (accountQuery.isError) {
+  const accountPreview: AccountPreview | null = user ? {
+    id: user.id,
+    name: user.name?.trim() || "Thành viên Mê Sale",
+    email: user.email ?? null,
+    avatar: user.avatar ?? null,
+    referral_code: user.referral_code ?? null,
+    referral_code_eligible: user.referralCodeEligible,
+    referral_code_expires_at: user.referralCodeExpiresAt,
+    wallet: user.financialSnapshot ? {
+      balance: user.financialSnapshot.balance,
+      total_cashback: user.financialSnapshot.totalCashback,
+      total_referral_earned: user.financialSnapshot.totalReferralEarned,
+      total_withdrawn: user.financialSnapshot.totalWithdrawn
+    } : null
+  } : null;
+  const serverAccount = user && accountQuery.data?.id === user.id ? accountQuery.data : null;
+  const account = serverAccount ?? accountPreview;
+
+  if (accountQuery.isPending && !account) return <LoadingState label="Đang tải tài khoản..." />;
+  if (accountQuery.isError && !account) {
     const props = {
       actionLabel: "Thử lại",
       message: accountQuery.error instanceof Error ? accountQuery.error.message : undefined,
@@ -173,8 +211,8 @@ export default function AccountRoute() {
       ? <OfflineState {...props} />
       : <ErrorState {...props} />;
   }
+  if (!account) return <LoadingState label="Đang đồng bộ tài khoản..." />;
 
-  const account = accountQuery.data;
   const displayName = account.name.trim() || "Thành viên Mê Sale";
   const initial = displayName.slice(0, 1).toUpperCase();
   const avatarUri = secureAvatarUri(account.avatar);
@@ -279,6 +317,23 @@ export default function AccountRoute() {
       showsVerticalScrollIndicator={false}
       style={{ backgroundColor: screenBackground }}
     >
+      {accountQuery.isError ? (
+        <View style={[styles.accountSyncWarning, { backgroundColor: softOrange, borderColor: scheme === "dark" ? "#8a6c10" : "#f5d666" }]}>
+          <View style={styles.accountSyncCopy}>
+            <Text style={[styles.accountSyncTitle, { color: scheme === "dark" ? "#fde68a" : "#92400e" }]}>Dữ liệu tài khoản có thể chưa mới nhất</Text>
+            <Text style={[styles.accountSyncMessage, { color: scheme === "dark" ? "#fcd34d" : "#b45309" }]}>Mê Sale đang hiển thị thông tin từ phiên đăng nhập gần nhất.</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Thử tải lại dữ liệu tài khoản"
+            accessibilityRole="button"
+            onPress={() => void accountQuery.refetch()}
+            style={({ pressed }) => [styles.accountSyncRetry, pressed && styles.pressed]}
+          >
+            <Text style={styles.accountSyncRetryText}>Thử lại</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={styles.profileHeader}>
         <Pressable
           accessibilityLabel="Mở thông tin cá nhân"
@@ -295,7 +350,7 @@ export default function AccountRoute() {
           </View>
           <View style={styles.identityCopy}>
             <Text numberOfLines={1} style={[styles.profileName, { color: colors.text }]}>{displayName}</Text>
-            <Text numberOfLines={1} style={[styles.profileEmail, { color: colors.mutedText }]}>{account.email}</Text>
+            <Text numberOfLines={1} style={[styles.profileEmail, { color: colors.mutedText }]}>{account.email?.trim() || "—"}</Text>
           </View>
         </Pressable>
       </View>
@@ -308,16 +363,16 @@ export default function AccountRoute() {
       >
         <View pointerEvents="none" style={styles.walletBubble} />
         <Text style={styles.balanceLabel}>Số dư khả dụng</Text>
-        <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatAccountMoney(account.wallet?.balance ?? null, "vi")}</Text>
+        <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatKnownMoney(account.wallet?.balance)}</Text>
         <View style={styles.walletStats}>
           <View style={styles.walletStat}>
             <Text style={styles.walletStatLabel}>Tổng đã nhận</Text>
-            <Text numberOfLines={1} style={styles.walletStatValue}>{formatAccountMoney(account.wallet?.total_cashback ?? null, "vi")}</Text>
+            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(account.wallet?.total_cashback)}</Text>
           </View>
           <View style={styles.walletStatDivider} />
           <View style={styles.walletStat}>
             <Text style={styles.walletStatLabel}>Từ giới thiệu</Text>
-            <Text numberOfLines={1} style={styles.walletStatValue}>{formatAccountMoney(account.wallet?.total_referral_earned ?? null, "vi")}</Text>
+            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(account.wallet?.total_referral_earned)}</Text>
           </View>
         </View>
         <Pressable
@@ -584,6 +639,12 @@ export default function AccountRoute() {
 
 const styles = StyleSheet.create({
   content: { gap: 18, paddingHorizontal: 18 },
+  accountSyncWarning: { alignItems: "center", borderRadius: 18, borderWidth: 1, flexDirection: "row", gap: 12, padding: 13 },
+  accountSyncCopy: { flex: 1, gap: 3, minWidth: 0 },
+  accountSyncTitle: { fontSize: 13, fontWeight: "900" },
+  accountSyncMessage: { fontSize: 11, lineHeight: 16 },
+  accountSyncRetry: { alignItems: "center", backgroundColor: "#f59e0b", borderRadius: 999, justifyContent: "center", minHeight: 44, paddingHorizontal: 14 },
+  accountSyncRetryText: { color: "#ffffff", fontSize: 12, fontWeight: "900" },
   profileHeader: { alignItems: "center", flexDirection: "row" },
   profileIdentity: { alignItems: "center", flex: 1, flexDirection: "row", gap: 12, minHeight: 58, minWidth: 0 },
   avatarRing: { alignItems: "center", borderColor: "#75baff", borderRadius: 34, borderWidth: 3, height: 68, justifyContent: "center", width: 68 },

@@ -12,8 +12,7 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { LoadingState } from "@/components/AsyncState";
-import { QueryFailure } from "@/features/wallet/components";
+import { useAuth } from "@/auth/AuthProvider";
 import { useAccountSummary, useOrders } from "@/features/wallet/api";
 import { formatDate, formatVnd } from "@/features/wallet/format";
 import { isRecordedOrder, orderListKey } from "@/features/wallet/orders";
@@ -38,20 +37,23 @@ export default function WalletRoute() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, spacing, radius } = useTheme();
+  const { user } = useAuth();
   const accountQuery = useAccountSummary();
   const ordersQuery = useOrders();
   const [showBalance, setShowBalance] = useState(true);
 
-  if (accountQuery.isPending) return <LoadingState label="Đang tải ví..." />;
-  if (accountQuery.isError || !accountQuery.data) {
-    return <QueryFailure error={accountQuery.error} onRetry={() => void accountQuery.refetch()} />;
-  }
-
-  const { wallet, stats } = accountQuery.data;
+  const liveAccount = accountQuery.data;
+  const authSnapshot = user?.financialSnapshot;
+  const balance = liveAccount?.wallet.balance ?? authSnapshot?.balance;
+  const totalCashback = liveAccount?.wallet.totalCashback ?? authSnapshot?.totalCashback;
+  const totalWithdrawn = liveAccount?.wallet.totalWithdrawn ?? authSnapshot?.totalWithdrawn;
+  const pendingOrders = liveAccount?.stats.ordersPending;
   const recentOrders = (ordersQuery.data?.pages.flatMap((page) => page.items) ?? [])
     .filter(isRecordedOrder)
     .slice(0, 5);
-  const balanceText = showBalance ? formatVnd(wallet.balance) : "••••••";
+  const balanceText = showBalance
+    ? typeof balance === "number" ? formatVnd(balance) : null
+    : "••••••";
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -69,6 +71,15 @@ export default function WalletRoute() {
           />
         )}
       >
+        {accountQuery.isError ? (
+          <View style={[styles.inlineError, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.stateText, { color: colors.mutedText }]}>Chưa thể làm mới số dư ví. Dữ liệu hiện tại có thể đã cũ.</Text>
+            <Pressable accessibilityRole="button" onPress={() => void accountQuery.refetch()}>
+              <Text style={[styles.retryText, { color: colors.primary }]}>Thử lại</Text>
+            </Pressable>
+          </View>
+        ) : null}
+
         <LinearGradient
           colors={["#FF5733", "#FF451A", "#E02F05"]}
           end={{ x: 1, y: 1 }}
@@ -85,9 +96,13 @@ export default function WalletRoute() {
             <WalletCards color="#ffffff" size={28} />
           </View>
           <View style={styles.balanceRow}>
-            <Text accessibilityLabel={showBalance ? `Số dư ${formatVnd(wallet.balance)}` : "Số dư đang ẩn"} adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>
-              {balanceText}
-            </Text>
+            {balanceText === null ? (
+              <View accessibilityLabel="Đang tải số dư" accessibilityRole="progressbar" style={styles.balanceSkeleton} />
+            ) : (
+              <Text accessibilityLabel={showBalance && typeof balance === "number" ? `Số dư ${formatVnd(balance)}` : "Số dư đang ẩn"} adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>
+                {balanceText}
+              </Text>
+            )}
             <Pressable
               accessibilityLabel={showBalance ? "Ẩn số dư" : "Hiện số dư"}
               accessibilityRole="button"
@@ -117,9 +132,9 @@ export default function WalletRoute() {
         </LinearGradient>
 
         <View style={styles.statsRow}>
-          <WalletStat colors={colors} iconColor="#10b981" label="Tổng Cashback" value={showBalance ? formatVnd(wallet.total_cashback) : "••••"} />
-          <WalletStat colors={colors} iconColor="#3b82f6" label="Đã rút" value={showBalance ? formatVnd(wallet.total_withdrawn) : "••••"} />
-          <WalletStat colors={colors} iconColor="#facc15" label="Chờ duyệt" value={String(stats.orders_pending)} />
+          <WalletStat colors={colors} iconColor="#10b981" label="Tổng Cashback" value={showBalance && typeof totalCashback === "number" ? formatVnd(totalCashback) : showBalance ? null : "••••"} />
+          <WalletStat colors={colors} iconColor="#3b82f6" label="Đã rút" value={showBalance && typeof totalWithdrawn === "number" ? formatVnd(totalWithdrawn) : showBalance ? null : "••••"} />
+          <WalletStat colors={colors} iconColor="#facc15" label="Chờ duyệt" value={typeof pendingOrders === "number" ? String(pendingOrders) : null} />
         </View>
 
         <View style={[styles.recentCard, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg }]}>
@@ -172,12 +187,14 @@ export default function WalletRoute() {
   );
 }
 
-function WalletStat({ colors, iconColor, label, value }: { colors: ReturnType<typeof useTheme>["colors"]; iconColor: string; label: string; value: string }) {
+function WalletStat({ colors, iconColor, label, value }: { colors: ReturnType<typeof useTheme>["colors"]; iconColor: string; label: string; value: string | null }) {
   return (
     <View style={[styles.statCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       <View style={[styles.statDot, { backgroundColor: iconColor }]} />
       <Text numberOfLines={2} style={[styles.statLabel, { color: colors.mutedText }]}>{label}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.statValue, { color: colors.text }]}>{value}</Text>
+      {value === null
+        ? <View accessibilityLabel={`Đang tải ${label}`} accessibilityRole="progressbar" style={[styles.statSkeleton, { backgroundColor: colors.border }]} />
+        : <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.statValue, { color: colors.text }]}>{value}</Text>}
     </View>
   );
 }
@@ -225,6 +242,7 @@ const styles = StyleSheet.create({
   bannerEyebrow: { color: "rgba(255,255,255,0.86)", fontSize: 11, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" },
   balanceRow: { alignItems: "center", flexDirection: "row", gap: 9, marginTop: 16 },
   balanceValue: { color: "#ffffff", flex: 1, fontSize: 32, fontWeight: "900", letterSpacing: -1 },
+  balanceSkeleton: { backgroundColor: "rgba(255,255,255,0.34)", borderRadius: 8, height: 38, width: 172 },
   eyeButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 9, height: 34, justifyContent: "center", width: 34 },
   bannerActions: { flexDirection: "row", gap: 9, marginTop: 20 },
   bannerAction: { alignItems: "center", backgroundColor: "#ffffff", borderRadius: 11, justifyContent: "center", minHeight: 40, paddingHorizontal: 17 },
@@ -236,6 +254,7 @@ const styles = StyleSheet.create({
   statDot: { borderRadius: 5, height: 8, marginBottom: 13, width: 28 },
   statLabel: { fontSize: 10, fontWeight: "800", lineHeight: 14, textTransform: "uppercase" },
   statValue: { fontSize: 15, fontWeight: "900", marginTop: 8 },
+  statSkeleton: { borderRadius: 6, height: 17, marginTop: 8, width: "76%" },
   recentCard: { borderWidth: 1, gap: 18, padding: 18 },
   sectionHeader: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   sectionHeadingWrap: { alignItems: "center", flex: 1, flexDirection: "row", gap: 10 },

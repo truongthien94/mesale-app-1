@@ -165,7 +165,7 @@ test("home renders the auth preview while account remains authoritative in the b
   assert.doesNotMatch(bootstrap, /pendingCashback|ordersPending|stats:/);
 });
 
-test("successful withdrawal invalidates both Wallet and Home account summaries", async () => {
+test("successful withdrawal invalidates the canonical account summary", async () => {
   const invalidated = [];
   const { useCreateWithdrawal } = loadTypeScriptModule("../src/features/wallet/api.ts", {
     "@tanstack/react-query": {
@@ -179,6 +179,7 @@ test("successful withdrawal invalidates both Wallet and Home account summaries",
     "@/api/idempotency": { idempotencyHeaders: () => ({}) },
     "@/api/pagination": { getNextPageParam: () => undefined },
     "@/api/client": { request: async () => ({}) },
+    "@/features/config/query": { appConfigRawQueryOptions: () => ({}) },
     "@/features/home/hooks": { homeQueryKeys: { account: ["account"] } }
   });
 
@@ -186,7 +187,6 @@ test("successful withdrawal invalidates both Wallet and Home account summaries",
 
   assert.deepEqual(invalidated, [
     ["account"],
-    ["wallet", "account"],
     ["wallet", "withdrawals"],
     ["wallet", "balance-logs"]
   ]);
@@ -276,6 +276,7 @@ test("orders API builds the additive server-side filter and pagination contract"
     "@/api/idempotency": { idempotencyHeaders: () => ({}) },
     "@/api/pagination": { getNextPageParam: () => undefined },
     "@/api/client": { request: async () => ({}) },
+    "@/features/config/query": { appConfigRawQueryOptions: () => ({}) },
     "@/features/home/hooks": { homeQueryKeys: { account: ["account"] } }
   });
 

@@ -126,8 +126,8 @@ export function normalizeBannerLink(value: string | null): string | null {
   }
 }
 
-export async function fetchAccountSummary(signal?: AbortSignal): Promise<AccountSummary> {
-  const value = requireRecord(await request<unknown>("account", { signal }), "account");
+export function normalizeAccountSummary(source: unknown): AccountSummary {
+  const value = requireRecord(source, "account");
   const wallet = requireRecord(value.wallet, "account wallet");
   const stats = requireRecord(value.stats, "account stats");
 
@@ -157,8 +157,12 @@ export async function fetchAccountSummary(signal?: AbortSignal): Promise<Account
   };
 }
 
-export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig> {
-  const value = requireRecord(await request<unknown>("config", { authenticated: false, signal }), "config");
+export async function fetchAccountSummary(signal?: AbortSignal): Promise<AccountSummary> {
+  return normalizeAccountSummary(await request<unknown>("account", { signal }));
+}
+
+export function normalizeHomeConfig(source: unknown): HomeConfig {
+  const value = requireRecord(source, "config");
   const site = requireRecord(value.site, "site config");
   const theme = requireRecord(value.theme, "theme config");
   const cashback = requireRecord(value.cashback, "cashback config");
@@ -178,6 +182,10 @@ export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig>
     },
     banners
   };
+}
+
+export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig> {
+  return normalizeHomeConfig(await request<unknown>("config", { authenticated: false, signal }));
 }
 
 function parseCoupon(value: unknown): Coupon | null {

@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-025`
-- Session: `SES-20260812-019`
+- Latest checkpoint: `CKP-20260812-026`
+- Session: `SES-20260812-020`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-034` / `CHG-20260812-019`; Home now renders immediately from the authenticated financial preview while `/account` remains authoritative in the background.
+- Current batch: `TSK-MOB-035` / `CHG-20260812-020`; all primary tabs now avoid unnecessary full-screen loading, with authenticated prefetch and canonical `/account` plus `/config` caches.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
@@ -27,6 +27,17 @@
 - Operational IDs: `SES-20260812-019`, `CKP-20260812-025`, `TSK-MOB-034`, `CHG-20260812-019`, and `TST-20260812-019`.
 - Google Sheet synchronization is pending because the required connector is unavailable in this session.
 - No Laravel, API, database, production, credential, token, or member-data change was made.
+
+## 2026-08-12 Primary Tab Loading Optimization
+
+- Wallet and Account render immediately from current authenticated identity/financial snapshots while complete Laravel responses refresh in the background.
+- Orders, config, and payment accounts are prefetched after the authenticated gate without delaying tab rendering.
+- Session restoration, Home, Wallet, Account, and withdrawal flows now reuse one complete `/account` cache; Home and withdrawal flows reuse one complete `/config` cache.
+- The withdrawal form shell renders immediately, but Laravel-confirmed balance, policy, fees, OTP, and saved payment accounts still gate every financial submission.
+- Mobile `92/92`, TypeScript, Expo Doctor `18/18`, Android/iOS exports, and Android emulator tab transitions pass.
+- Operational IDs: `SES-20260812-020`, `CKP-20260812-026`, `TSK-MOB-035`, `CHG-20260812-020`, and `TST-20260812-020`.
+- Google Sheet synchronization is pending because no live connector is available; no credential fallback was used.
+- No Laravel, database, production setting, credential, token, or member-data change was made.
 
 ## 2026-08-12 Compact Native Login Copy
 

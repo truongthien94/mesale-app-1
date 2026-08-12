@@ -2,9 +2,9 @@ import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tansta
 import { idempotencyHeaders, type IdempotentVariables } from "@/api/idempotency";
 import { getNextPageParam } from "@/api/pagination";
 import { request } from "@/api/client";
-import { homeQueryKeys } from "@/features/home/hooks";
+import { accountSummaryQueryOptions, homeQueryKeys } from "@/features/home/hooks";
+import { appConfigRawQueryOptions } from "@/features/config/query";
 import type {
-  AccountSummary,
   AppConfig,
   BalanceLogsPage,
   OrderDetail,
@@ -48,26 +48,31 @@ export function buildOrdersPath(page: number, filters: OrderQueryFilters = {}): 
 }
 
 export function useAccountSummary() {
-  return useQuery({
-    queryKey: walletKeys.account,
-    queryFn: ({ signal }) => request<AccountSummary>("account", { signal })
-  });
+  return useQuery(accountSummaryQueryOptions());
+}
+
+export function appConfigQueryOptions() {
+  return {
+    ...appConfigRawQueryOptions(),
+    select: (value: unknown) => value as AppConfig
+  };
 }
 
 export function useAppConfig() {
-  return useQuery({
-    queryKey: walletKeys.config,
-    queryFn: ({ signal }) => request<AppConfig>("config", { signal })
-  });
+  return useQuery(appConfigQueryOptions());
+}
+
+export function ordersQueryOptions(filters: OrderQueryFilters = {}) {
+  return {
+    queryKey: [...walletKeys.orders, filters] as const,
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) => request<OrdersPage>(buildOrdersPath(pageParam, filters), { signal }),
+    getNextPageParam
+  };
 }
 
 export function useOrders(filters: OrderQueryFilters = {}) {
-  return useInfiniteQuery({
-    queryKey: [...walletKeys.orders, filters] as const,
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => request<OrdersPage>(buildOrdersPath(pageParam, filters), { signal }),
-    getNextPageParam
-  });
+  return useInfiniteQuery(ordersQueryOptions(filters));
 }
 
 export function useOrder(id: number) {
@@ -96,11 +101,15 @@ export function useWithdrawals() {
   });
 }
 
-export function usePaymentAccounts() {
-  return useQuery({
+export function paymentAccountsQueryOptions() {
+  return {
     queryKey: walletKeys.paymentAccounts,
-    queryFn: ({ signal }) => request<PaymentAccountCollection>("payment-accounts", { signal })
-  });
+    queryFn: ({ signal }: { signal: AbortSignal }) => request<PaymentAccountCollection>("payment-accounts", { signal })
+  };
+}
+
+export function usePaymentAccounts() {
+  return useQuery(paymentAccountsQueryOptions());
 }
 
 export function useSendWithdrawalOtp() {
@@ -121,7 +130,6 @@ export function useCreateWithdrawal() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: homeQueryKeys.account }),
-        queryClient.invalidateQueries({ queryKey: walletKeys.account }),
         queryClient.invalidateQueries({ queryKey: walletKeys.withdrawals }),
         queryClient.invalidateQueries({ queryKey: walletKeys.balanceLogs })
       ]);

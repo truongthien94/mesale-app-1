@@ -3,6 +3,7 @@ import { Banknote, Home, ShoppingBag, UserRound, Wallet } from "lucide-react-nat
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
 import { LoadingState } from "@/components/AsyncState";
+import { AuthenticatedPrefetch } from "@/api/AuthenticatedPrefetch";
 import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -16,7 +17,9 @@ export default function TabsLayout() {
   if (authGate !== "/home") return <Redirect href={authGate ?? "/login"} />;
 
   return (
-    <Tabs
+    <>
+      <AuthenticatedPrefetch />
+      <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -67,6 +70,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="more" options={{ href: null }} />
-    </Tabs>
+      </Tabs>
+    </>
   );
 }

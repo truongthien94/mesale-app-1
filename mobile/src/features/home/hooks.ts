@@ -1,31 +1,34 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   createCashbackLink,
-  fetchAccountSummary,
   fetchCoupons,
-  fetchHomeConfig,
-  fetchRanking
+  fetchRanking,
+  normalizeAccountSummary,
+  normalizeHomeConfig
 } from "@/features/home/api";
+import { accountDetailQueryOptions } from "@/features/account/query";
+import { appConfigKey, appConfigRawQueryOptions } from "@/features/config/query";
 
 export const homeQueryKeys = {
   account: ["account"] as const,
-  config: ["config"] as const,
+  config: appConfigKey,
   coupons: ["home", "coupons"] as const,
   ranking: ["home", "ranking"] as const
 };
 
+export function accountSummaryQueryOptions() {
+  return {
+    ...accountDetailQueryOptions(),
+    select: normalizeAccountSummary
+  };
+}
+
 export function useAccountSummary() {
-  return useQuery({
-    queryKey: homeQueryKeys.account,
-    queryFn: ({ signal }) => fetchAccountSummary(signal)
-  });
+  return useQuery(accountSummaryQueryOptions());
 }
 
 export function useHomeConfig() {
-  return useQuery({
-    queryKey: homeQueryKeys.config,
-    queryFn: ({ signal }) => fetchHomeConfig(signal)
-  });
+  return useQuery({ ...appConfigRawQueryOptions(), select: normalizeHomeConfig });
 }
 
 export function useCreateCashbackLink() {

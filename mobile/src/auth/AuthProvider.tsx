@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getCurrentUser,
   login as loginRequest,
   logout as logoutRequest,
   register as registerRequest,
@@ -14,10 +13,11 @@ import {
   type TwoFactorCodes,
   type User
 } from "@/api/auth";
-import type { AuthenticatedAuthResult, LoginResult } from "@/api/authContract";
+import { parseUser, type AuthenticatedAuthResult, type LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
 import { clearSession, clearSessionIfTokenMatches, loadSession, onSessionInvalidated, saveSession, type Session } from "@/auth/session";
 import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
+import { accountDetailQueryOptions } from "@/features/account/query";
 
 type AuthContextValue = {
   isLoading: boolean;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         if (!isActive || authRevision.current !== restoreRevision) return;
         setSession(saved);
 
-        const restoredUser = await getCurrentUser();
+        const restoredUser = parseUser(await queryClient.fetchQuery(accountDetailQueryOptions()));
         if (!isActive || authRevision.current !== restoreRevision) return;
         setUser(restoredUser);
       } catch {
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       isActive = false;
     };
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => onSessionInvalidated(() => {
     clearAppQueryCache(queryClient);
@@ -171,9 +171,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const refreshUser = useCallback(async () => {
     const revision = authRevision.current;
-    const refreshedUser = await getCurrentUser();
+    const refreshedUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
     if (authRevision.current === revision) setUser(refreshedUser);
-  }, []);
+  }, [queryClient]);
 
   const settleReferralPrompt = useCallback(async () => {
     setUser((current) => current ? { ...current, referralPromptPending: false } : current);

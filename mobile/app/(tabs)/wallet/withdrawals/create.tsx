@@ -14,8 +14,9 @@ import {
 } from "react-native";
 import { Building2, CheckCircle2, ChevronDown, ChevronRight, CirclePlus, WalletCards } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { EmptyState, LoadingState } from "@/components/AsyncState";
-import { InlineError, PrimaryButton, QueryFailure } from "@/features/wallet/components";
+import { useAuth } from "@/auth/AuthProvider";
+import { EmptyState } from "@/components/AsyncState";
+import { InlineError, PrimaryButton } from "@/features/wallet/components";
 import { formatVnd } from "@/features/wallet/format";
 import {
   useAccountSummary,
@@ -55,6 +56,7 @@ export default function CreateWithdrawalScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();
+  const { user } = useAuth();
   const { colors, scheme } = useTheme();
   const styles = useMemo(() => createStyles(colors, scheme), [colors, scheme]);
   const accountQuery = useAccountSummary();
@@ -74,7 +76,9 @@ export default function CreateWithdrawalScreen() {
   const [created, setCreated] = useState<WithdrawalCreated | null>(null);
 
   const config = configQuery.data?.withdraw;
-  const balance = accountQuery.data?.wallet.balance ?? 0;
+  const authoritativeBalance = accountQuery.data?.wallet.balance;
+  const previewBalance = user?.financialSnapshot?.balance;
+  const displayBalance = authoritativeBalance ?? previewBalance;
   const amount = Number(amountText.replace(/\D/g, "")) || 0;
   const fee = useMemo(() => {
     if (!config) return 0;
@@ -106,11 +110,6 @@ export default function CreateWithdrawalScreen() {
     }
   }, [accounts, accountsQuery.isPending, config]);
 
-  if (accountQuery.isPending || configQuery.isPending || accountsQuery.isPending) return <LoadingState label="Đang chuẩn bị biểu mẫu..." />;
-  if (accountQuery.isError) return <QueryFailure error={accountQuery.error} onRetry={() => void accountQuery.refetch()} />;
-  if (configQuery.isError) return <QueryFailure error={configQuery.error} onRetry={() => void configQuery.refetch()} />;
-  if (accountsQuery.isError) return <QueryFailure error={accountsQuery.error} onRetry={() => void accountsQuery.refetch()} />;
-
   if (created) {
     return (
       <View style={styles.successScreen}>
@@ -125,21 +124,26 @@ export default function CreateWithdrawalScreen() {
     );
   }
 
-  if (!configQuery.data.withdraw.enabled) {
+  if (configQuery.isSuccess && !configQuery.data.withdraw.enabled) {
     return <EmptyState title="Rút tiền đang tạm tắt" message="Vui lòng quay lại sau khi hệ thống mở lại tính năng." actionLabel="Quay lại" onAction={() => router.back()} />;
   }
 
-  const withdrawConfig = configQuery.data.withdraw;
-  const amountIsValid = amount >= withdrawConfig.min_amount && amount <= balance;
-  const otpIsValid = !withdrawConfig.otp_required || /^\d{6}$/.test(otpCode);
-  const canSubmit = Boolean(selectedAccount) && amountIsValid && otpIsValid && !mutation.isPending;
-  const footerLabel = !selectedAccount
-    ? selectedMethod === "bank" ? "Cần liên kết ngân hàng trước" : "Cần liên kết ví điện tử trước"
-    : !amountIsValid
-      ? "Nhập số tiền hợp lệ"
-      : withdrawConfig.otp_required && !otpIsValid
-        ? "Nhập mã OTP để tiếp tục"
-        : "Gửi yêu cầu rút tiền";
+  const dependenciesReady = accountQuery.isSuccess && configQuery.isSuccess && accountsQuery.isSuccess;
+  const withdrawConfig = configQuery.data?.withdraw;
+  const amountIsValid = dependenciesReady && withdrawConfig !== undefined && typeof authoritativeBalance === "number"
+    && amount >= withdrawConfig.min_amount && amount <= authoritativeBalance;
+  const otpIsValid = dependenciesReady && withdrawConfig !== undefined
+    && (!withdrawConfig.otp_required || /^\d{6}$/.test(otpCode));
+  const canSubmit = dependenciesReady && Boolean(selectedAccount) && amountIsValid && otpIsValid && !mutation.isPending;
+  const footerLabel = !dependenciesReady
+    ? "Đang xác nhận dữ liệu rút tiền"
+    : !selectedAccount
+      ? selectedMethod === "bank" ? "Cần liên kết ngân hàng trước" : "Cần liên kết ví điện tử trước"
+      : !amountIsValid
+        ? "Nhập số tiền hợp lệ"
+        : withdrawConfig?.otp_required && !otpIsValid
+          ? "Nhập mã OTP để tiếp tục"
+          : "Gửi yêu cầu rút tiền";
   const feeCopy = fee > 0 ? `Phí dự kiến ${formatVnd(fee)}` : "Mê Sale không thu phí xử lý";
 
   function selectSavedAccount(account: PaymentAccount) {
@@ -150,6 +154,7 @@ export default function CreateWithdrawalScreen() {
   }
 
   function selectMethod(method: PaymentAccount["payment_method"]) {
+    if (!withdrawConfig) return;
     const enabled = method === "bank" ? withdrawConfig.bank_enabled : withdrawConfig.wallet_enabled;
     if (!enabled) return;
     const nextAccount = accounts.find((account) => account.payment_method === method && account.is_default)
@@ -162,12 +167,14 @@ export default function CreateWithdrawalScreen() {
   }
 
   function validateAmount(nextAmount: number): string | undefined {
+    if (!withdrawConfig || typeof authoritativeBalance !== "number") return undefined;
     if (nextAmount < withdrawConfig.min_amount) return `Số tiền tối thiểu là ${formatVnd(withdrawConfig.min_amount)}.`;
-    if (nextAmount > balance) return "Số dư khả dụng không đủ.";
+    if (nextAmount > authoritativeBalance) return "Số dư khả dụng không đủ.";
     return undefined;
   }
 
   function buildPayload(): WithdrawalPayload | null {
+    if (!dependenciesReady || !withdrawConfig) return null;
     const nextErrors: FormErrors = {};
     nextErrors.amount = validateAmount(amount);
     if (!selectedAccount) nextErrors.account = "Vui lòng chọn tài khoản nhận tiền đã lưu.";
@@ -210,8 +217,20 @@ export default function CreateWithdrawalScreen() {
       >
         <View style={styles.balanceStrip}>
           <Text style={styles.balanceLabel}>Số dư khả dụng</Text>
-          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatVnd(balance)}</Text>
+          {typeof displayBalance === "number"
+            ? <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatVnd(displayBalance)}</Text>
+            : <View accessibilityLabel="Đang tải số dư" accessibilityRole="progressbar" style={styles.balanceSkeleton} />}
         </View>
+
+        {!dependenciesReady ? (
+          <View style={styles.dependencyNotice}>
+            <ActivityIndicator color="#2f9af5" size="small" />
+            <Text style={styles.dependencyText}>Đang xác nhận số dư, chính sách rút và tài khoản nhận tiền từ Mê Sale.</Text>
+          </View>
+        ) : null}
+        {accountQuery.isError ? <InlineError error={accountQuery.error} onRetry={() => void accountQuery.refetch()} /> : null}
+        {configQuery.isError ? <InlineError error={configQuery.error} onRetry={() => void configQuery.refetch()} /> : null}
+        {accountsQuery.isError ? <InlineError error={accountsQuery.error} onRetry={() => void accountsQuery.refetch()} /> : null}
 
         <View style={styles.formCard}>
           <View style={styles.fieldGroup}>
@@ -220,6 +239,7 @@ export default function CreateWithdrawalScreen() {
               <WalletCards color={colors.mutedText} size={19} />
               <TextInput
                 accessibilityLabel="Số tiền cần rút"
+                editable={dependenciesReady}
                 keyboardType="number-pad"
                 onBlur={() => setErrors((current) => ({ ...current, amount: amountText ? validateAmount(amount) : undefined }))}
                 onChangeText={(value) => {
@@ -236,9 +256,13 @@ export default function CreateWithdrawalScreen() {
               />
             </View>
             <View style={styles.helperRow}>
-              <Text style={styles.helperText}>Số tiền tối thiểu: <Text style={styles.helperStrong}>{formatVnd(withdrawConfig.min_amount)}</Text></Text>
-              <Text style={styles.helperDot}>·</Text>
-              <Text style={styles.helperText}>{feeCopy}</Text>
+              {withdrawConfig ? (
+                <>
+                  <Text style={styles.helperText}>Số tiền tối thiểu: <Text style={styles.helperStrong}>{formatVnd(withdrawConfig.min_amount)}</Text></Text>
+                  <Text style={styles.helperDot}>·</Text>
+                  <Text style={styles.helperText}>{feeCopy}</Text>
+                </>
+              ) : <View accessibilityLabel="Đang tải chính sách rút tiền" accessibilityRole="progressbar" style={styles.helperSkeleton} />}
             </View>
             {amount > 0 ? <Text style={styles.receiveCaption}>Dự kiến thực nhận: {formatVnd(Math.max(0, amount - fee))}</Text> : null}
             {errors.amount ? <Text accessibilityRole="alert" style={styles.errorText}>{errors.amount}</Text> : null}
@@ -248,7 +272,9 @@ export default function CreateWithdrawalScreen() {
             <Text style={styles.fieldLabel}>HÌNH THỨC NHẬN TIỀN</Text>
             <View accessibilityRole="radiogroup" style={styles.methodRow}>
               {(["bank", "wallet"] as const).map((method) => {
-                const enabled = method === "bank" ? withdrawConfig.bank_enabled : withdrawConfig.wallet_enabled;
+                const enabled = dependenciesReady && withdrawConfig !== undefined
+                  ? (method === "bank" ? withdrawConfig.bank_enabled : withdrawConfig.wallet_enabled)
+                  : false;
                 const selected = selectedMethod === method;
                 const MethodIcon = method === "bank" ? Building2 : WalletCards;
                 return (
@@ -348,7 +374,7 @@ export default function CreateWithdrawalScreen() {
             </View>
           </View>
 
-          {withdrawConfig.otp_required ? (
+          {withdrawConfig?.otp_required ? (
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>MÃ XÁC MINH OTP <Text style={styles.requiredMark}>*</Text></Text>
               <View style={styles.otpRow}>
@@ -368,9 +394,9 @@ export default function CreateWithdrawalScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ busy: otpMutation.isPending }}
-                  disabled={otpMutation.isPending}
+                  disabled={!dependenciesReady || otpMutation.isPending}
                   onPress={() => otpMutation.mutate()}
-                  style={({ pressed }) => [styles.otpButton, otpMutation.isPending && styles.disabled, pressed && styles.pressed]}
+                  style={({ pressed }) => [styles.otpButton, (!dependenciesReady || otpMutation.isPending) && styles.disabled, pressed && styles.pressed]}
                 >
                   {otpMutation.isPending
                     ? <ActivityIndicator color="#2f9af5" />
@@ -410,6 +436,9 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     balanceStrip: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 14, justifyContent: "space-between", minHeight: 48, paddingHorizontal: 14, paddingVertical: 10 },
     balanceLabel: { color: colors.mutedText, fontSize: 13, fontWeight: "700" },
     balanceValue: { color: colors.text, flexShrink: 1, fontSize: 17, fontWeight: "900" },
+    balanceSkeleton: { backgroundColor: colors.border, borderRadius: 6, height: 20, width: 118 },
+    dependencyNotice: { alignItems: "center", backgroundColor: dark ? "#102a44" : "#eaf5ff", borderColor: dark ? "#1e4a70" : "#bfdbfe", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 10, minHeight: 48, paddingHorizontal: 13, paddingVertical: 10 },
+    dependencyText: { color: colors.mutedText, flex: 1, fontSize: 11.5, lineHeight: 17 },
     formCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 18, padding: 16, shadowColor: "#2563eb", shadowOffset: { width: 0, height: 8 }, shadowOpacity: dark ? 0.12 : 0.035, shadowRadius: 16, elevation: 2 },
     fieldGroup: { gap: 8 },
     fieldLabel: { color: colors.text, fontSize: 12, fontWeight: "900", letterSpacing: 0.35 },
@@ -418,6 +447,7 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     helperRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 5 },
     helperText: { color: colors.mutedText, fontSize: 11.5, lineHeight: 17 },
     helperStrong: { color: colors.text, fontWeight: "900" },
+    helperSkeleton: { backgroundColor: colors.border, borderRadius: 5, height: 14, width: 210 },
     helperDot: { color: colors.mutedText, fontSize: 11.5 },
     receiveCaption: { color: "#16a34a", fontSize: 11.5, fontWeight: "800", lineHeight: 17 },
     methodRow: { flexDirection: "row", gap: 10 },
