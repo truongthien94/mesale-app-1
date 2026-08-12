@@ -1,20 +1,32 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-020`
-- Session: `SES-20260812-014`
+- Latest checkpoint: `CKP-20260812-021`
+- Session: `SES-20260812-015`
 - Plan: [migration-plan.md](../migration-plan.md)
-- Phase: M0 P0 remediation and M1 MVP foundation; withdrawal history/request navigation parity published
+- Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
 - Code gate: received
 - Push policy: owner standing instruction is direct fast-forward publication to `origin/main` after verified work
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-029` / `CHG-20260812-014`; source `3dd93d2` and context `fa32fa3` are published directly to `origin/main`; local mobile `78/78`, TypeScript, Expo Doctor `18/18`, both exports, Android history/create/back click-through, diff checks, staged sensitive-pattern review, Google Sheet ID read-back, source run `31518925269`, and context run `31519331351` passed; no Laravel, database, production migration, deployment, or production-data change
-- Remote `main`: source `3dd93d2`, context `fa32fa3`; runs `31518925269` and `31519331351` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-030` / `CHG-20260812-015`; source `42abd4c` is published directly to `origin/main`; production received only the reviewed referral snapshot patch and two exact referral migrations; route/schema/bootstrap checks, local focused `57/57` with `520` assertions, and unique operational Sheet read-back pass; CI and controlled new-account canary remain pending
+- Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Production Referral Eligibility Patch
+
+- Audited the production migration ledger before deployment: nine repository migrations were absent, and seven unrelated migrations were explicitly excluded.
+- Deployed only the two nullable referral eligibility columns by exact path, without `after(...)`, defaults, indexes, or existing-member backfill.
+- Patched the older production snapshot with reviewed route/controller/model/service hunks instead of copying current repository files wholesale.
+- Verified both columns and migration records, zero existing non-null prompt/deadline values, expected unauthenticated `401` on the referral endpoint instead of `404`, public homepage availability, zero reviewed-file mismatches, and cleanup of temporary deploy helpers.
+- Local source verification passed: focused Laravel `57/57` with `520` assertions, PHP syntax, diff check, and staged sensitive-pattern review.
+- Source commit `42abd4c` is published directly to `origin/main`; CI evidence remains pending.
+- Operational IDs: `SES-20260812-015`, `CKP-20260812-021`, `TSK-MOB-030`, `DEC-20260812-011`, `CHG-20260812-015`, `TST-20260812-015`, and `GATE-BOTH-020`.
+- The seven redacted operational Sheet rows were appended once and every ID read back exactly once; GitHub Issue #23 has matching redacted evidence and remains open.
+- No disposable production account was created; registration/apply/skip/replay canary evidence remains pending. Release remains `NOT READY`.
 
 ## 2026-08-12 Withdrawal History And Request Routing Parity
 
