@@ -9,17 +9,26 @@ function read(relativePath) {
 
 test("the primary tab bar exposes Account as a real screen and retires the More sheet", () => {
   const layout = read("../app/(tabs)/_layout.tsx");
-  for (const route of ["home", "wallet", "orders", "withdraw", "account"]) {
+  const primaryRoutes = ["home", "referrals", "orders", "withdraw", "account"];
+  for (const route of primaryRoutes) {
     assert.match(layout, new RegExp(`name=\"${route}\"`));
   }
-  for (const route of ["earn", "inbox", "more"]) {
+  const primaryPositions = primaryRoutes.map((route) => layout.indexOf(`name="${route}"`));
+  assert.deepEqual(primaryPositions, [...primaryPositions].sort((left, right) => left - right));
+  for (const route of ["wallet", "earn", "inbox", "more"]) {
     assert.match(layout, new RegExp(`name=\"${route}\" options=\\{\\{ href: null \\}\\}`));
   }
   assert.match(layout, /useTheme\(\)/);
   assert.match(layout, /title: isVietnamese \? "Tài khoản" : "Account"/);
   assert.match(layout, /<UserRound color=\{color\} size=\{size\}/);
+  assert.match(layout, /title: isVietnamese \? "Giới thiệu" : "Referral"/);
+  assert.match(layout, /<UsersRound color=\{color\} size=\{size\}/);
   assert.match(layout, /tabBarActiveTintColor: "#2f9af5"/);
   assert.doesNotMatch(layout, /MoreSheet|useMoreSheetStore|tabBarButton:/);
+});
+
+test("the Referral tab reuses the canonical referral screen", () => {
+  assert.match(read("../app/(tabs)/referrals.tsx"), /export \{ default \} from "\.\/earn\/referrals"/);
 });
 
 test("Round B keeps canonical wallet screens behind direct tab aliases", () => {

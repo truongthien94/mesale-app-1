@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-026`
-- Session: `SES-20260812-020`
+- Latest checkpoint: `CKP-20260812-027`
+- Session: `SES-20260812-021`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,20 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-035` / `CHG-20260812-020`; all primary tabs now avoid unnecessary full-screen loading, with authenticated prefetch and canonical `/account` plus `/config` caches.
+- Current batch: `TSK-MOB-036` / `CHG-20260812-021`; the second primary tab is now the existing native Referral screen while Wallet remains a hidden routable stack.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Referral Primary Tab
+
+- Replaced the visible `Ví` bottom-tab destination with `Giới thiệu` using the existing native, Laravel-backed referral screen.
+- Primary order is now `Trang chủ`, `Giới thiệu`, `Đơn hàng`, `Rút tiền`, and `Tài khoản`.
+- The Wallet route tree remains registered and directly routable; no wallet screen, API contract, financial mutation, or data was removed.
+- Mobile `93/93`, TypeScript, Expo Doctor `18/18`, Android/iOS exports, and diff checks pass.
+- Operational IDs: `SES-20260812-021`, `CKP-20260812-027`, `TSK-MOB-036`, `CHG-20260812-021`, and `TST-20260812-021`.
+- Google Sheet synchronization is pending because no live connector is available; no credential fallback was used.
 
 ## 2026-08-12 Immediate Post-login Home Preview
 
