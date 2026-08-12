@@ -103,3 +103,32 @@ test("wires native provider actions into login and Apple reauthentication into d
   assert.match(deletionSource, /requestAppleNativeCredential/);
   assert.doesNotMatch(deletionSource, /apple_identity_token[^\n]*AccountField/);
 });
+
+test("keeps Google visible on every native login build and orders Apple first on iOS", () => {
+  const loginSource = fs.readFileSync(loginScreenPath, "utf8");
+  const appleButton = loginSource.indexOf("AppleAuthentication.AppleAuthenticationButton");
+  const googleButton = loginSource.indexOf('accessibilityLabel="Tiếp tục với Google"');
+
+  assert.equal(googleButton > -1, true);
+  assert.equal(appleButton > -1, true);
+  assert.equal(appleButton < googleButton, true);
+  assert.doesNotMatch(loginSource, /isGoogleNativeSignInConfigured/);
+  assert.doesNotMatch(loginSource, /Google chưa được cấu hình cho bản build này/);
+  assert.match(loginSource, /onPress=\{\(\) => void submitNative\("google"\)\}/);
+  assert.match(loginSource, /oauthUiStateFromReason/);
+});
+
+test("login redesign follows the active theme and exposes password visibility", () => {
+  const loginSource = fs.readFileSync(loginScreenPath, "utf8");
+
+  assert.match(loginSource, /useTheme\(\)/);
+  assert.match(loginSource, /LinearGradient/);
+  assert.match(loginSource, /mesale-logo\.png/);
+  assert.match(loginSource, /function GoogleLogo\(\)/);
+  assert.match(loginSource, /fill="#4285f4"/);
+  assert.match(loginSource, /secureTextEntry=\{!passwordVisible\}/);
+  assert.match(loginSource, /passwordVisible \? "Ẩn mật khẩu" : "Hiện mật khẩu"/);
+  assert.match(loginSource, /Chào mừng trở lại/);
+  assert.match(loginSource, /Đăng nhập an toàn qua máy chủ Mê Sale/);
+  assert.doesNotMatch(loginSource, /import \{ colors, spacing \} from "@\/theme\/tokens"/);
+});

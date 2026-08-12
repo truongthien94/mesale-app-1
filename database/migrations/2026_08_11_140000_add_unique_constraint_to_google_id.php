@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
@@ -18,21 +17,68 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // MySQL/MariaDB cho phép nhiều NULL trong cột UNIQUE, nhưng KHÔNG cho phép
-        // nhiều chuỗi rỗng. Chuẩn hóa '' thành NULL trước để tránh migration thất bại,
-        // đồng thời làm dữ liệu đúng nghĩa "chưa liên kết Google".
-        DB::table('users')->where('google_id', '')->update(['google_id' => null]);
+        if (! Schema::hasColumn('users', 'google_id') || $this->hasUniqueGoogleIdIndex()) {
+            return;
+        }
 
         Schema::table('users', function (Blueprint $table): void {
-            // Giữ nguyên index cũ; UNIQUE tạo index riêng nên không cần drop index trước.
-            $table->unique('google_id');
+            $table->unique('google_id', 'users_google_id_unique');
         });
     }
 
     public function down(): void
     {
+        if (! Schema::hasColumn('users', 'google_id') || ! $this->hasIndex('users_google_id_unique')) {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table): void {
-            $table->dropUnique(['google_id']);
+            $table->dropUnique('users_google_id_unique');
         });
+    }
+
+    private function hasUniqueGoogleIdIndex(): bool
+    {
+        $connection = Schema::getConnection();
+        if ($connection->getDriverName() === 'sqlite') {
+            foreach ($connection->select("PRAGMA index_list('users')") as $index) {
+                if ((int) ($index->unique ?? 0) !== 1) {
+                    continue;
+                }
+                $columns = array_map(
+                    static fn (object $column): string => (string) $column->name,
+                    $connection->select("PRAGMA index_info('".str_replace("'", "''", (string) $index->name)."')")
+                );
+                if ($columns === ['google_id']) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        foreach ($connection->select("SHOW INDEX FROM users WHERE Column_name = 'google_id'") as $index) {
+            if ((int) ($index->Non_unique ?? 1) === 0 && ($index->Sub_part ?? null) === null) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasIndex(string $name): bool
+    {
+        $connection = Schema::getConnection();
+        if ($connection->getDriverName() === 'sqlite') {
+            foreach ($connection->select("PRAGMA index_list('users')") as $index) {
+                if (($index->name ?? null) === $name) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return $connection->select("SHOW INDEX FROM users WHERE Key_name = ?", [$name]) !== [];
     }
 };

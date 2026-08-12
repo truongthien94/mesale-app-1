@@ -179,7 +179,11 @@ class NativeOAuthController extends AuthController
             ], __('Vui lòng nhập mã xác thực bảo mật 2 lớp để hoàn tất đăng nhập.'));
         }
 
-        ActivityLog::log(__('Đăng nhập thành công qua Open API OAuth :provider', ['provider' => $provider]), $result->id);
+        try {
+            ActivityLog::log(__('Đăng nhập thành công qua Open API OAuth :provider', ['provider' => $provider]), $result->id);
+        } catch (\Throwable) {
+            // A secondary audit-log outage must not invalidate a verified login.
+        }
 
         return $this->respondWithToken($result, $request, $deviceName, __('Đăng nhập thành công!'));
     }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\CouponController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\GiftCodeController;
 use App\Http\Controllers\Api\V1\GiftController;
+use App\Http\Controllers\Api\V1\GoogleNativeOAuthController;
 use App\Http\Controllers\Api\V1\NativeOAuthController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OrderController;
@@ -61,7 +62,7 @@ Route::prefix('v1/openapi')
                 // Siết chặt tần suất cho các endpoint nhạy cảm về bảo mật
                 Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
                 Route::post('login', [AuthController::class, 'login'])->middleware('throttle:10,1');
-                Route::post('oauth/google', [NativeOAuthController::class, 'google'])
+                Route::post('oauth/google', GoogleNativeOAuthController::class)
                     ->middleware(['api.enabled:auth_oauth_google', 'throttle:10,1']);
                 Route::post('oauth/apple', [NativeOAuthController::class, 'apple'])
                     ->middleware(['api.enabled:auth_oauth_apple', 'throttle:10,1']);
