@@ -25,6 +25,7 @@
 - Android emulator inspection, mobile `80/80`, TypeScript, Expo Doctor `18/18`, focused OAuth `6/6`, diff, and scoped secret checks pass.
 - Operational IDs: `SES-20260812-017`, `CKP-20260812-023`, `TSK-MOB-032`, `CHG-20260812-017`, and `TST-20260812-017`.
 - Google Sheet sync is pending because the required connector is unavailable in this session.
+- Source `62fcb2d` and context `7e39dcd` are published directly to `origin/main`; GitHub Actions run `31580498286` passed context/secret, Laravel, mobile, TypeScript, Expo Doctor, and both exports.
 
 ## 2026-08-12 Native Google Login And iOS Apple Groundwork
 
