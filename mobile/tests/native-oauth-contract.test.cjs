@@ -129,6 +129,10 @@ test("login redesign follows the active theme and exposes password visibility", 
   assert.match(loginSource, /secureTextEntry=\{!passwordVisible\}/);
   assert.match(loginSource, /passwordVisible \? "Ẩn mật khẩu" : "Hiện mật khẩu"/);
   assert.match(loginSource, /Chào mừng trở lại/);
-  assert.match(loginSource, /Đăng nhập an toàn qua máy chủ Mê Sale/);
+  assert.match(loginSource, /Hệ thống mua sắm hoàn tiền Shopee - Tiktok/);
+  assert.doesNotMatch(loginSource, /Đăng nhập để quản lý cashback và rút tiền/);
+  assert.doesNotMatch(loginSource, /Đăng nhập an toàn qua máy chủ Mê Sale/);
+  assert.doesNotMatch(loginSource, /<LegalLink label="Hỗ trợ"/);
+  assert.doesNotMatch(loginSource, /<LegalLink label="Xóa tài khoản"/);
   assert.doesNotMatch(loginSource, /import \{ colors, spacing \} from "@\/theme\/tokens"/);
 });

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as AppleAuthentication from "expo-apple-authentication";
 import { LinearGradient } from "expo-linear-gradient";
 import { Link, Redirect } from "expo-router";
-import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail, ShieldCheck } from "lucide-react-native";
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react-native";
 import {
   ActivityIndicator,
   Image,
@@ -30,9 +30,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 
 const LEGAL_URLS = {
   privacy: "https://mesale.vn/privacy",
-  terms: "https://mesale.vn/terms",
-  support: "https://mesale.vn/support",
-  deletion: "https://mesale.vn/account-deletion"
+  terms: "https://mesale.vn/terms"
 } as const;
 
 const BRAND_BLUE = "#1684e8";
@@ -141,7 +139,7 @@ export default function LoginScreen() {
             </View>
             <View style={styles.brandCopy}>
               <Text style={styles.brandName}><Text style={styles.brandOrange}>Mê</Text> Sale</Text>
-              <Text style={styles.brandTagline}>Mua sắm thông minh, nhận hoàn tiền</Text>
+              <Text style={styles.brandTagline}>Hệ thống mua sắm hoàn tiền Shopee - Tiktok</Text>
             </View>
           </View>
         </LinearGradient>
@@ -158,7 +156,6 @@ export default function LoginScreen() {
         >
           <View style={styles.heading}>
             <Text accessibilityRole="header" style={[styles.title, { color: colors.text }]}>Chào mừng trở lại</Text>
-              <Text style={[styles.subtitle, { color: colors.mutedText }]}>Đăng nhập để quản lý cashback và rút tiền</Text>
           </View>
 
           <View style={styles.fields}>
@@ -319,20 +316,11 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.trustRow}>
-            <ShieldCheck color={BRAND_BLUE} size={16} strokeWidth={2} />
-            <Text style={[styles.disclosure, { color: colors.mutedText }]}>Đăng nhập an toàn qua máy chủ Mê Sale.</Text>
-          </View>
           <Text style={[styles.disclosure, { color: colors.mutedText }]}>Mê Sale là ứng dụng hoàn tiền độc lập.</Text>
           <View style={styles.legalRow}>
             <LegalLink label="Chính sách bảo mật" onPress={() => void openLegal(LEGAL_URLS.privacy)} />
             <Text style={[styles.legalSeparator, { color: colors.mutedText }]}>·</Text>
             <LegalLink label="Điều khoản sử dụng" onPress={() => void openLegal(LEGAL_URLS.terms)} />
-          </View>
-          <View style={styles.legalRow}>
-            <LegalLink label="Hỗ trợ" onPress={() => void openLegal(LEGAL_URLS.support)} />
-            <Text style={[styles.legalSeparator, { color: colors.mutedText }]}>·</Text>
-            <LegalLink label="Xóa tài khoản" onPress={() => void openLegal(LEGAL_URLS.deletion)} />
           </View>
         </View>
       </ScrollView>
@@ -374,9 +362,8 @@ const styles = StyleSheet.create({
   brandOrange: { color: "#ff8a24" },
   brandTagline: { color: "rgba(255,255,255,0.90)", fontSize: 13, fontWeight: "600", lineHeight: 19, marginTop: 2 },
   card: { borderWidth: StyleSheet.hairlineWidth, elevation: 8, gap: 16, marginHorizontal: 18, marginTop: -82, padding: 22, shadowColor: "#0c4a6e", shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.14, shadowRadius: 22 },
-  heading: { gap: 5 },
+  heading: {},
   title: { fontSize: 27, fontWeight: "900", letterSpacing: -0.7 },
-  subtitle: { fontSize: 14, lineHeight: 21 },
   fields: { gap: 14 },
   field: { gap: 7 },
   label: { fontSize: 13, fontWeight: "800" },
@@ -408,7 +395,6 @@ const styles = StyleSheet.create({
   registerCopy: { fontSize: 14 },
   registerLink: { color: BRAND_BLUE, fontSize: 14, fontWeight: "900" },
   footer: { alignItems: "center", gap: 8, paddingHorizontal: 24, paddingTop: 22 },
-  trustRow: { alignItems: "center", flexDirection: "row", gap: 6, justifyContent: "center" },
   disclosure: { fontSize: 12, lineHeight: 18, textAlign: "center" },
   legalRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
   legalSeparator: { fontSize: 13 },
