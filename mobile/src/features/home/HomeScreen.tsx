@@ -24,9 +24,9 @@ import {
   Banknote,
   Bell,
   CalendarDays,
-  CircleAlert,
-  CirclePlay,
+  ChevronRight,
   Copy,
+  Gift,
   Hourglass,
   Lightbulb,
   Link2,
@@ -90,12 +90,9 @@ const copy = {
     urlInvalid: "Link sản phẩm không đúng định dạng.",
     analyze: "Lấy Link Hoàn Tiền",
     analyzing: "Đang phân tích...",
-    linkHelp: "Bạn chưa biết cách lấy link?",
-    linkHelpTitle: "Cách lấy link sản phẩm",
-    linkHelpMessage: "Mở sản phẩm trên Shopee hoặc TikTok Shop, chọn Chia sẻ, sau đó sao chép liên kết và dán vào ô phía trên.",
-    usageCaution: "Cần lưu ý gì khi sử dụng?",
-    usageCautionTitle: "Lưu ý khi nhận hoàn tiền",
-    usageCautionMessage: "Hãy mua hàng qua đúng link hoàn tiền được Mê Sale tạo và không thay đổi sản phẩm trong quá trình đặt hàng để hệ thống có thể ghi nhận giao dịch.",
+    referralCtaTitle: "Rủ bạn dùng Mê Sale",
+    referralCtaSubtitle: "Chia sẻ mã giới thiệu, nhận hoa hồng!",
+    referralCtaAction: "Mời bạn",
     productReady: "Sản phẩm hợp lệ nhận hoàn tiền",
     currentPrice: "Giá hiện tại",
     estimatedCashback: "Tiền hoàn dự kiến",
@@ -151,12 +148,9 @@ const copy = {
     urlInvalid: "Enter a valid product URL.",
     analyze: "Get Cashback Link",
     analyzing: "Analyzing...",
-    linkHelp: "Not sure how to get a product link?",
-    linkHelpTitle: "How to get a product link",
-    linkHelpMessage: "Open the product in Shopee or TikTok Shop, choose Share, then copy the link and paste it into the field above.",
-    usageCaution: "What should I know before using this?",
-    usageCautionTitle: "Cashback reminders",
-    usageCautionMessage: "Complete your purchase through the exact cashback link created by Me Sale and do not switch products during checkout so the transaction can be tracked.",
+    referralCtaTitle: "Invite friends to Mê Sale",
+    referralCtaSubtitle: "Share your referral code and earn commission!",
+    referralCtaAction: "Invite",
     productReady: "Product eligible for cashback",
     currentPrice: "Current price",
     estimatedCashback: "Estimated cashback",
@@ -766,25 +760,32 @@ export function HomeScreen() {
             </Text>
           </Pressable>
 
-          <View style={styles.creatorHelpRow}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => Alert.alert(strings.linkHelpTitle, strings.linkHelpMessage)}
-              style={({ pressed }) => [styles.creatorHelpAction, pressed && styles.pressed]}
+          <Pressable
+            accessibilityHint={language === "vi" ? "Mở trang giới thiệu bạn bè" : "Open the referral page"}
+            accessibilityLabel={strings.referralCtaTitle}
+            accessibilityRole="button"
+            onPress={() => router.push("/(tabs)/referrals")}
+            style={({ pressed }) => [styles.referralCtaPressable, pressed && styles.pressed]}
+          >
+            <LinearGradient
+              colors={["#ff8a1f", "#ff4d18"]}
+              end={{ x: 1, y: 0 }}
+              start={{ x: 0, y: 0 }}
+              style={styles.referralCta}
             >
-              <CirclePlay color="#3b82f6" size={17} strokeWidth={2.2} />
-              <Text style={[styles.creatorHelpText, styles.creatorHelpTextBlue]}>{strings.linkHelp}</Text>
-            </Pressable>
-            <View style={[styles.creatorHelpDivider, { backgroundColor: themeColors.border }]} />
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => Alert.alert(strings.usageCautionTitle, strings.usageCautionMessage)}
-              style={({ pressed }) => [styles.creatorHelpAction, pressed && styles.pressed]}
-            >
-              <CircleAlert color="#f59e0b" size={17} strokeWidth={2.2} />
-              <Text style={[styles.creatorHelpText, styles.creatorHelpTextAmber]}>{strings.usageCaution}</Text>
-            </Pressable>
-          </View>
+              <View style={styles.referralCtaIcon}>
+                <Gift color="#ffffff" size={19} strokeWidth={2.3} />
+              </View>
+              <View style={styles.referralCtaCopy}>
+                <Text numberOfLines={1} style={styles.referralCtaTitle}>{strings.referralCtaTitle}</Text>
+                <Text numberOfLines={2} style={styles.referralCtaSubtitle}>{strings.referralCtaSubtitle}</Text>
+              </View>
+              <View style={styles.referralCtaAction}>
+                <Text style={styles.referralCtaActionText}>{strings.referralCtaAction}</Text>
+                <ChevronRight color="#c2410c" size={14} strokeWidth={2.5} />
+              </View>
+            </LinearGradient>
+          </Pressable>
 
           {mutationMessage ? (
             <InlineNotice
@@ -939,12 +940,14 @@ const styles = StyleSheet.create({
     elevation: 4
   },
   primaryButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "900" },
-  creatorHelpRow: { alignItems: "stretch", flexDirection: "row", gap: 9 },
-  creatorHelpAction: { alignItems: "center", flex: 1, flexDirection: "row", gap: 7, justifyContent: "center", minHeight: 46, minWidth: 0, paddingHorizontal: 2 },
-  creatorHelpDivider: { alignSelf: "center", backgroundColor: colors.border, height: 26, width: 1 },
-  creatorHelpText: { flexShrink: 1, fontSize: 11, fontWeight: "800", lineHeight: 16, textAlign: "center" },
-  creatorHelpTextBlue: { color: "#3b82f6" },
-  creatorHelpTextAmber: { color: "#d97706" },
+  referralCtaPressable: { borderRadius: 14, overflow: "hidden" },
+  referralCta: { alignItems: "center", flexDirection: "row", gap: 9, minHeight: 66, paddingHorizontal: 11, paddingVertical: 9 },
+  referralCtaIcon: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 11, height: 38, justifyContent: "center", width: 38 },
+  referralCtaCopy: { flex: 1, minWidth: 0 },
+  referralCtaTitle: { color: "#ffffff", fontSize: 12.5, fontWeight: "900", lineHeight: 17 },
+  referralCtaSubtitle: { color: "rgba(255,255,255,0.9)", fontSize: 9.5, fontWeight: "600", lineHeight: 13, marginTop: 1 },
+  referralCtaAction: { alignItems: "center", backgroundColor: "#fff7ed", borderRadius: 999, flexDirection: "row", justifyContent: "center", minHeight: 34, paddingLeft: 10, paddingRight: 6 },
+  referralCtaActionText: { color: "#c2410c", fontSize: 10.5, fontWeight: "900" },
   secondaryButton: { alignItems: "center", backgroundColor: "#fff7ed", borderColor: "#fed7aa", borderRadius: 16, borderWidth: 1, justifyContent: "center", minHeight: 48, paddingHorizontal: spacing.lg },
   secondaryButtonText: { color: "#c2410c", fontSize: 14, fontWeight: "800" },
   disabled: { opacity: 0.5 },

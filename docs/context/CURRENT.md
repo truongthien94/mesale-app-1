@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-029`
-- Session: `SES-20260812-023`
+- Latest checkpoint: `CKP-20260812-030`
+- Session: `SES-20260812-024`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,21 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-038` / `CHG-20260812-023`; Home Tips & Trick now opens a native nine-case accordion and Support hands off directly to the requested Zalo group.
+- Current batch: `TSK-MOB-039` / `CHG-20260812-024`; the duplicated Home help links are replaced by a compact referral CTA that opens the existing native Referral tab.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Home Referral CTA
+
+- Removed the two Home cashback-help actions already covered by the native Tips & Trick screen.
+- Added a compact orange `Rủ bạn dùng Mê Sale` CTA with localized copy and an accessible action chip.
+- Tapping the CTA opens the existing `/(tabs)/referrals` screen and selects the visible Referral tab.
+- Deliberately omitted the sample `50.000đ` reward because the server does not provide an approved fixed CTA amount.
+- Android emulator layout and click-through passed; mobile `98/98`, TypeScript, and Expo Doctor `18/18` pass.
+- Operational IDs: `SES-20260812-024`, `CKP-20260812-030`, `TSK-MOB-039`, `CHG-20260812-024`, and `TST-20260812-024`.
+- Google Sheet synchronization is pending because no live connector is available; no local credential fallback was used.
 
 ## 2026-08-12 Native Tips & Zalo Support
 

@@ -227,7 +227,7 @@ test("home replaces the promotional hero with a live three-card account summary"
   assert.doesNotMatch(source, /% HH ròng|% net commission/i);
 });
 
-test("home adds the approved cashback claim and live Quick Access actions before the phone demo", () => {
+test("home adds the referral CTA, approved cashback claim, and live Quick Access actions", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
   const quickAccessIndex = source.indexOf("<QuickAccessSection");
   const phoneDemoIndex = source.indexOf("<PhoneFlowDemo");
@@ -241,6 +241,13 @@ test("home adds the approved cashback claim and live Quick Access actions before
   assert.match(source, /<QuickAccessPrefetch \/>/);
   assert.match(source, /onPress=\{\(\) => router\.push\("\/\(tabs\)\/home\/coupons"\)\}/);
   assert.match(source, /onTips=\{\(\) => router\.push\("\/\(tabs\)\/home\/tips"\)\}/);
+  assert.match(source, /Rủ bạn dùng Mê Sale/);
+  assert.match(source, /Chia sẻ mã giới thiệu, nhận hoa hồng!/);
+  assert.match(source, /referralCtaAction: "Mời bạn"/);
+  assert.match(source, /router\.push\("\/\(tabs\)\/referrals"\)/);
+  assert.doesNotMatch(source, /Bạn chưa biết cách lấy link\?|Cần lưu ý gì khi sử dụng\?/);
+  assert.doesNotMatch(source, /Alert\.alert\(strings\.(?:linkHelpTitle|usageCautionTitle)/);
+  assert.doesNotMatch(source, /creatorHelpRow|CirclePlay|CircleAlert/);
   assert.doesNotMatch(source, /openCouponsQuickAccess|couponsSectionY|homeScrollRef|scrollToQuickContent|scrollToEnd/);
   assert.doesNotMatch(source, /canOpenURL\(SUPPORT_URL\)/);
   assert.ok(quickAccessIndex > source.indexOf("styles.creatorCard"));
