@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-021`
-- Session: `SES-20260812-015`
+- Latest checkpoint: `CKP-20260812-022`
+- Session: `SES-20260812-016`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,22 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-030` / `CHG-20260812-015`; source `42abd4c` and context `3e7425a` are published directly to `origin/main`; production received only the reviewed referral snapshot patch and two exact referral migrations; route/schema/bootstrap checks, local focused `57/57` with `520` assertions, unique operational Sheet read-back, source run `31564614647`, and final run `31564806218` pass; controlled new-account canary remains pending
+- Current batch: `TSK-MOB-031` / `CHG-20260812-016`; native Google login is implemented for Android/iOS, Android opens the Google Play Services account flow, and production Google exchange is enabled after a full UNIQUE identity migration and redacted invalid-token canary. iOS source includes Sign in with Apple before Google, but signed iOS activation remains blocked on owner Apple/Google iOS configuration.
 - Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Native Google Login And iOS Apple Groundwork
+
+- Rebuilt the native login screen with Vietnamese Mê Sale branding and placed Sign in with Apple before Google on supported iOS devices.
+- Android Google uses the native Google Play Services flow; Laravel validates the Google ID token and returns the canonical device-scoped Bearer session.
+- Provider identity linking is based on Google/Apple `sub`; an existing email-only match fails closed with `ACCOUNT_LINK_REQUIRED` and is never merged automatically.
+- Production Google OAuth was enabled only after the exact full UNIQUE `google_id` migration and a redacted invalid-token canary. Live Apple OAuth remains disabled.
+- Verification passed before publication: Laravel `94/94` with `866` assertions, focused Google `4/20`, focused Google/Apple exchange `12/98`, mobile `80/80`, TypeScript, Expo Doctor `18/18`, both exports, Android native activity, and diff checks.
+- Operational IDs: `SES-20260812-016`, `CKP-20260812-022`, `TSK-MOB-031`, `DEC-20260812-012`, `CHG-20260812-016`, `TST-20260812-016`, and `GATE-BOTH-021`.
+- Google Sheet synchronization is pending because the required Google Drive/Sheets connector is unavailable in this session; no service-account fallback or credential was copied into the repository.
+- Real Google account-to-Bearer evidence and all signed iOS Google/Apple evidence remain pending. Release remains `NOT READY`.
 
 ## 2026-08-12 Production Referral Eligibility Patch
 

@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260812-021](checkpoints/CKP-20260812-021.md)
-- Latest session: [SES-20260812-015](sessions/SES-20260812-015.md)
-- Latest decision: [DEC-20260812-011](../decisions/DEC-20260812-011.md)
-- Current batch: `TSK-MOB-030` / `CHG-20260812-015` / `TST-20260812-015` / `GATE-BOTH-020`
-- Current source commit: `42abd4c` (published directly to `origin/main`)
-- Current context commit: `3e7425a` (published directly to `origin/main`)
-- Source GitHub Actions run: `31564614647` (PASS)
-- Final context GitHub Actions run: `31564806218` (PASS: `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports)
+- Latest checkpoint: [CKP-20260812-022](checkpoints/CKP-20260812-022.md)
+- Latest session: [SES-20260812-016](sessions/SES-20260812-016.md)
+- Latest decision: [DEC-20260812-012](../decisions/DEC-20260812-012.md)
+- Current batch: `TSK-MOB-031` / `CHG-20260812-016` / `TST-20260812-016` / `GATE-BOTH-021`
+- Current source commit: pending reviewed fast-forward publication to `origin/main`
+- Current context commit: pending reviewed fast-forward publication to `origin/main`
+- Current local evidence: Laravel `94/94` with `866` assertions; focused Google `4/20`; focused Google/Apple exchange `12/98`; mobile `80/80`; TypeScript; Expo Doctor `18/18`; both exports; Android native Google activity
+- Current remote evidence: pending GitHub Actions after publication
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)
