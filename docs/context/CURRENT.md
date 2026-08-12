@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-023`
-- Session: `SES-20260812-017`
+- Latest checkpoint: `CKP-20260812-024`
+- Session: `SES-20260812-018`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-032` / `CHG-20260812-017`; the native login copy/footer now matches the latest owner markup while authentication behavior remains unchanged.
+- Current batch: `TSK-MOB-033` / `CHG-20260812-018`; the login disclosure and legal links now consume the remaining viewport space and sit above the bottom safe area without absolute positioning.
 - Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
@@ -26,6 +26,15 @@
 - Operational IDs: `SES-20260812-017`, `CKP-20260812-023`, `TSK-MOB-032`, `CHG-20260812-017`, and `TST-20260812-017`.
 - Google Sheet sync is pending because the required connector is unavailable in this session.
 - Source `62fcb2d` and context `7e39dcd` are published directly to `origin/main`; GitHub Actions run `31580498286` passed context/secret, Laravel, mobile, TypeScript, Expo Doctor, and both exports.
+
+## 2026-08-12 Login Legal Footer Placement
+
+- Added flex-auto spacing before the login disclosure and legal links so they sit at the bottom of tall screens instead of leaving unused space below.
+- Preserved ScrollView, safe-area bottom padding, and KeyboardAvoidingView behavior; short screens and open-keyboard states remain scrollable.
+- No authentication, OAuth, API, legal URL, support, account-deletion, database, or production behavior changed.
+- Android emulator inspection passed; mobile `80/80`, TypeScript, diff check, and staged sensitive-pattern review pass.
+- Operational IDs: `SES-20260812-018`, `CKP-20260812-024`, `TSK-MOB-033`, `CHG-20260812-018`, and `TST-20260812-018`.
+- Google Sheet synchronization is pending because the required connector is unavailable in this session.
 
 ## 2026-08-12 Native Google Login And iOS Apple Groundwork
 
