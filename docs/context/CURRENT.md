@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-031`
-- Session: `SES-20260812-025`
+- Latest checkpoint: `CKP-20260813-032`
+- Session: `SES-20260813-026`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-040` / `CHG-20260812-025`; Account no longer promotes gift redemption and the duplicate rewards hub safely redirects back to Account.
+- Current batch: `TSK-MOB-041` / `CHG-20260813-026`; performance audit remediation covers token-bound session preview restore, canonical referral prefetch, removal of an unused Account withdrawal request, and focus/background-safe Home animation.
+- Source state is locally verified at the current working tree; publication remains gated on the exact reviewed file list and direct fast-forward push to `origin/main`.
+
+## 2026-08-13 Performance Audit Remediation
+
+- Session restore uses a validated SecureStore v2 record containing the Bearer session and a minimal token-bound user preview. The preview only unblocks the shell; `/account` remains the source of truth and refreshes immediately in the background.
+- Account and Referral share the canonical infinite referral query. Account no longer fetches withdrawal history that it does not render. Referral data and Referral/Withdraw route modules are warmed after interactions.
+- Home's native phone walkthrough is lifecycle-aware: it pauses on tab blur/background, cancels pending waits, stops native animations, and restarts deterministically from `idle`.
+- Verification: mobile `102/102`, TypeScript, Expo Doctor `18/18`, diff check, Android emulator reload/MainActivity and filtered logcat without JS fatal errors.
+- Operational IDs: `SES-20260813-026`, `CKP-20260813-032`, `TSK-MOB-041`, `CHG-20260813-026`, and `TST-20260813-026`.
+- No Laravel/API/database/production/credential/member-data change. Google Sheet sync is pending because the live connector is unavailable; release remains `NOT READY`.
 - Source `365b968`, checkpoint `f417a07`, and publication record `76239cb` are published directly to `origin/main` without force-push.
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed

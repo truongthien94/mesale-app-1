@@ -261,6 +261,23 @@ test("home ends at PhoneFlowDemo and does not mount the removed Round C blocks",
   assert.doesNotMatch(source, /useCoupons|useRanking|RankingBoard|RankingEntry|couponDaysLeft|roundCStaticTimeline/);
 });
 
+test("phone flow autoplay only runs on a focused Home tab while the app is active", () => {
+  const source = read("../src/features/home/PhoneFlowDemo.tsx");
+
+  assert.match(source, /import \{ useFocusEffect \} from "expo-router"/);
+  assert.match(source, /useFocusEffect\(useCallback\(\(\) => \{\s*setIsFocused\(true\);\s*return \(\) => setIsFocused\(false\);/);
+  assert.doesNotMatch(source, /from "@react-navigation\/native"/);
+  assert.match(source, /AppState\.addEventListener\("change", setAppState\)/);
+  assert.match(source, /return isFocused && appState === "active"/);
+  assert.match(source, /const shouldPlay = shouldAutoplayPhoneFlow\(isFocused, appState\)/);
+  assert.match(source, /const stage = usePhoneFlowAutoplay\(shouldPlay\)/);
+  assert.match(source, /if \(!shouldPlay\) \{\s*setStage\("idle"\);\s*return;/);
+  assert.match(source, /playback\.cancelled = true;\s*for \(const cancelWait of playback\.pendingWaits\) cancelWait\(\);/);
+  assert.match(source, /\}, \[shouldPlay\]\);/);
+  assert.match(source, /return \(\) => animation\.stop\(\)/);
+  assert.doesNotMatch(source, /function usePhoneFlowAutoplay\(\): Stage/);
+});
+
 test("Round C wallet uses the orange dashboard, shared orders cache, and status borders", () => {
   const source = read("../app/(tabs)/wallet/index.tsx");
   assert.match(source, /LinearGradient/);

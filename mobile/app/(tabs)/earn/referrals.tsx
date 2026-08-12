@@ -24,7 +24,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
-import { fetchReferrals, type ReferralCommission, type ReferralMember } from "@/features/earn/api";
+import { referralsQueryOptions, type ReferralCommission, type ReferralMember } from "@/features/earn/api";
 import { ListFooterLoading, StatusBadge, formatDate, formatMoney } from "@/features/earn/ui";
 import { getDeviceLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -69,14 +69,7 @@ export default function ReferralsScreen() {
   const [level, setLevel] = useState<"1" | "2" | undefined>();
   const [status, setStatus] = useState<"pending" | "approved" | undefined>();
   const [copied, setCopied] = useState(false);
-  const query = useInfiniteQuery({
-    queryKey: ["earn", "referrals", level ?? "all", status ?? "all"],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) => fetchReferrals(pageParam, { level, status }, signal),
-    getNextPageParam: (page) => page.commissions.pagination.current_page < page.commissions.pagination.last_page
-      ? page.commissions.pagination.current_page + 1
-      : undefined
-  });
+  const query = useInfiniteQuery(referralsQueryOptions({ level, status }));
 
   useEffect(() => {
     if (!copied) return;

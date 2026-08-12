@@ -24,7 +24,14 @@ function loadTypeScriptModule(filePath) {
 }
 
 const parserPath = path.resolve(__dirname, "../src/api/authContract.ts");
-const { AuthContractError, parseLoginResult, parseUser, requireAuthenticated } = loadTypeScriptModule(parserPath);
+const {
+  AuthContractError,
+  createStoredUserPreview,
+  parseLoginResult,
+  parseStoredUserPreview,
+  parseUser,
+  requireAuthenticated
+} = loadTypeScriptModule(parserPath);
 const apiContractPath = path.resolve(__dirname, "../src/api/contract.ts");
 const { normalizeApiFailure, normalizeApiSuccess } = loadTypeScriptModule(apiContractPath);
 const idempotencyPath = path.resolve(__dirname, "../src/api/idempotency.ts");
@@ -150,6 +157,35 @@ test("parses the server referral eligibility window without inventing a client d
     token_type: "Bearer",
     user: { ...user, referral_code_eligible: "yes" }
   }, now), AuthContractError);
+});
+
+test("round-trips only the validated minimal authenticated preview", () => {
+  const parsed = parseUser({
+    id: 42,
+    name: "Member",
+    email: "member@example.test",
+    avatar: null,
+    referral_code: "MEMBER42",
+    referral_prompt_pending: true,
+    referral_code_eligible: true,
+    referral_code_expires_at: "2026-08-12T10:30:00+07:00",
+    preferences: { locale: "vi", currency: "VND" },
+    wallet: {
+      balance: 125000,
+      total_cashback: 45000,
+      total_referral_earned: 5000,
+      total_withdrawn: 30000,
+      stats: { should_not_persist: true }
+    }
+  });
+  const preview = createStoredUserPreview(parsed);
+
+  assert.deepEqual(parseStoredUserPreview(preview), parsed);
+  assert.equal("wallet" in preview, false);
+  assert.equal("phone" in preview, false);
+  assert.equal("stats" in preview, false);
+  assert.throws(() => parseStoredUserPreview({ id: 42, referral_prompt_pending: "true" }), AuthContractError);
+  assert.throws(() => parseStoredUserPreview({ id: 42 }), AuthContractError);
 });
 
 test("accepts the temporary token alias only when it is a Bearer session", () => {

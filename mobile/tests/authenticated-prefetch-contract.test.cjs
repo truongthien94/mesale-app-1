@@ -18,6 +18,11 @@ test("authenticated tabs prefetch their server data without delaying navigation"
   assert.match(prefetch, /prefetchInfiniteQuery\(ordersQueryOptions\(\)\)/);
   assert.match(prefetch, /prefetchQuery\(appConfigRawQueryOptions\(\)\)/);
   assert.match(prefetch, /prefetchQuery\(paymentAccountsQueryOptions\(\)\)/);
+  assert.match(prefetch, /InteractionManager\.runAfterInteractions\(\(\) => \{/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/referrals"\)/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/withdraw"\)/);
+  assert.match(prefetch, /prefetchInfiniteQuery\(referralsQueryOptions\(\)\)/);
+  assert.doesNotMatch(prefetch, /prefetchInfiniteQuery\(withdrawalsQueryOptions/);
   assert.doesNotMatch(prefetch, /await Promise|setQueryData|initialData|placeholderData/);
 });
 
@@ -36,14 +41,15 @@ test("Home warms Quick Access routes and data after initial interactions", () =>
   assert.doesNotMatch(prefetch, /await Promise|setQueryData|initialData|placeholderData/);
 });
 
-test("session restore and Home/Withdraw reuse complete cached server responses", () => {
+test("session restore refreshes account immediately in the background and Home/Withdraw reuse server responses", () => {
   const provider = read("../src/auth/AuthProvider.tsx");
   const homeHooks = read("../src/features/home/hooks.ts");
   const walletApi = read("../src/features/wallet/api.ts");
   const configQuery = read("../src/features/config/query.ts");
 
-  assert.match(provider, /queryClient\.fetchQuery\(accountDetailQueryOptions\(\)\)/);
   assert.match(provider, /fetchQuery\(\{ \.\.\.accountDetailQueryOptions\(\), staleTime: 0 \}\)/);
+  assert.match(provider, /setUser\(saved\.userPreview\);[\s\S]*setLoading\(false\);[\s\S]*fetchQuery/);
+  assert.match(provider, /saveAuthState\(saved\.session, restoredUser\)/);
   assert.match(homeHooks, /appConfigRawQueryOptions\(\)[\s\S]*select: normalizeHomeConfig/);
   assert.match(walletApi, /\.\.\.appConfigRawQueryOptions\(\)[\s\S]*select:/);
   assert.match(configQuery, /appConfigKey = \["config"\]/);

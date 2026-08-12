@@ -39,6 +39,11 @@ export type ReferralData = {
   commissions: PaginatedData<ReferralCommission>;
 };
 
+export type ReferralFilters = {
+  level?: "1" | "2";
+  status?: "pending" | "approved";
+};
+
 export type CheckinHistoryItem = {
   coins_earned: number;
   streak_days: number;
@@ -135,10 +140,21 @@ export type GiftRedemptionInput = {
 
 export function fetchReferrals(
   page: number,
-  filters: { level?: "1" | "2"; status?: "pending" | "approved" },
+  filters: ReferralFilters,
   signal?: AbortSignal
 ): Promise<ReferralData> {
   return request(referralsPath(page, filters.level, filters.status), { signal });
+}
+
+export function referralsQueryOptions(filters: ReferralFilters = {}) {
+  return {
+    queryKey: ["earn", "referrals", filters.level ?? "all", filters.status ?? "all"] as const,
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }: { pageParam: number; signal: AbortSignal }) => fetchReferrals(pageParam, filters, signal),
+    getNextPageParam: (page: ReferralData) => page.commissions.pagination.current_page < page.commissions.pagination.last_page
+      ? page.commissions.pagination.current_page + 1
+      : undefined
+  };
 }
 
 export function fetchCheckin(page: number, signal?: AbortSignal): Promise<CheckinData> {

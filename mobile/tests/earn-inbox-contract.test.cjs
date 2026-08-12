@@ -103,6 +103,12 @@ test("keeps the check-in redesign virtualized and free of sample reward amounts"
 
 test("renders the native referral overview from live API rates without store-link cards", () => {
   const source = fs.readFileSync(referralScreenPath, "utf8");
+  const apiSource = fs.readFileSync(earnApiPath, "utf8");
+  assert.match(apiSource, /function referralsQueryOptions\(filters: ReferralFilters = \{\}\)/);
+  assert.match(apiSource, /queryKey: \["earn", "referrals", filters\.level \?\? "all", filters\.status \?\? "all"\]/);
+  assert.match(source, /useInfiniteQuery\(referralsQueryOptions\(\{ level, status \}\)\)/);
+  assert.doesNotMatch(source, /queryKey: \["earn", "referrals"/);
+  assert.doesNotMatch(source, /fetchReferrals\(pageParam/);
   assert.match(source, /firstPage\.rates\.f1_rate/);
   assert.match(source, /firstPage\.stats\.f1_count/);
   assert.match(source, /firstPage\.stats\.total_referral_earned/);

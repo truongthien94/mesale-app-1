@@ -200,35 +200,38 @@ test("clears TanStack Query data at every authenticated-session boundary", () =>
 });
 
 test("broadcasts expired and malformed stored sessions once and clears authenticated state", async () => {
-  let storedSession = JSON.stringify({
+  const storedItems = new Map([["mesale.session.v1", JSON.stringify({
     accessToken: "expired-token",
     tokenType: "Bearer",
     expiresAt: "2000-01-01T00:00:00.000Z"
-  });
+  })]]);
   const secureStore = {
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: "device-only",
-    getItemAsync: async () => storedSession,
-    setItemAsync: async (_key, value) => { storedSession = value; },
-    deleteItemAsync: async () => { storedSession = null; }
+    getItemAsync: async (key) => storedItems.get(key) ?? null,
+    setItemAsync: async (key, value) => { storedItems.set(key, value); },
+    deleteItemAsync: async (key) => { storedItems.delete(key); }
   };
+  const authContract = loadTypeScriptModule(path.resolve(__dirname, "../src/api/authContract.ts"));
   const sessionModule = loadTypeScriptModuleWithMocks(sessionPath, {
     "expo-secure-store": secureStore,
-    "react-native": { Platform: { OS: "ios" } }
+    "react-native": { Platform: { OS: "ios" } },
+    "@/api/authContract": authContract
   });
   let invalidations = 0;
   sessionModule.onSessionInvalidated(() => { invalidations += 1; });
 
-  assert.equal(await sessionModule.loadSession(), null);
-  assert.equal(storedSession, null);
+  assert.equal(await sessionModule.loadAuthState(), null);
+  assert.equal(storedItems.has("mesale.session.v1"), false);
+  assert.deepEqual(JSON.parse(storedItems.get("mesale.auth.v2")), { version: 2, auth: null });
   assert.equal(invalidations, 1);
-  assert.equal(await sessionModule.loadSession(), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.equal(invalidations, 1);
 
-  storedSession = "{malformed-json";
-  assert.equal(await sessionModule.loadSession(), null);
-  assert.equal(storedSession, null);
+  storedItems.set("mesale.auth.v2", "{malformed-json");
+  assert.equal(await sessionModule.loadAuthState(), null);
+  assert.deepEqual(JSON.parse(storedItems.get("mesale.auth.v2")), { version: 2, auth: null });
   assert.equal(invalidations, 2);
-  assert.equal(await sessionModule.loadSession(), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.equal(invalidations, 2);
 
   const providerSource = fs.readFileSync(authProviderPath, "utf8");
@@ -236,26 +239,53 @@ test("broadcasts expired and malformed stored sessions once and clears authentic
 });
 
 test("keeps 401 and explicit logout invalidation single-owner", async () => {
-  let storedSession = null;
+  const storedItems = new Map();
   const secureStore = {
     WHEN_UNLOCKED_THIS_DEVICE_ONLY: "device-only",
-    getItemAsync: async () => storedSession,
-    setItemAsync: async (_key, value) => { storedSession = value; },
-    deleteItemAsync: async () => { storedSession = null; }
+    getItemAsync: async (key) => storedItems.get(key) ?? null,
+    setItemAsync: async (key, value) => { storedItems.set(key, value); },
+    deleteItemAsync: async (key) => { storedItems.delete(key); }
   };
+  const authContract = loadTypeScriptModule(path.resolve(__dirname, "../src/api/authContract.ts"));
   const sessionModule = loadTypeScriptModuleWithMocks(sessionPath, {
     "expo-secure-store": secureStore,
-    "react-native": { Platform: { OS: "android" } }
+    "react-native": { Platform: { OS: "android" } },
+    "@/api/authContract": authContract
   });
   let invalidations = 0;
   sessionModule.onSessionInvalidated(() => { invalidations += 1; });
 
-  await sessionModule.saveSession({ accessToken: "active-token", tokenType: "Bearer" });
+  await sessionModule.saveAuthState(
+    { accessToken: "active-token", tokenType: "Bearer" },
+    { id: 42, name: "Mobile User", referralPromptPending: true }
+  );
+  const storedAuth = await sessionModule.loadAuthState();
+  assert.equal(storedAuth.session.accessToken, "active-token");
+  assert.equal(storedAuth.userPreview.id, 42);
+  assert.equal(storedAuth.userPreview.referralPromptPending, true);
+  assert.equal(storedAuth.requiresBootstrap, false);
+  assert.equal(await sessionModule.clearSessionIfTokenMatches("another-token"), false);
   assert.equal(await sessionModule.clearSessionIfTokenMatches("active-token"), true);
   assert.equal(invalidations, 0);
+  assert.deepEqual(JSON.parse(storedItems.get("mesale.auth.v2")), { version: 2, auth: null });
   await sessionModule.clearSession();
   assert.equal(invalidations, 0);
 
   const clientSource = fs.readFileSync(clientPath, "utf8");
   assert.equal((clientSource.match(/notifySessionInvalidated\(\)/g) ?? []).length, 1);
+});
+
+test("legacy sessions bootstrap once while v2 previews unblock restore without seeding query data", () => {
+  const providerSource = fs.readFileSync(authProviderPath, "utf8");
+  const sessionSource = fs.readFileSync(sessionPath, "utf8");
+
+  assert.match(sessionSource, /legacySessionStorageKey = "mesale\.session\.v1"/);
+  assert.match(sessionSource, /authStorageKey = "mesale\.auth\.v2"/);
+  assert.match(sessionSource, /previewForAccessToken !== auth\.session\.accessToken/);
+  assert.match(sessionSource, /requiresBootstrap: true/);
+  assert.match(providerSource, /if \(saved\.userPreview\) \{[\s\S]*setUser\(saved\.userPreview\)[\s\S]*setLoading\(false\)/);
+  assert.match(providerSource, /fetchQuery\(\{ \.\.\.accountDetailQueryOptions\(\), staleTime: 0 \}\)/);
+  assert.match(providerSource, /restoredUser\.id !== saved\.userPreview\.id/);
+  assert.match(providerSource, /saveAuthState\(saved\.session, restoredUser\)/);
+  assert.doesNotMatch(providerSource, /setQueryData|initialData|placeholderData/);
 });

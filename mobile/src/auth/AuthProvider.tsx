@@ -15,7 +15,7 @@ import {
 } from "@/api/auth";
 import { parseUser, type AuthenticatedAuthResult, type LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
-import { clearSession, clearSessionIfTokenMatches, loadSession, onSessionInvalidated, saveSession, type Session } from "@/auth/session";
+import { clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
 import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
 import { accountDetailQueryOptions } from "@/features/account/query";
 
@@ -54,23 +54,43 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const restoreRevision = authRevision.current;
 
     async function restoreSession() {
+      let hasStoredPreview = false;
       try {
-        const saved = await loadSession();
+        const saved = await loadAuthState();
         if (!saved) return;
 
         if (!isActive || authRevision.current !== restoreRevision) return;
-        setSession(saved);
+        setSession(saved.session);
+        if (saved.userPreview) {
+          hasStoredPreview = true;
+          setUser(saved.userPreview);
+          setLoading(false);
+        }
 
-        const restoredUser = parseUser(await queryClient.fetchQuery(accountDetailQueryOptions()));
+        const restoredUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
         if (!isActive || authRevision.current !== restoreRevision) return;
+        if (saved.userPreview && restoredUser.id !== saved.userPreview.id) {
+          const cleared = await clearSessionIfTokenMatches(saved.session.accessToken);
+          if (cleared && isActive && authRevision.current === restoreRevision) {
+            clearAppQueryCache(queryClient);
+            setSession(null);
+            setUser(null);
+          }
+          return;
+        }
+        await saveAuthState(saved.session, restoredUser);
+        if (!isActive || authRevision.current !== restoreRevision) {
+          await clearSessionIfTokenMatches(saved.session.accessToken);
+          return;
+        }
         setUser(restoredUser);
       } catch {
         // A 401 is cleared and broadcast by the API client. Other failures keep
         // the valid session available while account data is temporarily unavailable.
         if (!isActive || authRevision.current !== restoreRevision) return;
-        setUser(null);
+        if (!hasStoredPreview) setUser(null);
       } finally {
-        if (isActive) setLoading(false);
+        if (isActive && authRevision.current === restoreRevision) setLoading(false);
       }
     }
 
@@ -86,12 +106,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setPendingAuth(null);
     setSession(null);
     setUser(null);
+    setLoading(false);
   }), [queryClient]);
 
   const acceptAuthenticated = useCallback(async (result: AuthenticatedAuthResult, revision: number) => {
     if (authRevision.current !== revision) return;
     clearAppQueryCache(queryClient);
-    await saveSession(result.session);
+    await saveAuthState(result.session, result.user);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(result.session.accessToken);
       return;
@@ -171,19 +192,46 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const refreshUser = useCallback(async () => {
     const revision = authRevision.current;
+    const activeSession = session;
+    const activeUserId = user?.id;
+    if (!activeSession) return;
     const refreshedUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
-    if (authRevision.current === revision) setUser(refreshedUser);
-  }, [queryClient]);
+    if (authRevision.current !== revision) return;
+    if (activeUserId !== undefined && refreshedUser.id !== activeUserId) {
+      if (await clearSessionIfTokenMatches(activeSession.accessToken)) {
+        clearAppQueryCache(queryClient);
+        authRevision.current += 1;
+        setPendingAuth(null);
+        setSession(null);
+        setUser(null);
+      }
+      return;
+    }
+    await saveAuthState(activeSession, refreshedUser);
+    if (authRevision.current !== revision) {
+      await clearSessionIfTokenMatches(activeSession.accessToken);
+      return;
+    }
+    setUser(refreshedUser);
+  }, [queryClient, session, user?.id]);
 
   const settleReferralPrompt = useCallback(async () => {
-    setUser((current) => current ? { ...current, referralPromptPending: false } : current);
+    const revision = authRevision.current;
+    const settledUser = user ? { ...user, referralPromptPending: false } : null;
+    if (settledUser && session) {
+      setUser(settledUser);
+    }
     try {
+      if (settledUser && session) {
+        await saveAuthState(session, settledUser);
+        if (authRevision.current !== revision) return;
+      }
       await refreshUser();
     } catch {
       // The successful decision response is authoritative; a later session
       // restore will retry the account refresh if this request is offline.
     }
-  }, [refreshUser]);
+  }, [refreshUser, session, user]);
 
   const completeAccountDeletion = useCallback(async () => {
     authRevision.current += 1;

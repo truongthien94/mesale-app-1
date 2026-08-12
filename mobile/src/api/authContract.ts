@@ -62,6 +62,25 @@ export type TwoFactorRequired = {
 export type LoginResult = AuthenticatedAuthResult | EmailVerificationRequired | TwoFactorRequired;
 export type AuthContinuation = EmailVerificationRequired | TwoFactorRequired;
 
+export type StoredUserPreview = {
+  id: number;
+  name?: string | null;
+  email?: string | null;
+  avatar?: string | null;
+  referral_code?: string | null;
+  referral_prompt_pending: boolean;
+  referral_code_eligible?: boolean;
+  referral_code_expires_at?: string | null;
+  preferences?: {
+    locale: string;
+    currency: string;
+  };
+  balance?: number;
+  total_cashback?: number;
+  total_referral_earned?: number;
+  total_withdrawn?: number;
+};
+
 export class AuthContractError extends Error {
   constructor(message: string) {
     super(message);
@@ -155,6 +174,36 @@ export function parseUser(value: unknown): User {
   }
   if (typeof value.created_at === "string" || value.created_at === null) user.created_at = value.created_at;
   return user;
+}
+
+export function createStoredUserPreview(user: User): StoredUserPreview {
+  const preview: StoredUserPreview = {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    referral_code: user.referral_code,
+    referral_prompt_pending: user.referralPromptPending
+  };
+
+  if (user.referralCodeEligible !== undefined) preview.referral_code_eligible = user.referralCodeEligible;
+  if (user.referralCodeExpiresAt !== undefined) preview.referral_code_expires_at = user.referralCodeExpiresAt;
+  if (user.preferences) preview.preferences = user.preferences;
+  if (user.financialSnapshot) {
+    preview.balance = user.financialSnapshot.balance;
+    preview.total_cashback = user.financialSnapshot.totalCashback;
+    preview.total_referral_earned = user.financialSnapshot.totalReferralEarned;
+    preview.total_withdrawn = user.financialSnapshot.totalWithdrawn;
+  }
+
+  return preview;
+}
+
+export function parseStoredUserPreview(value: unknown): User {
+  if (!isRecord(value) || typeof value.referral_prompt_pending !== "boolean") {
+    throw new AuthContractError("The stored authentication preview was invalid.");
+  }
+  return parseUser(value);
 }
 
 function parseExpiry(value: unknown, now: number): string | undefined {

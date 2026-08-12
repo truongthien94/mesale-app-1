@@ -1,5 +1,5 @@
 import { useRef, useState, type ComponentType } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, type Href } from "expo-router";
 import {
@@ -40,9 +40,9 @@ import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { useAccount } from "@/features/account/api";
-import { fetchReferrals } from "@/features/earn/api";
+import { referralsQueryOptions } from "@/features/earn/api";
 import { formatAccountMoney } from "@/features/home/format";
-import { usePaymentAccounts, useWithdrawals } from "@/features/wallet/api";
+import { usePaymentAccounts } from "@/features/wallet/api";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const EXTERNAL_LINKS = {
@@ -168,11 +168,7 @@ export default function AccountRoute() {
   const { colors, scheme } = useTheme();
   const accountQuery = useAccount();
   const paymentAccountsQuery = usePaymentAccounts();
-  const withdrawalsQuery = useWithdrawals();
-  const referralsQuery = useQuery({
-    queryKey: ["account", "referral-preview"],
-    queryFn: ({ signal }) => fetchReferrals(1, {}, signal)
-  });
+  const referralsQuery = useInfiniteQuery(referralsQueryOptions());
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInFlight = useRef(false);
   const [referralEntryCode, setReferralEntryCode] = useState("");
@@ -218,7 +214,7 @@ export default function AccountRoute() {
   const avatarUri = secureAvatarUri(account.avatar);
   const paymentAccountCount = paymentAccountsQuery.data?.total ?? 0;
   const hasConfirmedNoPaymentAccount = paymentAccountsQuery.isSuccess && paymentAccountCount === 0;
-  const referralRate = referralsQuery.data?.rates.f1_rate;
+  const referralRate = referralsQuery.data?.pages[0]?.rates.f1_rate;
   const normalizedReferralEntryCode = referralEntryCode.trim();
   const referralCodeEligible = typeof account.referral_code_eligible === "boolean"
     ? account.referral_code_eligible
@@ -307,10 +303,9 @@ export default function AccountRoute() {
           onRefresh={() => void Promise.all([
             accountQuery.refetch(),
             paymentAccountsQuery.refetch(),
-            referralsQuery.refetch(),
-            withdrawalsQuery.refetch()
+            referralsQuery.refetch()
           ])}
-          refreshing={accountQuery.isRefetching || paymentAccountsQuery.isRefetching || referralsQuery.isRefetching || withdrawalsQuery.isRefetching}
+          refreshing={accountQuery.isRefetching || paymentAccountsQuery.isRefetching || referralsQuery.isRefetching}
           tintColor={colors.primary}
         />
       )}

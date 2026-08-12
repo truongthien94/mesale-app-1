@@ -42,7 +42,7 @@ test("Round B keeps canonical wallet screens behind direct tab aliases", () => {
 
 test("Account is a server-authoritative native hub with approved destinations", () => {
   const account = read("../app/(tabs)/account/index.tsx");
-  for (const hook of ["useAccount", "usePaymentAccounts", "useWithdrawals", "fetchReferrals"]) {
+  for (const hook of ["useAccount", "usePaymentAccounts", "useInfiniteQuery", "referralsQueryOptions"]) {
     assert.match(account, new RegExp(`${hook}\\(`));
   }
   for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "earn/tasks", "inbox"]) {
@@ -53,10 +53,10 @@ test("Account is a server-authoritative native hub with approved destinations", 
   }
   assert.match(account, /paymentAccountsQuery\.isSuccess && paymentAccountCount === 0/);
   assert.match(account, /paymentAccountsQuery\.data\?\.total/);
-  assert.match(account, /withdrawalsQuery\.isRefetching/);
-  assert.match(account, /referralsQuery\.data\?\.rates\.f1_rate/);
-  assert.match(account, /queryKey: \["account", "referral-preview"\]/);
-  assert.doesNotMatch(account, /queryKey: \["earn", "referrals"/);
+  assert.doesNotMatch(account, /useWithdrawals\(|withdrawalsQuery/);
+  assert.match(account, /referralsQuery\.data\?\.pages\[0\]\?\.rates\.f1_rate/);
+  assert.match(account, /useInfiniteQuery\(referralsQueryOptions\(\)\)/);
+  assert.doesNotMatch(account, /\["account", "referral-preview"\]/);
   assert.doesNotMatch(account, /Hoàn tiền Mê Sale|cashbackBadge|<Sparkles/);
   assert.match(account, /primaryMenuStack[\s\S]*title="Thông tin tài khoản"[\s\S]*title="Tài chính"[\s\S]*title="Thông báo"[\s\S]*title="Cài đặt"[\s\S]*KHÁM PHÁ/);
   for (const removedLabel of ["TÀI KHOẢN", "TÀI CHÍNH", "THÔNG BÁO", "CÀI ĐẶT"]) {

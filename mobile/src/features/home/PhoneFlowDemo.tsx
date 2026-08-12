@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Animated, AppState, type AppStateStatus, Easing, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 // This is a self-running, illustrative animation reproducing the demo phone
 // widget embedded in the website's homepage hero block. All data below is
@@ -38,76 +39,130 @@ type Stage =
   | "orderSuccess"
   | "cashbackShown";
 
-function wait(ms: number, cancelled: { current: boolean }): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  }).then(() => {
-    if (cancelled.current) throw new Error("cancelled");
+type PlaybackController = {
+  cancelled: boolean;
+  pendingWaits: Set<() => void>;
+};
+
+function wait(ms: number, playback: PlaybackController): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (playback.cancelled) {
+      reject(new Error("cancelled"));
+      return;
+    }
+
+    const cancel = () => {
+      clearTimeout(timeout);
+      playback.pendingWaits.delete(cancel);
+      reject(new Error("cancelled"));
+    };
+    const timeout = setTimeout(() => {
+      playback.pendingWaits.delete(cancel);
+      if (playback.cancelled) reject(new Error("cancelled"));
+      else resolve();
+    }, ms);
+    playback.pendingWaits.add(cancel);
   });
 }
 
-function usePhoneFlowAutoplay(): Stage {
+export function shouldAutoplayPhoneFlow(isFocused: boolean, appState: AppStateStatus): boolean {
+  return isFocused && appState === "active";
+}
+
+function useAppState(): AppStateStatus {
+  const [appState, setAppState] = useState<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", setAppState);
+    return () => subscription.remove();
+  }, []);
+
+  return appState;
+}
+
+function useRouteIsFocused(): boolean {
+  const [isFocused, setIsFocused] = useState(false);
+
+  useFocusEffect(useCallback(() => {
+    setIsFocused(true);
+    return () => setIsFocused(false);
+  }, []));
+
+  return isFocused;
+}
+
+function usePhoneFlowAutoplay(shouldPlay: boolean): Stage {
   const [stage, setStage] = useState<Stage>("idle");
 
   useEffect(() => {
-    const cancelled = { current: false };
+    if (!shouldPlay) {
+      setStage("idle");
+      return;
+    }
+
+    const playback: PlaybackController = { cancelled: false, pendingWaits: new Set() };
+    const updateStage = (nextStage: Stage) => {
+      if (!playback.cancelled) setStage(nextStage);
+    };
 
     async function playIntro() {
-      setStage("idle");
-      await wait(500, cancelled);
-      setStage("pasting");
-      await wait(300, cancelled);
-      setStage("processing");
-      await wait(900, cancelled);
-      setStage("product");
-      await wait(650, cancelled);
-      setStage("success");
-      await wait(450, cancelled);
-      setStage("floatLeft");
-      await wait(550, cancelled);
-      setStage("details");
-      await wait(450, cancelled);
-      setStage("floatRight");
-      await wait(600, cancelled);
-      setStage("ready");
+      updateStage("idle");
+      await wait(500, playback);
+      updateStage("pasting");
+      await wait(300, playback);
+      updateStage("processing");
+      await wait(900, playback);
+      updateStage("product");
+      await wait(650, playback);
+      updateStage("success");
+      await wait(450, playback);
+      updateStage("floatLeft");
+      await wait(550, playback);
+      updateStage("details");
+      await wait(450, playback);
+      updateStage("floatRight");
+      await wait(600, playback);
+      updateStage("ready");
     }
 
     async function autoplayShopJourney() {
-      setStage("shopOpen");
-      await wait(900, cancelled);
-      setStage("sheetOpen");
-      await wait(650, cancelled);
-      setStage("variantSelected");
-      await wait(550 + 380, cancelled);
-      setStage("checkout");
-      await wait(900, cancelled);
-      setStage("placingOrder");
-      await wait(1100, cancelled);
-      setStage("orderSuccess");
-      await wait(1200, cancelled);
-      setStage("cashbackShown");
-      await wait(2600, cancelled);
+      updateStage("shopOpen");
+      await wait(900, playback);
+      updateStage("sheetOpen");
+      await wait(650, playback);
+      updateStage("variantSelected");
+      await wait(550 + 380, playback);
+      updateStage("checkout");
+      await wait(900, playback);
+      updateStage("placingOrder");
+      await wait(1100, playback);
+      updateStage("orderSuccess");
+      await wait(1200, playback);
+      updateStage("cashbackShown");
+      await wait(2600, playback);
     }
 
     async function autoplayLoop() {
       try {
-        while (!cancelled.current) {
+        while (!playback.cancelled) {
           await playIntro();
-          await wait(1200, cancelled);
+          await wait(1200, playback);
           await autoplayShopJourney();
-          setStage("idle");
-          await wait(700, cancelled);
+          updateStage("idle");
+          await wait(700, playback);
         }
       } catch {
-        // Cancelled on unmount; nothing further to do.
+        // Focus/background cleanup cancels the pending wait and ends this run.
       }
     }
 
     void autoplayLoop();
     return () => {
-      cancelled.current = true;
+      playback.cancelled = true;
+      for (const cancelWait of playback.pendingWaits) cancelWait();
+      playback.pendingWaits.clear();
     };
-  }, []);
+  }, [shouldPlay]);
 
   return stage;
 }
@@ -115,12 +170,14 @@ function usePhoneFlowAutoplay(): Stage {
 function useFadeSlideIn(visible: boolean) {
   const value = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(value, {
+    const animation = Animated.timing(value, {
       toValue: visible ? 1 : 0,
       duration: visible ? 520 : 0,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true
-    }).start();
+    });
+    animation.start();
+    return () => animation.stop();
   }, [visible, value]);
   return {
     opacity: value,
@@ -131,12 +188,14 @@ function useFadeSlideIn(visible: boolean) {
 function useFloatingNoticeIn(visible: boolean, direction: "left" | "right", scale: number) {
   const value = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.timing(value, {
+    const animation = Animated.timing(value, {
       toValue: visible ? 1 : 0,
       duration: visible ? 650 : 0,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true
-    }).start();
+    });
+    animation.start();
+    return () => animation.stop();
   }, [value, visible]);
 
   const offset = (direction === "left" ? -28 : 28) * scale;
@@ -448,7 +507,10 @@ function ShopApp({ stage }: { stage: Stage }) {
 }
 
 export function PhoneFlowDemo() {
-  const stage = usePhoneFlowAutoplay();
+  const isFocused = useRouteIsFocused();
+  const appState = useAppState();
+  const shouldPlay = shouldAutoplayPhoneFlow(isFocused, appState);
+  const stage = usePhoneFlowAutoplay(shouldPlay);
   const { width } = useWindowDimensions();
 
   const scale = useMemo(() => {
