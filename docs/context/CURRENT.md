@@ -35,6 +35,7 @@
 - Session restoration, Home, Wallet, Account, and withdrawal flows now reuse one complete `/account` cache; Home and withdrawal flows reuse one complete `/config` cache.
 - The withdrawal form shell renders immediately, but Laravel-confirmed balance, policy, fees, OTP, and saved payment accounts still gate every financial submission.
 - Mobile `92/92`, TypeScript, Expo Doctor `18/18`, Android/iOS exports, and Android emulator tab transitions pass.
+- Source `e891bd5` is published directly to `origin/main`; GitHub Actions run `31590669219` passed all context/secret, Laravel, mobile, TypeScript, Expo Doctor, and platform-export gates.
 - Operational IDs: `SES-20260812-020`, `CKP-20260812-026`, `TSK-MOB-035`, `CHG-20260812-020`, and `TST-20260812-020`.
 - Google Sheet synchronization is pending because no live connector is available; no credential fallback was used.
 - No Laravel, database, production setting, credential, token, or member-data change was made.
