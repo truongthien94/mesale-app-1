@@ -41,4 +41,5 @@ test("More sheet fetches account detail only while open and rejects another user
   assert.match(source, /account\?\.name \|\| user\?\.name/);
   assert.match(api, /export function useAccount\(options: \{ enabled\?: boolean \} = \{\}\)/);
   assert.match(api, /enabled: options\.enabled/);
+  assert.doesNotMatch(source, /Đổi quà tặng|Redeem gifts|\/\(tabs\)\/earn\/gifts/);
 });

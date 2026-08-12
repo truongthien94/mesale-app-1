@@ -45,7 +45,7 @@ test("Account is a server-authoritative native hub with approved destinations", 
   for (const hook of ["useAccount", "usePaymentAccounts", "useWithdrawals", "fetchReferrals"]) {
     assert.match(account, new RegExp(`${hook}\\(`));
   }
-  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "earn/tasks", "earn/gifts", "inbox"]) {
+  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "earn/tasks", "inbox"]) {
     assert.match(account, new RegExp(`\\/\\(tabs\\)\\/${route.replaceAll("/", "\\/")}`));
   }
   for (const label of ["Số dư khả dụng", "Tổng đã nhận", "Từ giới thiệu", "Chưa liên kết ngân hàng", "Giới thiệu bạn bè", "Thông tin tài khoản", "Tài chính", "Thông báo", "Cài đặt", "KHÁM PHÁ", "HỖ TRỢ & PHÁP LÝ", "Đăng xuất", "Xóa tài khoản"]) {
@@ -89,7 +89,18 @@ test("Account is a server-authoritative native hub with approved destinations", 
   assert.match(account, /https:\/\/mesale\.vn\/privacy/);
   assert.match(account, /https:\/\/mesale\.vn\/terms/);
   assert.match(account, /https:\/\/mesale\.vn\/support/);
+  assert.doesNotMatch(account, /title="Đổi quà tặng"|\/\(tabs\)\/earn\/gifts/);
   assert.doesNotMatch(account, /80%|WebView|sk_live_/);
+});
+
+test("the retired rewards hub redirects back to Account without duplicate navigation", () => {
+  const earnIndex = read("../app/(tabs)/earn/index.tsx");
+  const moreSheet = read("../src/features/navigation/MoreSheet.tsx");
+
+  assert.match(earnIndex, /import \{ Redirect \} from "expo-router"/);
+  assert.match(earnIndex, /<Redirect href="\/\(tabs\)\/account" \/>/);
+  assert.doesNotMatch(earnIndex, /Nhận thưởng|Mesale Rewards|FlatList|router\.push|\/earn\/gifts/);
+  assert.doesNotMatch(moreSheet, /Đổi quà tặng|Redeem gifts|\/\(tabs\)\/earn\/gifts/);
 });
 
 test("Account summary rows open focused nested menus", () => {

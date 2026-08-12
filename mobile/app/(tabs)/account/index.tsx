@@ -560,14 +560,6 @@ export default function AccountRoute() {
           title="Nhiệm vụ nhận thưởng"
         />
         <AccountMenuRow
-          icon={Gift}
-          iconBackground={softBlue}
-          iconColor="#2f9af5"
-          onPress={() => navigateTo("/(tabs)/earn/gifts")}
-          subtitle="Khám phá quà tặng hiện có"
-          title="Đổi quà tặng"
-        />
-        <AccountMenuRow
           icon={Lightbulb}
           iconBackground={softOrange}
           iconColor="#f59e0b"
