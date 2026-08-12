@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260812-022`
-- Session: `SES-20260812-016`
+- Latest checkpoint: `CKP-20260812-023`
+- Session: `SES-20260812-017`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,11 +10,21 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-031` / `CHG-20260812-016`; native Google login is implemented for Android/iOS, Android opens the Google Play Services account flow, and production Google exchange is enabled after a full UNIQUE identity migration and redacted invalid-token canary. iOS source includes Sign in with Apple before Google, but signed iOS activation remains blocked on owner Apple/Google iOS configuration.
+- Current batch: `TSK-MOB-032` / `CHG-20260812-017`; the native login copy/footer now matches the latest owner markup while authentication behavior remains unchanged.
 - Remote `main`: source `42abd4c`; publication was a direct fast-forward without force-push
 - Round 5 implementation commit: `72a1f14`; latest published Round 5 context commit: `4f6f2bf`
 - Round 4 GitHub Actions: run `31328158427` passed
 - Production API: `GET /api/v1/openapi/config` returned HTTP `200` with a config payload on 2026-08-10. Activation happened outside this Round A task and still requires security, staging, monitoring, and rollback review.
+
+## 2026-08-12 Compact Native Login Copy
+
+- Changed the hero tagline to `Hệ thống mua sắm hoàn tiền Shopee - Tiktok`.
+- Removed the login cashback/withdrawal subtitle, safe-server disclosure, and unauthenticated `Hỗ trợ · Xóa tài khoản` footer row.
+- Privacy Policy and Terms remain on login; support and account deletion remain available under authenticated Account screens.
+- Google/Apple native actions and all backend authentication contracts are unchanged.
+- Android emulator inspection, mobile `80/80`, TypeScript, Expo Doctor `18/18`, focused OAuth `6/6`, diff, and scoped secret checks pass.
+- Operational IDs: `SES-20260812-017`, `CKP-20260812-023`, `TSK-MOB-032`, `CHG-20260812-017`, and `TST-20260812-017`.
+- Google Sheet sync is pending because the required connector is unavailable in this session.
 
 ## 2026-08-12 Native Google Login And iOS Apple Groundwork
 
