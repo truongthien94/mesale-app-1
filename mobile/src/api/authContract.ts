@@ -4,6 +4,12 @@ export type User = {
   id: number;
   name?: string | null;
   email?: string | null;
+  financialSnapshot?: {
+    balance: number;
+    totalCashback: number;
+    totalReferralEarned: number;
+    totalWithdrawn: number;
+  };
   referralPromptPending: boolean;
   referralCodeEligible?: boolean;
   referralCodeExpiresAt?: string | null;
@@ -71,6 +77,38 @@ function nonEmptyString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value : null;
 }
 
+function parseFinancialFields(value: Record<string, unknown>): User["financialSnapshot"] {
+  const fields = ["balance", "total_cashback", "total_referral_earned", "total_withdrawn"] as const;
+  const presentFields = fields.filter((field) => value[field] !== undefined);
+  if (presentFields.length === 0) return undefined;
+  if (presentFields.length !== fields.length) {
+    throw new AuthContractError("The authentication response included an incomplete financial snapshot.");
+  }
+
+  for (const field of fields) {
+    if (typeof value[field] !== "number" || !Number.isSafeInteger(value[field])) {
+      throw new AuthContractError("The authentication response included an invalid financial snapshot.");
+    }
+  }
+
+  return {
+    balance: value.balance as number,
+    totalCashback: value.total_cashback as number,
+    totalReferralEarned: value.total_referral_earned as number,
+    totalWithdrawn: value.total_withdrawn as number
+  };
+}
+
+function parseFinancialSnapshot(value: Record<string, unknown>): User["financialSnapshot"] {
+  const flatSnapshot = parseFinancialFields(value);
+  if (flatSnapshot) return flatSnapshot;
+  if (value.wallet === undefined) return undefined;
+  if (!isRecord(value.wallet)) {
+    throw new AuthContractError("The account response included an invalid wallet snapshot.");
+  }
+  return parseFinancialFields(value.wallet);
+}
+
 export function parseUser(value: unknown): User {
   if (!isRecord(value) || typeof value.id !== "number" || !Number.isSafeInteger(value.id) || value.id <= 0) {
     throw new AuthContractError("The authentication response did not include a valid user.");
@@ -87,6 +125,8 @@ export function parseUser(value: unknown): User {
     email: value.email as string | null | undefined,
     referralPromptPending: value.referral_prompt_pending === true
   };
+  const financialSnapshot = parseFinancialSnapshot(value);
+  if (financialSnapshot) user.financialSnapshot = financialSnapshot;
   if (typeof value.phone === "string" || value.phone === null) user.phone = value.phone;
   if (typeof value.avatar === "string" || value.avatar === null) user.avatar = value.avatar;
   if (typeof value.referral_code === "string" || value.referral_code === null) user.referral_code = value.referral_code;

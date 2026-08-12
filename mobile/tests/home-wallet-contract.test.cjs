@@ -122,6 +122,49 @@ test("account summary preserves unknown aggregate cashback fields during rolling
   await assert.rejects(fetchAccountSummary(), /Invalid approved cashback response/);
 });
 
+test("home auth preview exposes only login-authoritative financial fields", () => {
+  const { createHomeAuthPreview } = loadTypeScriptModule("../src/features/home/bootstrap.ts");
+  const financialSnapshot = {
+    balance: 200,
+    totalCashback: 500,
+    totalReferralEarned: 50,
+    totalWithdrawn: 100
+  };
+
+  assert.equal(createHomeAuthPreview(null), null);
+  assert.equal(createHomeAuthPreview({ id: 42, referralPromptPending: false }), null);
+  assert.deepEqual(createHomeAuthPreview({
+    id: 42,
+    name: "Mobile User",
+    email: "mobile@example.test",
+    avatar: null,
+    referral_code: "MESALE42",
+    referralPromptPending: false,
+    financialSnapshot
+  }), {
+    id: 42,
+    name: "Mobile User",
+    email: "mobile@example.test",
+    avatar: null,
+    referralCode: "MESALE42",
+    wallet: financialSnapshot
+  });
+});
+
+test("home renders the auth preview while account remains authoritative in the background", () => {
+  const source = read("../src/features/home/HomeScreen.tsx");
+  const bootstrap = read("../src/features/home/bootstrap.ts");
+
+  assert.match(source, /const accountQuery = useAccountSummary\(\)/);
+  assert.match(source, /const authPreview = createHomeAuthPreview\(user\)/);
+  assert.match(source, /const account = accountQuery\.data \?\? authPreview/);
+  assert.match(source, /if \(accountQuery\.isPending && !account\)/);
+  assert.match(source, /accountQuery\.data[\s\S]*formatAccountMoney\(accountQuery\.data\.wallet\.pendingCashback/);
+  assert.match(source, /accessibilityRole="progressbar"/);
+  assert.doesNotMatch(source, /initialData|placeholderData|setQueryData/);
+  assert.doesNotMatch(bootstrap, /pendingCashback|ordersPending|stats:/);
+});
+
 test("successful withdrawal invalidates both Wallet and Home account summaries", async () => {
   const invalidated = [];
   const { useCreateWithdrawal } = loadTypeScriptModule("../src/features/wallet/api.ts", {
@@ -161,11 +204,11 @@ test("home replaces the promotional hero with a live three-card account summary"
   const accountStats = source.match(/<AccountStat\b/g) ?? [];
   const bellIcons = source.match(/<Bell\b/g) ?? [];
   const inboxActions = source.match(/router\.push\("\/\(tabs\)\/inbox"\)/g) ?? [];
-  const compactAccountValues = source.match(/formatAccountMoney\(account\.wallet\./g) ?? [];
+  const compactAccountValues = source.match(/formatAccountMoney\((?:account|accountQuery\.data)\.wallet\./g) ?? [];
 
   assert.match(source, /account\.wallet\.balance/);
   assert.match(source, /account\.wallet\.totalCashback/);
-  assert.match(source, /account\.wallet\.pendingCashback/);
+  assert.match(source, /accountQuery\.data\.wallet\.pendingCashback/);
   assert.match(source, /account\.wallet\.totalWithdrawn/);
   assert.match(source, /router\.push\("\/\(tabs\)\/withdraw"\)/);
   assert.match(source, /import \{ formatAccountMoney \} from "@\/features\/home\/format"/);

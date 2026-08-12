@@ -24,7 +24,7 @@ function loadTypeScriptModule(filePath) {
 }
 
 const parserPath = path.resolve(__dirname, "../src/api/authContract.ts");
-const { AuthContractError, parseLoginResult, requireAuthenticated } = loadTypeScriptModule(parserPath);
+const { AuthContractError, parseLoginResult, parseUser, requireAuthenticated } = loadTypeScriptModule(parserPath);
 const apiContractPath = path.resolve(__dirname, "../src/api/contract.ts");
 const { normalizeApiFailure, normalizeApiSuccess } = loadTypeScriptModule(apiContractPath);
 const idempotencyPath = path.resolve(__dirname, "../src/api/idempotency.ts");
@@ -63,6 +63,71 @@ test("maps the referral prompt flag and defaults an absent field to false", () =
   assert.equal(pending.user.referralPromptPending, true);
   assert.equal(existing.kind, "authenticated");
   assert.equal(existing.user.referralPromptPending, false);
+});
+
+test("preserves only a complete integer VND snapshot from authentication", () => {
+  const result = parseLoginResult({
+    access_token: "financial-preview-token",
+    token_type: "Bearer",
+    user: {
+      ...user,
+      balance: 125000,
+      total_cashback: 45000,
+      total_referral_earned: 5000,
+      total_withdrawn: 30000
+    }
+  }, now);
+
+  assert.equal(result.kind, "authenticated");
+  assert.deepEqual(result.user.financialSnapshot, {
+    balance: 125000,
+    totalCashback: 45000,
+    totalReferralEarned: 5000,
+    totalWithdrawn: 30000
+  });
+
+  const withoutSnapshot = parseLoginResult({
+    access_token: "no-financial-preview-token",
+    token_type: "Bearer",
+    user
+  }, now);
+  assert.equal(withoutSnapshot.kind, "authenticated");
+  assert.equal(withoutSnapshot.user.financialSnapshot, undefined);
+
+  for (const invalidUser of [
+    { ...user, balance: 125000 },
+    { ...user, balance: 12.5, total_cashback: 0, total_referral_earned: 0, total_withdrawn: 0 },
+    { ...user, balance: "125000", total_cashback: 0, total_referral_earned: 0, total_withdrawn: 0 }
+  ]) {
+    assert.throws(() => parseLoginResult({
+      access_token: "invalid-financial-preview-token",
+      token_type: "Bearer",
+      user: invalidUser
+    }, now), AuthContractError);
+  }
+});
+
+test("restored account users preserve the same preview from the nested wallet", () => {
+  const restoredUser = parseUser({
+    ...user,
+    wallet: {
+      balance: 125000,
+      pending_cashback: 1000,
+      approved_cashback: 45000,
+      total_cashback: 45000,
+      total_referral_earned: 5000,
+      total_withdrawn: 30000,
+      currency: "VND"
+    }
+  });
+
+  assert.deepEqual(restoredUser.financialSnapshot, {
+    balance: 125000,
+    totalCashback: 45000,
+    totalReferralEarned: 5000,
+    totalWithdrawn: 30000
+  });
+  assert.equal("pendingCashback" in restoredUser.financialSnapshot, false);
 });
 
 test("parses the server referral eligibility window without inventing a client deadline", () => {

@@ -44,6 +44,7 @@ import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { colors, spacing } from "@/theme/tokens";
 import { isSafeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
+import { createHomeAuthPreview } from "@/features/home/bootstrap";
 import { formatAccountMoney } from "@/features/home/format";
 import {
   useAccountSummary,
@@ -68,6 +69,7 @@ const copy = {
     withdraw: "Rút tiền",
     totalCashback: "Tổng đã nhận",
     pending: "Chờ duyệt",
+    pendingLoading: "Đang tải số tiền chờ duyệt",
     totalWithdrawn: "Tổng đã rút",
     creatorPromo: "Hoàn tiền mua sắm Shopee - Tiktok Shop lên đến 15% giá trị đơn hàng",
     supported: "Nền tảng hỗ trợ:",
@@ -128,6 +130,7 @@ const copy = {
     withdraw: "Withdraw",
     totalCashback: "Total received",
     pending: "Pending",
+    pendingLoading: "Loading pending cashback",
     totalWithdrawn: "Total withdrawn",
     creatorPromo: "Get up to 15% cashback on the value of Shopee - TikTok Shop orders",
     supported: "Supported platforms:",
@@ -259,13 +262,26 @@ function MetricCard({ label, value, accent }: { label: string; value: string; ac
   );
 }
 
-function AccountStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+function AccountStat({ icon, label, loadingLabel, value }: {
+  icon: ReactNode;
+  label: string;
+  loadingLabel?: string;
+  value: string | null;
+}) {
   const { colors } = useTheme();
 
   return (
     <View style={[styles.accountStatCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
       {icon}
-      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.accountStatValue, { color: colors.text }]}>{value}</Text>
+      {value === null ? (
+        <View
+          accessibilityLabel={loadingLabel}
+          accessibilityRole="progressbar"
+          style={[styles.accountStatValueSkeleton, { backgroundColor: colors.border }]}
+        />
+      ) : (
+        <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.accountStatValue, { color: colors.text }]}>{value}</Text>
+      )}
       <Text numberOfLines={2} style={[styles.accountStatLabel, { color: colors.mutedText }]}>{label}</Text>
     </View>
   );
@@ -497,9 +513,11 @@ export function HomeScreen() {
   const [productUrl, setProductUrl] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
   const [lastSubmittedUrl, setLastSubmittedUrl] = useState<string | null>(null);
+  const authPreview = createHomeAuthPreview(user);
+  const account = accountQuery.data ?? authPreview;
 
-  if (accountQuery.isPending) return <LoadingState label={strings.loading} />;
-  if (accountQuery.isError && !accountQuery.data) {
+  if (accountQuery.isPending && !account) return <LoadingState label={strings.loading} />;
+  if (accountQuery.isError && !account) {
     const State = isOfflineError(accountQuery.error) ? OfflineState : ErrorState;
     return (
       <State
@@ -512,11 +530,13 @@ export function HomeScreen() {
       />
     );
   }
-  if (!accountQuery.data) {
+  if (!account) {
     return <EmptyState message={strings.emptyMessage} title={strings.emptyTitle} />;
   }
 
-  const account = accountQuery.data;
+  const pendingCashbackValue = accountQuery.data
+    ? formatAccountMoney(accountQuery.data.wallet.pendingCashback, language)
+    : null;
   const config = configQuery.data;
   const enabledMarketplaces = config
     ? (Object.keys(config.marketplaces) as Marketplace[]).filter((key) => config.marketplaces[key].enabled)
@@ -665,7 +685,8 @@ export function HomeScreen() {
             <AccountStat
               icon={<Hourglass color="#f59e0b" size={20} strokeWidth={2.2} />}
               label={strings.pending}
-              value={formatAccountMoney(account.wallet.pendingCashback, language)}
+              loadingLabel={strings.pendingLoading}
+              value={pendingCashbackValue}
             />
             <AccountStat
               icon={<WalletCards color="#8b5cf6" size={20} strokeWidth={2.2} />}
@@ -867,6 +888,7 @@ const styles = StyleSheet.create({
     elevation: 1
   },
   accountStatValue: { fontSize: 15, fontWeight: "900", marginTop: 7 },
+  accountStatValueSkeleton: { borderRadius: 6, height: 17, marginTop: 8, width: "72%" },
   accountStatLabel: { fontSize: 9.5, fontWeight: "600", lineHeight: 13, marginTop: 2, minHeight: 26 },
   metricCard: {
     backgroundColor: colors.surface, borderColor: "#f1f5f9", borderRadius: 18, borderWidth: 1,
