@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-039`
-- Session: `SES-20260813-033`
+- Latest checkpoint: `CKP-20260813-040`
+- Session: `SES-20260813-034`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-048` / `CHG-20260813-039`; Account tab recovery is published and CI-verified.
+- Current batch: `TSK-MOB-049` / `CHG-20260813-040`; Android launcher icon safe-zone remediation is locally verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+
+## 2026-08-13 Android Launcher Icon Safe Zone
+
+- Confirmed the previous Android adaptive foreground used the complete opaque square logo outside Android's central safe zone, so launcher masks cropped its corner artwork.
+- Added a dedicated transparent 1024x1024 foreground containing the shopping bag, percent tag, and sparkle with safe padding; the full in-app logo remains unchanged.
+- Expo prebuild and Android debug reinstall passed; Pixel Launcher home and app drawer showed the complete, sharper mark without clipping.
+- Verification: mobile `107/107`, TypeScript, Expo Doctor `18/18`, Android build/install, launcher inspection, and diff checks passed.
+- Operational IDs: `SES-20260813-034`, `CKP-20260813-040`, `TSK-MOB-049`, `CHG-20260813-040`, `TST-20260813-040`.
+- Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
 ## 2026-08-13 Account Tab Hub Recovery
 

@@ -155,7 +155,7 @@
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/mesale-logo.png",
+        "foregroundImage": "./assets/mesale-adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
