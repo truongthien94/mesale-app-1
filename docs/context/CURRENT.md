@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-041`
-- Session: `SES-20260813-035`
+- Latest checkpoint: `CKP-20260813-042`
+- Session: `SES-20260813-036`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-050` / `CHG-20260813-041`; launcher wordmark and installed app name follow-up is published and CI-verified.
+- Current batch: `TSK-MOB-051` / `CHG-20260813-042`; additional adaptive-icon safe-circle reduction is locally verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -31,6 +31,15 @@
 - Operational IDs: `SES-20260813-035`, `CKP-20260813-041`, `TSK-MOB-050`, `CHG-20260813-041`, `TST-20260813-041`.
 - Verification: mobile `108/108`, TypeScript, Expo Doctor `18/18`, Expo prebuild, Android debug build/install, and Pixel Launcher app-drawer inspection passed.
 - Source commit `3bf045b` is published directly to `origin/main`; GitHub Actions run `31703611639` passed Laravel, mobile, export, context, and secret checks.
+
+## 2026-08-13 Launcher Safe-Circle Follow-up
+
+- Pixel measurement confirmed the complete wordmark artwork still exceeded Android's guaranteed circular safe zone despite fitting its rectangular bounding box.
+- Scaled the complete foreground group to `78%` of its previous size without changing the logo, colors, wording, transparency, or installed `Mê Sale` name.
+- The farthest visible pixel is now approximately `299 px` from center, inside the approximately `313 px` safe radius.
+- Added a PNG pixel contract that fails if any visible foreground pixel leaves the guaranteed circular safe zone.
+- Android prebuild, debug build, clean reinstall, and Pixel Launcher app-drawer inspection passed with clear white padding around the complete logo.
+- Operational IDs: `SES-20260813-036`, `CKP-20260813-042`, `TSK-MOB-051`, `CHG-20260813-042`, `TST-20260813-042`.
 
 ## 2026-08-13 Account Tab Hub Recovery
 
