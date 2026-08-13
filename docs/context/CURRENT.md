@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-042`
-- Session: `SES-20260813-036`
+- Latest checkpoint: `CKP-20260813-043`
+- Session: `SES-20260813-037`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-051` / `CHG-20260813-042`; additional adaptive-icon safe-circle reduction is published and CI-verified.
+- Current batch: `TSK-MOB-052` / `CHG-20260813-043`; a current ARM64 Android test APK is built and locally verified without source changes.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -41,6 +41,15 @@
 - Android prebuild, debug build, clean reinstall, and Pixel Launcher app-drawer inspection passed with clear white padding around the complete logo.
 - Operational IDs: `SES-20260813-036`, `CKP-20260813-042`, `TSK-MOB-051`, `CHG-20260813-042`, `TST-20260813-042`.
 - Source commit `0b034f1` is published directly to `origin/main`; GitHub Actions run `31706598275` passed Laravel, mobile, export, context, and secret checks.
+
+## 2026-08-13 Current ARM64 Test APK
+
+- Built a production-configured ARM64 release APK from source/context commit `a0abc99` and copied it outside the repository to `C:\Users\ThichMMO\Desktop\Me-Sale-Android-Test-a0abc99-arm64.apk`.
+- Verified package `vn.mesale.app`, installed label `Mê Sale`, version `0.1.0` (`versionCode 1`), min SDK `24`, target SDK `35`, ABI `arm64-v8a`, APK Signature Scheme v2, and embedded production Open API base.
+- Artifact size is approximately `29.57 MB`; SHA-256 is `5623B418A8EAE3A096254074A8CBF5B7AA5F4621AFB44F54C14A27B5CA371880`.
+- Built and installed a separate x86_64 release variant on `emulator-5554`; cold launch completed without `AndroidRuntime` or `ReactNativeJS` fatal errors.
+- The delivered APK uses the local Android debug certificate and is intended only for direct device testing, not Google Play submission.
+- Operational IDs: `SES-20260813-037`, `CKP-20260813-043`, `TSK-MOB-052`, `CHG-20260813-043`, `TST-20260813-043`.
 
 ## 2026-08-13 Account Tab Hub Recovery
 
