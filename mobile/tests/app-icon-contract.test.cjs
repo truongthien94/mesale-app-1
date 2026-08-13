@@ -19,3 +19,7 @@ test("Android launcher uses a dedicated safe-zone adaptive foreground", () => {
   assert.equal(png.readUInt32BE(20), 1024);
   assert.equal(png[25], 6, "adaptive foreground must preserve RGBA transparency");
 });
+
+test("the installed application name preserves the Mê Sale brand", () => {
+  assert.equal(config.expo.name, "Mê Sale");
+});
