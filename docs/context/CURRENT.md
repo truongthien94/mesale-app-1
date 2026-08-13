@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-055` / `CHG-20260813-046`; registration is compact, retains phone, excludes inline referral entry, and is published with CI pending.
+- Current batch: `TSK-MOB-055` / `CHG-20260813-046`; registration is compact, retains phone, excludes inline referral entry, and is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Compact Registration With Phone
@@ -20,7 +20,7 @@
 - Kept referral input out of registration and preserved the existing server-authoritative three-day post-registration flow.
 - Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, Android release build/install, logged-out deep link, screenshot inspection, and fatal-log check passed.
 - Operational IDs: `SES-20260813-040`, `CKP-20260813-046`, `TSK-MOB-055`, `CHG-20260813-046`, `TST-20260813-046`.
-- Source commit `5ada35a` is published directly to `origin/main`; CI and context publication are pending.
+- Source commit `5ada35a` and context commit `8ca066b` are published directly to `origin/main`; GitHub Actions run `31717331941` passed.
 
 ## 2026-08-13 Registration UI Redesign
 
