@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-044`
-- Session: `SES-20260813-038`
+- Latest checkpoint: `CKP-20260813-045`
+- Session: `SES-20260813-039`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-053` / `CHG-20260813-044`; registration branding now uses the real Mê Sale logo and is published and CI-verified.
+- Current batch: `TSK-MOB-054` / `CHG-20260813-045`; the native registration UI now follows the approved reference, excludes inline referral entry, and is published with CI pending.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+
+## 2026-08-13 Registration UI Redesign
+
+- Rebuilt the registration experience with the real Mê Sale logo, blue hero, rounded native form card, icon inputs, password visibility, gradient CTA, native Google/Apple actions, and login handoff.
+- Kept the registration API payload free of referral input; the existing server-authoritative three-day referral onboarding remains after authentication.
+- Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, Android x86_64 release build/install, logged-out deep link, UI-tree inspection, and fatal-log check passed.
+- Local screenshot: `C:\Users\ThichMMO\AppData\Local\Temp\mesale-register-redesign-final-20260813.png` (not committed).
+- Operational IDs: `SES-20260813-039`, `CKP-20260813-045`, `TSK-MOB-054`, `CHG-20260813-045`, `TST-20260813-045`.
+- Source commit `527e6a9` is published directly to `origin/main`; CI and context publication are pending.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
 
