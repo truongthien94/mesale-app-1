@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-050` / `CHG-20260813-041`; launcher wordmark and installed app name follow-up is locally verified.
+- Current batch: `TSK-MOB-050` / `CHG-20260813-041`; launcher wordmark and installed app name follow-up is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -30,6 +30,7 @@
 - Changed the installed app display name from `Mesale` to `Mê Sale`.
 - Operational IDs: `SES-20260813-035`, `CKP-20260813-041`, `TSK-MOB-050`, `CHG-20260813-041`, `TST-20260813-041`.
 - Verification: mobile `108/108`, TypeScript, Expo Doctor `18/18`, Expo prebuild, Android debug build/install, and Pixel Launcher app-drawer inspection passed.
+- Source commit `3bf045b` is published directly to `origin/main`; GitHub Actions run `31703611639` passed Laravel, mobile, export, context, and secret checks.
 
 ## 2026-08-13 Account Tab Hub Recovery
 
