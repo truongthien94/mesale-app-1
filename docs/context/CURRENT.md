@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-053` / `CHG-20260813-044`; registration branding now uses the real Mê Sale logo and is locally verified.
+- Current batch: `TSK-MOB-053` / `CHG-20260813-044`; registration branding now uses the real Mê Sale logo and is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -59,6 +59,7 @@
 - Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, x86_64 release build/install, logged-out registration deep link, screenshot inspection, and fatal-log check passed.
 - Screenshot evidence: `C:\Users\ThichMMO\AppData\Local\Temp\mesale-register-logo-release.png` (local only; not committed).
 - Operational IDs: `SES-20260813-038`, `CKP-20260813-044`, `TSK-MOB-053`, `CHG-20260813-044`, `TST-20260813-044`.
+- Source commit `77f23d2` is published directly to `origin/main`; GitHub Actions run `31712295703` passed Laravel, mobile, export, context, and secret checks.
 
 ## 2026-08-13 Account Tab Hub Recovery
 
