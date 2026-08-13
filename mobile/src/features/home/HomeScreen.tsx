@@ -1,6 +1,5 @@
 import { type ReactNode, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   Keyboard,
@@ -31,7 +30,6 @@ import {
   Lightbulb,
   Link2,
   MessageCircle,
-  Search,
   ShoppingBag,
   Ticket,
   TrendingUp,
@@ -88,8 +86,6 @@ const copy = {
     urlPlaceholder: "Dán link sản phẩm Shopee - TikTok tại đây...",
     urlRequired: "Vui lòng nhập link sản phẩm.",
     urlInvalid: "Link sản phẩm không đúng định dạng.",
-    analyze: "Lấy Link Hoàn Tiền",
-    analyzing: "Đang phân tích...",
     referralCtaTitle: "Rủ bạn dùng Mê Sale",
     referralCtaSubtitle: "Chia sẻ mã giới thiệu, nhận hoa hồng!",
     referralCtaAction: "Mời bạn",
@@ -146,8 +142,6 @@ const copy = {
     urlPlaceholder: "Paste a Shopee or TikTok product link here...",
     urlRequired: "Enter a product URL.",
     urlInvalid: "Enter a valid product URL.",
-    analyze: "Get Cashback Link",
-    analyzing: "Analyzing...",
     referralCtaTitle: "Invite friends to Mê Sale",
     referralCtaSubtitle: "Share your referral code and earn commission!",
     referralCtaAction: "Invite",
@@ -400,16 +394,6 @@ function ProductResult({ product, language, notice, strings }: {
       return;
     }
 
-    try {
-      if (!await Linking.canOpenURL(product.affiliateUrl)) {
-        setHandoffError(strings.handoffError);
-        return;
-      }
-    } catch {
-      setHandoffError(strings.handoffError);
-      return;
-    }
-
     Alert.alert(strings.handoffTitle, strings.handoffMessage, [
       { text: strings.cancel, style: "cancel" },
       {
@@ -560,6 +544,8 @@ export function HomeScreen() {
     if (!value) return;
     setProductUrl(value);
     setInputError(null);
+    // A paste is the primary mobile action: validate and analyze immediately.
+    submitProductUrl(value);
   }
 
   const mutationMessage = cashbackMutation.isError
@@ -744,23 +730,6 @@ export function HomeScreen() {
           {inputError ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: themeColors.danger }]}>{inputError}</Text> : null}
 
           <Pressable
-            accessibilityRole="button"
-            disabled={creationDisabled || cashbackMutation.isPending}
-            onPress={() => submitProductUrl()}
-            style={({ pressed }) => [
-              styles.creatorPrimaryButton,
-              (creationDisabled || cashbackMutation.isPending) && styles.disabled,
-              pressed && styles.pressed
-            ]}
-          >
-            {cashbackMutation.isPending ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-            {!cashbackMutation.isPending ? <Search color="#ffffff" size={18} strokeWidth={2.4} /> : null}
-            <Text style={styles.primaryButtonText}>
-              {cashbackMutation.isPending ? strings.analyzing : strings.analyze}
-            </Text>
-          </Pressable>
-
-          <Pressable
             accessibilityHint={language === "vi" ? "Mở trang giới thiệu bạn bè" : "Open the referral page"}
             accessibilityLabel={strings.referralCtaTitle}
             accessibilityRole="button"
@@ -797,12 +766,6 @@ export function HomeScreen() {
           ) : null}
         </View>
 
-        <QuickAccessSection
-          language={language}
-          onSupport={() => void openSupport()}
-          onTips={() => router.push("/(tabs)/home/tips")}
-        />
-
         {cashbackMutation.data ? (
           <ProductResult
             language={language}
@@ -820,6 +783,12 @@ export function HomeScreen() {
             </View>
           </View>
         ) : null}
+
+        <QuickAccessSection
+          language={language}
+          onSupport={() => void openSupport()}
+          onTips={() => router.push("/(tabs)/home/tips")}
+        />
 
         <View style={styles.demoSection}>
           <PhoneFlowDemo />
@@ -924,21 +893,6 @@ const styles = StyleSheet.create({
   pasteButton: { alignItems: "center", justifyContent: "center", minHeight: 48, minWidth: 44 },
   fieldError: { color: colors.danger, fontSize: 12, fontWeight: "600", marginTop: -8 },
   primaryButton: { alignItems: "center", backgroundColor: "#ee4d2d", borderRadius: 16, flexDirection: "row", gap: 9, justifyContent: "center", minHeight: 52, paddingHorizontal: spacing.lg },
-  creatorPrimaryButton: {
-    alignItems: "center",
-    backgroundColor: "#3b82f6",
-    borderRadius: 13,
-    flexDirection: "row",
-    gap: 9,
-    justifyContent: "center",
-    minHeight: 50,
-    paddingHorizontal: spacing.lg,
-    shadowColor: "#2563eb",
-    shadowOffset: { height: 7, width: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 4
-  },
   primaryButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "900" },
   referralCtaPressable: { borderRadius: 14, overflow: "hidden" },
   referralCta: { alignItems: "center", flexDirection: "row", gap: 9, minHeight: 66, paddingHorizontal: 11, paddingVertical: 9 },

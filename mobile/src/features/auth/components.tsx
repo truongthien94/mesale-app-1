@@ -1,14 +1,16 @@
 import type { PropsWithChildren } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View, type ImageSourcePropType, type TextInputProps } from "react-native";
 import { Link } from "expo-router";
 import { AuthKeyboardScreen } from "@/auth/AuthKeyboardScreen";
 import { colors, spacing, theme } from "@/theme/tokens";
 
-export function AuthForm({ children, title, subtitle }: PropsWithChildren<{ title: string; subtitle: string }>) {
+export function AuthForm({ children, title, subtitle, logo }: PropsWithChildren<{ title: string; subtitle: string; logo?: ImageSourcePropType }>) {
   return (
     <AuthKeyboardScreen>
       <View style={styles.heading}>
-        <View style={styles.mark}><Text style={styles.markText}>M</Text></View>
+        <View style={styles.mark}>
+          {logo ? <Image accessibilityLabel="Logo Mê Sale" resizeMode="contain" source={logo} style={styles.logo} /> : <Text style={styles.markText}>M</Text>}
+        </View>
         <Text accessibilityRole="header" style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
       </View>
@@ -72,6 +74,7 @@ const styles = StyleSheet.create({
   heading: { alignItems: "center", gap: spacing.sm, marginBottom: spacing.sm },
   mark: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 16, height: 52, justifyContent: "center", width: 52 },
   markText: { color: colors.surface, fontSize: 24, fontWeight: "900" },
+  logo: { borderRadius: 14, height: 48, width: 48 },
   title: { color: colors.text, fontSize: 28, fontWeight: "900", textAlign: "center" },
   subtitle: { color: colors.mutedText, fontSize: 14, lineHeight: 21, textAlign: "center" },
   field: { gap: spacing.xs },

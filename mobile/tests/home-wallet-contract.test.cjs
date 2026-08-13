@@ -246,6 +246,9 @@ test("home adds the referral CTA, approved cashback claim, and live Quick Access
   assert.match(source, /referralCtaAction: "Mời bạn"/);
   assert.match(source, /router\.push\("\/\(tabs\)\/referrals"\)/);
   assert.doesNotMatch(source, /Bạn chưa biết cách lấy link\?|Cần lưu ý gì khi sử dụng\?/);
+  assert.match(source, /async function pasteProductUrl\(\)[\s\S]*submitProductUrl\(value\)/);
+  assert.doesNotMatch(source, /Lấy Link Hoàn Tiền|Get Cashback Link/);
+  assert.doesNotMatch(source, /canOpenURL\(product\.affiliateUrl\)/);
   assert.doesNotMatch(source, /Alert\.alert\(strings\.(?:linkHelpTitle|usageCautionTitle)/);
   assert.doesNotMatch(source, /creatorHelpRow|CirclePlay|CircleAlert/);
   assert.doesNotMatch(source, /openCouponsQuickAccess|couponsSectionY|homeScrollRef|scrollToQuickContent|scrollToEnd/);

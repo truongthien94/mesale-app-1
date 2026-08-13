@@ -68,9 +68,10 @@ export default function ReferralCodeScreen() {
   const busy = action !== null;
   return (
     <AuthForm
+      logo={require("../../assets/mesale-logo.png")}
       title={locale === "vi" ? "Nhập mã giới thiệu" : "Enter your referral code"}
       subtitle={locale === "vi"
-        ? "Bạn có thể nhập mã trong 3 ngày đầu sau khi đăng ký. Máy chủ sẽ xác nhận điều kiện khi bạn gửi."
+        ? "Nếu được bạn bè giới thiệu, hãy nhập mã trong 3 ngày đầu sau khi đăng ký để liên kết tài khoản và nhận đúng quyền lợi."
         : "You can enter a referral code during the first 3 days after registration. The server validates eligibility when you submit."}
     >
       <AuthField
