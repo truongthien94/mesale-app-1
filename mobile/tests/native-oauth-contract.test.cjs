@@ -94,6 +94,7 @@ test("keeps API-disabled, bare 503, cancellation, and client configuration state
   assert.equal(developerError.kind, "client-not-configured");
   assert.equal(developerError.disablesProvider, true);
   assert.match(developerError.message, /vn\.mesale\.app/);
+  assert.match(developerError.message, /Cáº¥u hÃ¬nh|Cấu hình/);
 });
 
 test("wires native provider actions into login and Apple reauthentication into deletion", () => {

@@ -2,6 +2,7 @@
   "expo": {
     "name": "Mesale",
     "slug": "mesale-mobile",
+    "icon": "./assets/mesale-logo.png",
     "version": "0.1.0",
     "orientation": "portrait",
     "scheme": "mesale",
@@ -154,6 +155,7 @@
         "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
       "adaptiveIcon": {
+        "foregroundImage": "./assets/mesale-logo.png",
         "backgroundColor": "#ffffff"
       }
     },
