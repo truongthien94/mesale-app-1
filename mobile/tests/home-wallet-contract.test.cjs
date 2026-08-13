@@ -49,7 +49,7 @@ test("account money formatting renders rolling-deploy nulls as zero", () => {
 });
 
 test("home normalizes product URLs and only accepts HTTPS affiliate handoff", () => {
-  const { isSafeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
+  const { isSafeAffiliateUrl, normalizeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
     "@/api/client": { request: async () => { throw new Error("not called"); } }
   });
 
@@ -64,6 +64,12 @@ test("home normalizes product URLs and only accepts HTTPS affiliate handoff", ()
   assert.deepEqual(normalizeProductUrl("javascript:alert(1)"), { valid: false, reason: "invalid" });
   assert.equal(isSafeAffiliateUrl("https://s.shopee.vn/track"), true);
   assert.equal(isSafeAffiliateUrl("http://s.shopee.vn/track"), false);
+  assert.equal(
+    normalizeAffiliateUrl("  https://s.shopee.vn/an_redir?origin_link=https%3A%2F%2Fshopee.vn%2Fproduct%2F42&amp;sub_id=mobile  "),
+    "https://s.shopee.vn/an_redir?origin_link=https%3A%2F%2Fshopee.vn%2Fproduct%2F42&sub_id=mobile"
+  );
+  assert.equal(normalizeAffiliateUrl("https://user:pass@s.shopee.vn/track"), null);
+  assert.equal(normalizeAffiliateUrl("https://s.shopee.vn/track\nmalformed"), null);
   assert.equal(normalizeBannerLink("http://mesale.vn/promo"), "https://mesale.vn/promo");
   assert.equal(normalizeBannerLink("mailto:support@mesale.vn"), "mailto:support@mesale.vn");
   assert.equal(normalizeBannerLink("https://user:pass@mesale.vn/promo"), null);
@@ -249,7 +255,9 @@ test("home adds the referral CTA, approved cashback claim, and live Quick Access
   assert.match(source, /async function pasteProductUrl\(\)[\s\S]*submitProductUrl\(value\)/);
   assert.doesNotMatch(source, /Lấy Link Hoàn Tiền|Get Cashback Link/);
   assert.doesNotMatch(source, /canOpenURL\(product\.affiliateUrl\)/);
-  assert.match(source, /function openMarketplace\(\)[\s\S]*Linking\.openURL\(product\.affiliateUrl\)/);
+  assert.match(source, /async function openMarketplace\(\)[\s\S]*normalizeAffiliateUrl\(product\.affiliateUrl\)/);
+  assert.match(source, /Linking\.openURL\(affiliateUrl\)/);
+  assert.match(source, /IntentLauncher\.startActivityAsync\("android\.intent\.action\.VIEW", \{ data: affiliateUrl \}\)/);
   assert.doesNotMatch(source, /Alert\.alert\(strings\.handoffTitle/);
   assert.doesNotMatch(source, /Alert\.alert\(strings\.(?:linkHelpTitle|usageCautionTitle)/);
   assert.doesNotMatch(source, /creatorHelpRow|CirclePlay|CircleAlert/);
@@ -280,7 +288,9 @@ test("home renders a compact cashback result without exposing the raw affiliate 
   assert.doesNotMatch(source, /memberShare|Bạn nhận|You receive/);
   assert.doesNotMatch(source, /styles\.affiliateBox|styles\.affiliateUrl|styles\.resultTopRow/);
   assert.doesNotMatch(source, /<MetricCard/);
-  assert.match(source, /function openMarketplace\(\)[\s\S]*Linking\.openURL\(product\.affiliateUrl\)/);
+  assert.match(source, /async function openMarketplace\(\)[\s\S]*normalizeAffiliateUrl\(product\.affiliateUrl\)/);
+  assert.match(source, /Linking\.openURL\(affiliateUrl\)/);
+  assert.match(source, /IntentLauncher\.startActivityAsync\("android\.intent\.action\.VIEW", \{ data: affiliateUrl \}\)/);
   assert.match(source, /Share\.share\(\{ message: product\.affiliateUrl \}\)/);
   assert.ok(resultIndex > inputIndex);
   assert.ok(referralIndex > resultIndex);

@@ -69,17 +69,17 @@ export default function ReferralCodeScreen() {
   return (
     <AuthForm
       logo={require("../../assets/mesale-logo.png")}
-      title={locale === "vi" ? "Nhập mã giới thiệu" : "Enter your referral code"}
+      title={locale === "vi" ? "Liên kết người giới thiệu" : "Link your referrer"}
       subtitle={locale === "vi"
-        ? "Nếu được bạn bè giới thiệu, hãy nhập mã trong 3 ngày đầu sau khi đăng ký để liên kết tài khoản và nhận đúng quyền lợi."
-        : "You can enter a referral code during the first 3 days after registration. The server validates eligibility when you submit."}
+        ? "Bạn có 3 ngày đầu sau khi đăng ký tài khoản Mê Sale để nhập mã của người đã giới thiệu bạn. Sau thời hạn này, tài khoản sẽ không thể liên kết mã giới thiệu."
+        : "Enter the code from the person who referred you within 3 days of creating your Mê Sale account. Referral linking closes after this period."}
     >
       <AuthField
         autoCapitalize="characters"
         autoComplete="off"
         editable={!busy}
         error={requestError?.errors?.referral_code?.[0]}
-        label={locale === "vi" ? "Mã giới thiệu" : "Referral code"}
+        label={locale === "vi" ? "Mã của người giới thiệu" : "Referrer's code"}
         maxLength={50}
         onChangeText={(value) => {
           setReferralCode(value);
@@ -93,7 +93,7 @@ export default function ReferralCodeScreen() {
       <FormErrorSummary errors={requestError?.errors} message={requestError?.message} />
       <AuthButton
         disabled={busy || !normalizedCode}
-        label={locale === "vi" ? "Áp dụng mã" : "Apply code"}
+        label={locale === "vi" ? "Xác nhận mã giới thiệu" : "Confirm referral code"}
         loading={action === "apply"}
         onPress={() => void applyCode()}
       />

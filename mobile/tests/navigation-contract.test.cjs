@@ -67,7 +67,9 @@ test("Account is a server-authoritative native hub with approved destinations", 
   }
   assert.match(account, /logoutInFlight\.current/);
   assert.match(account, /Đã đăng xuất trên thiết bị/);
-  assert.match(account, /showUnavailable\("Hướng dẫn sử dụng"\)/);
+  assert.match(account, /navigateTo\("\/\(tabs\)\/account\/guide"\)/);
+  assert.match(account, /navigateTo\("\/\(tabs\)\/home\/tips"\)/);
+  assert.doesNotMatch(account, /showUnavailable\("Hướng dẫn sử dụng"\)/);
   assert.match(account, /typeof account\.referral_code_eligible === "boolean"/);
   assert.match(account, /user\?\.referralCodeEligible === true/);
   assert.match(account, /account\.referral_code_expires_at !== undefined/);
@@ -111,7 +113,7 @@ test("Account summary rows open focused nested menus", () => {
   const stackHeader = read("../src/features/account/AccountStackHeader.tsx");
   const sharedMenu = read("../src/features/account/AccountSectionMenu.tsx");
 
-  for (const route of ["information", "finance", "settings"]) {
+  for (const route of ["information", "finance", "settings", "guide"]) {
     assert.match(layout, new RegExp(`name="${route}"`));
   }
   assert.match(layout, /useTheme\(\)/);

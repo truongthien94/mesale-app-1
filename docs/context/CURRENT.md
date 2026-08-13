@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-037`
-- Session: `SES-20260813-031`
+- Latest checkpoint: `CKP-20260813-038`
+- Session: `SES-20260813-032`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-046` / `CHG-20260813-037`; a standalone ARM64 Android test APK was built and verified.
-- Source state and standalone emulator startup are locally verified; physical-device and authenticated flow gates remain open.
+- Current batch: `TSK-MOB-047` / `CHG-20260813-038`; the native usage guide and related reviewed Home/referral changes are locally verified.
+- Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+
+## 2026-08-13 Native Usage Guide
+
+- Added a full native `Hướng dẫn sử dụng` route with themed cards, nine expandable FAQs, safe-area handling, and no WebView.
+- Account now opens the native guide and existing native Tips route; the primary tab bar is hidden on the full-screen guide.
+- Guide financial conditions come from live config and referral guidance uses the server-confirmed three-day eligibility window; unsupported fixed earning claims and store cards are omitted.
+- Preserved the reviewed Home HTTPS affiliate normalization, Android VIEW-intent fallback, and referral copy update.
+- Verification: mobile `106/106`, TypeScript, Expo Doctor `18/18`, Android debug build/install, FAQ expansion, light mode, dark mode, and diff checks passed.
+- Operational IDs: `SES-20260813-032`, `CKP-20260813-038`, `TSK-MOB-047`, `CHG-20260813-038`, `TST-20260813-038`.
+- Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
 ## 2026-08-13 Android Test APK
 

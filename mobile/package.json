@@ -8,7 +8,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node --test tests/auth-contract.test.cjs tests/auth-account-contract.test.cjs tests/native-oauth-contract.test.cjs tests/home-wallet-contract.test.cjs tests/earn-inbox-contract.test.cjs tests/theme-contract.test.cjs tests/navigation-contract.test.cjs tests/avatar-contract.test.cjs tests/withdrawal-ui-contract.test.cjs tests/coupons-contract.test.cjs tests/tips-contract.test.cjs tests/account-loading-contract.test.cjs tests/main-tab-loading-contract.test.cjs tests/authenticated-prefetch-contract.test.cjs",
+    "test": "node --test tests/auth-contract.test.cjs tests/auth-account-contract.test.cjs tests/native-oauth-contract.test.cjs tests/home-wallet-contract.test.cjs tests/earn-inbox-contract.test.cjs tests/theme-contract.test.cjs tests/navigation-contract.test.cjs tests/avatar-contract.test.cjs tests/withdrawal-ui-contract.test.cjs tests/coupons-contract.test.cjs tests/tips-contract.test.cjs tests/usage-guide-contract.test.cjs tests/account-loading-contract.test.cjs tests/main-tab-loading-contract.test.cjs tests/authenticated-prefetch-contract.test.cjs",
     "test:auth-contract": "node --test tests/auth-contract.test.cjs",
     "typecheck": "tsc --noEmit"
   },
@@ -24,6 +24,7 @@
     "expo-file-system": "~18.1.11",
     "expo-image-manipulator": "~13.1.7",
     "expo-image-picker": "~16.1.4",
+    "expo-intent-launcher": "~12.1.5",
     "expo-linear-gradient": "~14.1.5",
     "expo-linking": "~7.1.7",
     "expo-localization": "~16.1.6",

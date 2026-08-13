@@ -43,7 +43,7 @@ import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components
 import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { colors, spacing } from "@/theme/tokens";
-import { isSafeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
+import { normalizeAffiliateUrl, normalizeProductUrl } from "@/features/home/api";
 import { createHomeAuthPreview } from "@/features/home/bootstrap";
 import { formatAccountMoney } from "@/features/home/format";
 import {
@@ -383,16 +383,32 @@ function ProductResult({ product, language, notice, strings }: {
     : `${language === "vi" ? "Hoa hồng" : "Commission"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
   const totalLabel = product.isEstimated ? strings.estimatedRate : strings.estimatedCashback;
 
-  function openMarketplace() {
+  async function openMarketplace() {
     setHandoffError(null);
-    if (!isSafeAffiliateUrl(product.affiliateUrl)) {
+    const affiliateUrl = normalizeAffiliateUrl(product.affiliateUrl);
+    if (!affiliateUrl) {
       setHandoffError(strings.handoffError);
       return;
     }
 
-    // Let Android/iOS resolve the HTTPS affiliate URL to the marketplace app
-    // when its app-link association is installed; otherwise the browser opens it.
-    void Linking.openURL(product.affiliateUrl).catch(() => setHandoffError(strings.handoffError));
+    try {
+      // HTTPS preserves affiliate attribution and lets a verified marketplace
+      // app-link open the native app, with the system browser as fallback.
+      await Linking.openURL(affiliateUrl);
+    } catch {
+      if (Platform.OS === "android") {
+        try {
+          // Some Android builds reject nested redirect URLs through openURL.
+          // A VIEW intent retries the same HTTPS URL without weakening validation.
+          const IntentLauncher = await import("expo-intent-launcher");
+          await IntentLauncher.startActivityAsync("android.intent.action.VIEW", { data: affiliateUrl });
+          return;
+        } catch {
+          // Show the existing inline error after both safe external routes fail.
+        }
+      }
+      setHandoffError(strings.handoffError);
+    }
   }
 
   async function shareAffiliateLink() {
@@ -448,7 +464,7 @@ function ProductResult({ product, language, notice, strings }: {
       {handoffError ? <InlineNotice message={handoffError} tone="danger" strings={strings} /> : null}
 
       <View style={styles.resultActions}>
-        <Pressable accessibilityRole="button" onPress={openMarketplace} style={({ pressed }) => [styles.primaryButton, styles.resultAction, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" onPress={() => void openMarketplace()} style={({ pressed }) => [styles.primaryButton, styles.resultAction, pressed && styles.pressed]}>
           <ShoppingBag color="#ffffff" size={18} strokeWidth={2.2} />
           <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.primaryButtonText}>{strings.openMarketplace}</Text>
         </Pressable>

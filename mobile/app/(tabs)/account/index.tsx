@@ -558,7 +558,7 @@ export default function AccountRoute() {
           icon={Lightbulb}
           iconBackground={softOrange}
           iconColor="#f59e0b"
-          onPress={() => showUnavailable("Tips & Trick")}
+          onPress={() => navigateTo("/(tabs)/home/tips")}
           subtitle="Mẹo tăng khả năng đơn được ghi nhận"
           title="Tips & Trick"
         />
@@ -566,7 +566,7 @@ export default function AccountRoute() {
           icon={CircleHelp}
           iconBackground={softBlue}
           iconColor="#2f9af5"
-          onPress={() => showUnavailable("Hướng dẫn sử dụng")}
+          onPress={() => navigateTo("/(tabs)/account/guide")}
           showDivider={false}
           title="Hướng dẫn sử dụng"
         />

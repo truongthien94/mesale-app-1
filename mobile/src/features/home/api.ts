@@ -105,11 +105,19 @@ export function normalizeProductUrl(value: string): ProductUrlValidation {
 }
 
 export function isSafeAffiliateUrl(value: string): boolean {
+  return normalizeAffiliateUrl(value) !== null;
+}
+
+export function normalizeAffiliateUrl(value: string): string | null {
+  const trimmed = value.trim().replace(/&amp;/gi, "&");
+  if (!trimmed || /[\u0000-\u001f\u007f]/.test(trimmed)) return null;
+
   try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname.length > 0;
+    const url = new URL(trimmed);
+    if (url.protocol !== "https:" || !url.hostname || url.username || url.password) return null;
+    return url.toString();
   } catch {
-    return false;
+    return null;
   }
 }
 

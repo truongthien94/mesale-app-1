@@ -12,7 +12,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const pathname = usePathname();
   const isVietnamese = resolveLocale(user?.preferences?.locale ?? getDeviceLocale()) === "vi";
-  const hideTabBar = pathname === "/home/tips";
+  const hideTabBar = pathname === "/home/tips" || pathname === "/account/guide";
 
   if (isLoading) return <LoadingState />;
   const authGate = resolveAuthGate(pendingAuth, Boolean(session), user?.referralPromptPending ?? false);
