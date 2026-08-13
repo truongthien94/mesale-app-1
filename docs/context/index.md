@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260813-036](checkpoints/CKP-20260813-036.md)
-- Latest session: [SES-20260813-030](sessions/SES-20260813-030.md)
+- Latest checkpoint: [CKP-20260813-037](checkpoints/CKP-20260813-037.md)
+- Latest session: [SES-20260813-031](sessions/SES-20260813-031.md)
 - Latest decision: [DEC-20260812-012](../decisions/DEC-20260812-012.md)
-- Current batch: `TSK-MOB-045` / `CHG-20260813-036` / `TST-20260813-036`
-- Current source commit: `62fcb2d` (published directly to `origin/main`)
-- Current context commit: `7e39dcd` (published directly to `origin/main`)
-- Current local evidence: mobile `103/103`; TypeScript; Android debug build/install; compact Home result contract
-- Current remote evidence: GitHub Actions run `31580498286` passed `context-log-check`, `laravel-tests`, and `mobile-tests`, including both exports
+- Current batch: `TSK-MOB-046` / `CHG-20260813-037` / `TST-20260813-037`
+- Current source commit: `232ec18` (published directly to `origin/main`)
+- Current context commit: pending publication for `CKP-20260813-037`
+- Current local evidence: mobile `103/103`; TypeScript; Home negative contract; ARM64 release APK; standalone x86_64 emulator install/startup
+- Current remote evidence: GitHub Actions run `31680909749` passed `context-log-check`, `laravel-tests`, and `mobile-tests`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

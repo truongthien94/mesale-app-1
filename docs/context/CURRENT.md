@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-036`
-- Session: `SES-20260813-030`
+- Latest checkpoint: `CKP-20260813-037`
+- Session: `SES-20260813-031`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-045` / `CHG-20260813-036`; the Home cashback result no longer shows the member-share percentage pill.
-- Source state is locally verified at the current working tree; the authenticated disposable-account smoke gate remains open.
+- Current batch: `TSK-MOB-046` / `CHG-20260813-037`; a standalone ARM64 Android test APK was built and verified.
+- Source state and standalone emulator startup are locally verified; physical-device and authenticated flow gates remain open.
+
+## 2026-08-13 Android Test APK
+
+- Reconfirmed at source commit `232ec18` that the Home cashback result no longer contains the `Bạn nhận 100%` pill while server-provided cashback details remain intact.
+- Built an ARM64 release APK for a physical Android device and copied it to `C:\Users\ThichMMO\Desktop\mesale-android-test-232ec18-arm64.apk`.
+- Verified package `vn.mesale.app`, version `0.1.0`, min SDK `24`, target SDK `35`, ABI `arm64-v8a`, APK Signature Scheme v2, and the embedded production API base.
+- Built and installed a separate x86_64 release variant on `emulator-5554`; it opened `MainActivity` without Metro forwarding or a fatal startup error.
+- The test artifact is signed with the local Android debug certificate and is not Play-ready. Physical-device feature testing, release signing, AAB, dependency remediation, and store audits remain open.
+- Operational IDs: `SES-20260813-031`, `CKP-20260813-037`, `TSK-MOB-046`, `CHG-20260813-037`, `TST-20260813-037`.
+- Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
 ## 2026-08-13 Removed Home Member Share Pill
 
