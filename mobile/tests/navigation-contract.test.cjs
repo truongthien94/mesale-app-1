@@ -24,6 +24,9 @@ test("the primary tab bar exposes Account as a real screen and retires the More 
   assert.match(layout, /title: isVietnamese \? "Giới thiệu" : "Referral"/);
   assert.match(layout, /<UsersRound color=\{color\} size=\{size\}/);
   assert.match(layout, /tabBarActiveTintColor: "#2f9af5"/);
+  assert.match(layout, /useRouter\(\)/);
+  assert.match(layout, /tabPress: \(event\) => \{[\s\S]*event\.preventDefault\(\);[\s\S]*router\.replace\("\/\(tabs\)\/account"\);/);
+  assert.match(layout, /popToTopOnBlur: true/);
   assert.doesNotMatch(layout, /MoreSheet|useMoreSheetStore|tabBarButton:/);
 });
 

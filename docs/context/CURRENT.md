@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-038`
-- Session: `SES-20260813-032`
+- Latest checkpoint: `CKP-20260813-039`
+- Session: `SES-20260813-033`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-047` / `CHG-20260813-038`; the native usage guide and related reviewed Home/referral changes are locally verified.
+- Current batch: `TSK-MOB-048` / `CHG-20260813-039`; Account tab recovery is locally verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+
+## 2026-08-13 Account Tab Hub Recovery
+
+- Confirmed the full Account hub and all nested Account screens remain in source; the reported UI was the nested Settings route retained as the tab state.
+- Selecting the Account bottom tab now always opens the canonical Account hub, including after a direct child deep link or after leaving the tab.
+- Android runtime checks passed for Settings to Account, Settings to Home to Account, Account re-tap, child back navigation, and the full vertical Account inventory.
+- Verification: mobile `106/106`, TypeScript, Expo Doctor `18/18`, and diff checks passed.
+- Operational IDs: `SES-20260813-033`, `CKP-20260813-039`, `TSK-MOB-048`, `CHG-20260813-039`, `TST-20260813-039`.
+- Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
 ## 2026-08-13 Native Usage Guide
 

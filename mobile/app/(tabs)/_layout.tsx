@@ -1,4 +1,4 @@
-import { Redirect, Tabs, usePathname } from "expo-router";
+import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
 import { Banknote, Home, ShoppingBag, UserRound, UsersRound } from "lucide-react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
@@ -10,6 +10,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 export default function TabsLayout() {
   const { isLoading, pendingAuth, session, user } = useAuth();
   const { colors } = useTheme();
+  const router = useRouter();
   const pathname = usePathname();
   const isVietnamese = resolveLocale(user?.preferences?.locale ?? getDeviceLocale()) === "vi";
   const hideTabBar = pathname === "/home/tips" || pathname === "/account/guide";
@@ -67,7 +68,14 @@ export default function TabsLayout() {
       <Tabs.Screen name="inbox" options={{ href: null }} />
       <Tabs.Screen
         name="account"
+        listeners={{
+          tabPress: (event) => {
+            event.preventDefault();
+            router.replace("/(tabs)/account");
+          },
+        }}
         options={{
+          popToTopOnBlur: true,
           title: isVietnamese ? "Tài khoản" : "Account",
           tabBarActiveTintColor: "#2f9af5",
           tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} />
