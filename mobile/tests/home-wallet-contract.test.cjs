@@ -267,7 +267,6 @@ test("home renders a compact cashback result without exposing the raw affiliate 
 
   assert.match(source, /const \[detailsOpen, setDetailsOpen\] = useState\(false\)/);
   assert.match(source, /product\.commissionAmount \/ product\.price/);
-  assert.match(source, /product\.cashbackAmount \/ product\.commissionAmount/);
   assert.match(source, /const totalLabel = product\.isEstimated \? strings\.estimatedRate : strings\.estimatedCashback/);
   assert.match(source, /style=\{styles\.cashbackTotal\}/);
   assert.match(source, /accessibilityState=\{\{ expanded: detailsOpen \}\}/);
@@ -278,6 +277,7 @@ test("home renders a compact cashback result without exposing the raw affiliate 
   assert.match(source, /formatVnd\(product\.commissionAmount, language\)/);
   assert.match(source, /formatVnd\(product\.cashbackAmount, language\)/);
   assert.match(source, /minimumFontScale=\{0\.72\}/);
+  assert.doesNotMatch(source, /memberShare|Bạn nhận|You receive/);
   assert.doesNotMatch(source, /styles\.affiliateBox|styles\.affiliateUrl|styles\.resultTopRow/);
   assert.doesNotMatch(source, /<MetricCard/);
   assert.match(source, /function openMarketplace\(\)[\s\S]*Linking\.openURL\(product\.affiliateUrl\)/);

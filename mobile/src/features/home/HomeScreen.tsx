@@ -378,9 +378,6 @@ function ProductResult({ product, language, notice, strings }: {
   const { colors } = useTheme();
   const marketplaceNotice = stripMarkup(notice ?? null);
   const commissionRate = product.price > 0 ? (product.commissionAmount / product.price) * 100 : 0;
-  const memberShare = product.commissionAmount > 0
-    ? Math.max(0, Math.min(100, (product.cashbackAmount / product.commissionAmount) * 100))
-    : 0;
   const commissionSummary = product.isEstimated
     ? `${product.cashbackRate}${strings.rateSuffix}`
     : `${language === "vi" ? "Hoa hồng" : "Commission"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
@@ -424,11 +421,6 @@ function ProductResult({ product, language, notice, strings }: {
             {product.isEstimated ? `~${product.cashbackRate}%` : formatVnd(product.commissionAmount, language)}
           </Text>
         </View>
-        {memberShare > 0 ? (
-          <View style={styles.memberSharePill}>
-            <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.memberShareText}>{language === "vi" ? "Bạn nhận" : "You receive"} {memberShare.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 0 })}%</Text>
-          </View>
-        ) : null}
       </LinearGradient>
 
       <Pressable
@@ -906,8 +898,6 @@ const styles = StyleSheet.create({
   cashbackTotalCopy: { flex: 1, minWidth: 0 },
   cashbackTotalLabel: { color: "rgba(255,255,255,0.78)", fontSize: 10.5, fontWeight: "600" },
   cashbackTotalValue: { color: "#ffffff", fontSize: 28, fontWeight: "900", lineHeight: 34, marginTop: 2 },
-  memberSharePill: { backgroundColor: "rgba(255,255,255,0.24)", borderRadius: 999, marginLeft: 10, maxWidth: "46%", minWidth: 0, paddingHorizontal: 10, paddingVertical: 7 },
-  memberShareText: { color: "#ffffff", flexShrink: 1, fontSize: 10, fontWeight: "900" },
   detailsToggle: { alignItems: "center", alignSelf: "flex-start", flexDirection: "row", gap: 4, minHeight: 38, paddingRight: 10 },
   detailsToggleText: { fontSize: 11, fontWeight: "800" },
   detailsChevronOpen: { transform: [{ rotate: "180deg" }] },
