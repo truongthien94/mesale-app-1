@@ -113,11 +113,16 @@ test("maps Laravel confirmation fields and the mobile device name", () => {
   assert.match(source, /authenticated: false/);
 });
 
-test("registration uses the Mê Sale logo instead of the fallback letter mark", () => {
+test("registration matches the branded native layout without an inline referral field", () => {
   const registerSource = fs.readFileSync(registerScreenPath, "utf8");
 
-  assert.match(registerSource, /logo=\{require\("\.\.\/\.\.\/assets\/mesale-logo\.png"\)\}/);
-  assert.match(registerSource, /<AuthForm/);
+  assert.match(registerSource, /source=\{require\("\.\.\/\.\.\/assets\/mesale-logo\.png"\)\}/);
+  assert.match(registerSource, /<LinearGradient/);
+  assert.match(registerSource, />Tạo tài khoản<\/Text>/);
+  assert.match(registerSource, /Tiếp tục với Google/);
+  assert.match(registerSource, /AppleAuthentication\.AppleAuthenticationButton/);
+  assert.match(registerSource, /Bằng việc tạo tài khoản, bạn đồng ý/);
+  assert.doesNotMatch(registerSource, /referralCode|Mã giới thiệu/);
 });
 
 test("gates auth continuations and routes eligible sessions to referral onboarding", () => {
