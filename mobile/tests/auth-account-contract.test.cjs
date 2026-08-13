@@ -123,6 +123,9 @@ test("registration matches the branded native layout without an inline referral 
   assert.match(registerSource, /AppleAuthentication\.AppleAuthenticationButton/);
   assert.match(registerSource, /Bằng việc tạo tài khoản, bạn đồng ý/);
   assert.doesNotMatch(registerSource, /referralCode|Mã giới thiệu/);
+  assert.match(registerSource, /const \[phone, setPhone\] = useState\(""\)/);
+  assert.match(registerSource, /placeholder="Số điện thoại"/);
+  assert.match(registerSource, /await register\(\{ name, email, phone, password, passwordConfirmation \}\)/);
 });
 
 test("gates auth continuations and routes eligible sessions to referral onboarding", () => {

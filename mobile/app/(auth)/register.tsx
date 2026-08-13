@@ -144,7 +144,7 @@ export default function RegisterScreen() {
       style={[styles.screen, { backgroundColor: colors.background }]}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.xl }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom, spacing.sm) + spacing.md }]}
         keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -166,7 +166,7 @@ export default function RegisterScreen() {
               style={styles.logo}
             />
           </View>
-          <Text style={styles.heroTagline}>Hệ thống mua sắm hoàn tiền Shopee - TikTok Shop</Text>
+          <Text style={styles.heroTagline}>Hệ thống mua sắm hoàn tiền Shopee - Tiktok</Text>
         </LinearGradient>
 
         <View
@@ -211,12 +211,12 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               autoComplete="tel"
               editable={!isBusy}
-              icon={<Phone color={colors.mutedText} size={21} strokeWidth={1.8} />}
+              icon={<Phone color={colors.mutedText} size={20} strokeWidth={1.8} />}
               inputRef={phoneInputRef}
               keyboardType="phone-pad"
               onChangeText={setPhone}
               onSubmitEditing={() => passwordInputRef.current?.focus()}
-              placeholder="Số điện thoại (tùy chọn)"
+              placeholder="Số điện thoại"
               returnKeyType="next"
               value={phone}
             />
@@ -434,39 +434,39 @@ const styles = StyleSheet.create({
   loading: { alignItems: "center", flex: 1, justifyContent: "center" },
   screen: { flex: 1 },
   scrollContent: { flexGrow: 1 },
-  hero: { alignItems: "center", minHeight: 286, overflow: "hidden", paddingHorizontal: 24 },
+  hero: { alignItems: "center", minHeight: 222, overflow: "hidden", paddingHorizontal: 20 },
   heroGlowLarge: { backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 200, height: 330, position: "absolute", right: -128, top: -165, width: 330 },
   heroGlowSmall: { backgroundColor: "rgba(255,255,255,0.11)", borderRadius: 100, bottom: -88, height: 200, left: -82, position: "absolute", width: 200 },
-  logoFrame: { alignItems: "center", backgroundColor: "#ffffff", borderRadius: 24, height: 112, justifyContent: "center", marginTop: 4, overflow: "hidden", width: 112 },
-  logo: { height: 106, width: 106 },
-  heroTagline: { color: "rgba(255,255,255,0.94)", fontSize: 14, fontWeight: "700", lineHeight: 20, marginTop: 12, maxWidth: 310, textAlign: "center" },
-  card: { borderWidth: StyleSheet.hairlineWidth, elevation: 10, gap: 16, marginHorizontal: 16, marginTop: -50, padding: 22, shadowColor: "#0c4a6e", shadowOffset: { height: 10, width: 0 }, shadowOpacity: 0.15, shadowRadius: 24 },
-  title: { fontSize: 29, fontWeight: "900", letterSpacing: -0.7 },
-  fields: { gap: 13 },
-  field: { gap: 6 },
-  passwordField: { gap: 6 },
-  inputShell: { alignItems: "center", borderRadius: 15, borderWidth: 1, flexDirection: "row", minHeight: 56, paddingHorizontal: 14 },
-  input: { flex: 1, fontSize: 15.5, minHeight: 54, paddingHorizontal: 12, paddingVertical: 12 },
+  logoFrame: { alignItems: "center", backgroundColor: "#ffffff", borderRadius: 20, height: 88, justifyContent: "center", marginTop: 2, overflow: "hidden", width: 88 },
+  logo: { height: 84, width: 84 },
+  heroTagline: { color: "rgba(255,255,255,0.94)", fontSize: 13, fontWeight: "700", lineHeight: 18, marginTop: 8, maxWidth: 310, textAlign: "center" },
+  card: { borderWidth: StyleSheet.hairlineWidth, elevation: 10, gap: 12, marginHorizontal: 14, marginTop: -36, padding: 18, shadowColor: "#0c4a6e", shadowOffset: { height: 8, width: 0 }, shadowOpacity: 0.15, shadowRadius: 20 },
+  title: { fontSize: 27, fontWeight: "900", letterSpacing: -0.6 },
+  fields: { gap: 10 },
+  field: { gap: 4 },
+  passwordField: { gap: 4 },
+  inputShell: { alignItems: "center", borderRadius: 14, borderWidth: 1, flexDirection: "row", minHeight: 50, paddingHorizontal: 13 },
+  input: { flex: 1, fontSize: 15, minHeight: 48, paddingHorizontal: 11, paddingVertical: 10 },
   eyeButton: { alignItems: "center", height: 44, justifyContent: "center", marginRight: -8, width: 44 },
-  fieldError: { fontSize: 12, lineHeight: 17, paddingHorizontal: 4 },
-  passwordHint: { fontSize: 12, lineHeight: 17, paddingHorizontal: 4 },
-  termsCopy: { fontSize: 12.5, lineHeight: 19, textAlign: "center" },
+  fieldError: { fontSize: 11.5, lineHeight: 16, paddingHorizontal: 4 },
+  passwordHint: { fontSize: 11.5, lineHeight: 16, paddingHorizontal: 4 },
+  termsCopy: { fontSize: 11.5, lineHeight: 17, textAlign: "center" },
   legalLink: { color: BRAND_BLUE, fontWeight: "900" },
-  primaryButtonShell: { borderRadius: 15, minHeight: 56, overflow: "hidden" },
-  primaryButton: { alignItems: "center", justifyContent: "center", minHeight: 56, paddingHorizontal: 18 },
-  primaryButtonText: { color: "#ffffff", fontSize: 17, fontWeight: "900" },
-  dividerRow: { alignItems: "center", flexDirection: "row", gap: 12, marginVertical: 2 },
+  primaryButtonShell: { borderRadius: 14, minHeight: 50, overflow: "hidden" },
+  primaryButton: { alignItems: "center", justifyContent: "center", minHeight: 50, paddingHorizontal: 18 },
+  primaryButtonText: { color: "#ffffff", fontSize: 16, fontWeight: "900" },
+  dividerRow: { alignItems: "center", flexDirection: "row", gap: 10 },
   divider: { flex: 1, height: StyleSheet.hairlineWidth },
   dividerText: { fontSize: 13, fontWeight: "700" },
-  appleButtonContainer: { minHeight: 54 },
-  appleButton: { height: 54, width: "100%" },
-  appleLoading: { alignItems: "center", backgroundColor: "#000000", borderRadius: 14, height: 54, justifyContent: "center" },
-  oauthButton: { alignItems: "center", borderRadius: 15, borderWidth: 1, justifyContent: "center", minHeight: 54, paddingHorizontal: 16 },
+  appleButtonContainer: { minHeight: 50 },
+  appleButton: { height: 50, width: "100%" },
+  appleLoading: { alignItems: "center", backgroundColor: "#000000", borderRadius: 14, height: 50, justifyContent: "center" },
+  oauthButton: { alignItems: "center", borderRadius: 14, borderWidth: 1, justifyContent: "center", minHeight: 50, paddingHorizontal: 16 },
   oauthContent: { alignItems: "center", flexDirection: "row", gap: 12 },
   oauthButtonText: { fontSize: 15.5, fontWeight: "900" },
-  loginRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", paddingHorizontal: 20, paddingTop: 24 },
-  loginCopy: { fontSize: 14.5 },
-  loginLink: { color: BRAND_BLUE, fontSize: 14.5, fontWeight: "900" },
+  loginRow: { alignItems: "center", flexDirection: "row", flexWrap: "wrap", justifyContent: "center", paddingHorizontal: 20, paddingTop: 14 },
+  loginCopy: { fontSize: 14 },
+  loginLink: { color: BRAND_BLUE, fontSize: 14, fontWeight: "900" },
   message: { borderRadius: 12, borderWidth: 1, paddingHorizontal: 13, paddingVertical: 11 },
   errorMessage: { backgroundColor: "#fef2f2", borderColor: "#fecaca" },
   errorText: { color: "#b91c1c", fontSize: 13, lineHeight: 19 },
