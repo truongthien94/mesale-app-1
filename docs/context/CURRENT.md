@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-033`
-- Session: `SES-20260813-027`
+- Latest checkpoint: `CKP-20260813-034`
+- Session: `SES-20260813-028`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-042` / `CHG-20260813-033`; production avatar and payment-account contract remediation is deployed and runtime-verified.
+- Current batch: `TSK-MOB-043` / `CHG-20260813-034`; production avatar upload and public storage serving were repaired and verified through the Android emulator.
 - Source state is locally verified at the current working tree; the authenticated disposable-account smoke gate remains open.
+
+## 2026-08-13 Avatar Upload Emulator Verification
+
+- Production had an older `AccountController` while the live route referenced `uploadAvatar`; the reviewed controller, avatar service, user model, and targeted `avatar_path` migration were synchronized to the host.
+- Production `public/storage -> storage/app/public` was created with Laravel's `storage:link`; the helper was removed immediately after execution.
+- Android emulator smoke passed: Photo Picker opened, crop completed, `Tải ảnh lên` returned to the profile without `Server Error` or a fatal logcat exception.
+- The uploaded WebP was confirmed under the production public avatar storage and its HTTPS `/storage/avatars/...` response returned `200 image/webp`; the app profile rendered an `ImageView` instead of the initials fallback.
+- Local temporary diagnostic helpers were removed; no credential, token, member data, or raw production response was recorded.
+- Verification IDs: `SES-20260813-028`, `CKP-20260813-034`, `TSK-MOB-043`, `CHG-20260813-034`, `TST-20260813-034`.
+- Release remains `NOT READY`; physical-device, signed-artifact, staging, privacy, and store evidence remain open.
 
 ## 2026-08-13 Production Avatar And Payment-Account Remediation
 

@@ -1,6 +1,6 @@
 # Open Blockers
 
-Checkpoint `CKP-20260813-033` records the targeted production fix for the avatar, bank-account, and e-wallet `Server Error` path. The live API config returns HTTP `200`, the unauthenticated payment-account route returns the expected `401`, and the avatar route is registered. The remaining production gate is an authenticated disposable-account smoke for avatar upload, one bank account, and one e-wallet account; capture only status, API code, and request ID. Release remains `NOT READY`.
+Checkpoint `CKP-20260813-034` records the completed Android-emulator avatar smoke. The production controller/service/model contract was synchronized, the `public/storage` link was created, the photo picker and crop flow completed, the upload returned without `Server Error`, and the resulting public WebP returned HTTP `200` and rendered in the profile. The remaining production gate is an authenticated disposable-account smoke for one bank account and one e-wallet account; capture only status, API code, and request ID. Release remains `NOT READY`.
 
 Checkpoint `CKP-20260812-022` records the native social-login rollout. Android renders the redesigned Vietnamese login UI and opens the native Google Play Services account flow; production Google OAuth is enabled after the full named UNIQUE migration and a redacted invalid-token canary. iOS source renders Sign in with Apple before Google and contains nonce/code server exchange, but signed iOS Google/Apple evidence is blocked on owner client metadata, Apple server credentials, and Apple hardware/build access. No real provider account was used, and the Google Sheet connector is unavailable in this session. Release remains `NOT READY`.
 
@@ -37,7 +37,7 @@ Home wallet-summary checkpoint `CKP-20260811-005`: mobile `49/49`, Laravel `77/7
 | `BLK-HOME-001` | P1 | Home content parity | Current coupon/ranking content now uses existing live API contracts and the disabled blog block is omitted. Page Builder order and enable/disable state still have no reviewed mobile config contract, so admin configuration can drift from the app. GitHub Issue #24. | Product/backend/mobile | Partially resolved locally |
 | `BLK-UI-002` | P1 | Store copy / walkthrough | The native phone walkthrough uses hardcoded sample order and cashback values. Its visible illustration caption was removed at owner request, so users or reviewers may interpret the amounts as real or guaranteed earnings. GitHub Issue #26. | Product/release | Open |
 | `BLK-TEST-001` | P2 | Test quality | Remote CI run `31325626880` passed for commit `62e6678`; device/store evidence remains outside CI. | Backend/CI | Resolved |
-| `BLK-PROD-SMOKE-001` | P1 | Production QA | Targeted avatar/payment-account schema and controller remediation is deployed; authenticated disposable-account smoke for avatar upload, bank create, and wallet create is still missing. | Mobile/backend/QA | Open |
+| `BLK-PROD-SMOKE-001` | P1 | Production QA | Avatar upload is verified on the Android emulator and the public WebP URL returns HTTP `200`; authenticated disposable-account smoke for bank create and wallet create is still missing. | Mobile/backend/QA | Open |
 
 Resolved in this checkpoint:
 
