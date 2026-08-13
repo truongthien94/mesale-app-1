@@ -6,9 +6,9 @@
 - Latest decision: [DEC-20260812-012](../decisions/DEC-20260812-012.md)
 - Current batch: `TSK-MOB-054` / `CHG-20260813-045` / `TST-20260813-045`
 - Current source base: `94900e5` (`origin/main` before this batch)
-- Current context checkpoint: `CKP-20260813-045` (local; publication pending)
+- Current context checkpoint: `CKP-20260813-045` (published)
 - Current local evidence: mobile `109/109`; TypeScript; Expo Doctor `18/18`; registration release build/install, UI-tree, fatal-log, and screenshot inspection
-- Current remote evidence: source `527e6a9` published to `origin/main`; GitHub Actions pending
+- Current remote evidence: source `527e6a9` and context `348fd4a` published to `origin/main`; GitHub Actions run `31715099689` passed
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

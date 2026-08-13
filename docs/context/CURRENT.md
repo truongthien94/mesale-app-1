@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-054` / `CHG-20260813-045`; the native registration UI now follows the approved reference, excludes inline referral entry, and is published with CI pending.
+- Current batch: `TSK-MOB-054` / `CHG-20260813-045`; the native registration UI now follows the approved reference, excludes inline referral entry, and is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Registration UI Redesign
@@ -20,7 +20,7 @@
 - Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, Android x86_64 release build/install, logged-out deep link, UI-tree inspection, and fatal-log check passed.
 - Local screenshot: `C:\Users\ThichMMO\AppData\Local\Temp\mesale-register-redesign-final-20260813.png` (not committed).
 - Operational IDs: `SES-20260813-039`, `CKP-20260813-045`, `TSK-MOB-054`, `CHG-20260813-045`, `TST-20260813-045`.
-- Source commit `527e6a9` is published directly to `origin/main`; CI and context publication are pending.
+- Source commit `527e6a9` and context commit `348fd4a` are published directly to `origin/main`; GitHub Actions run `31715099689` passed.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
 
