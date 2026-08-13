@@ -113,6 +113,13 @@ test("maps Laravel confirmation fields and the mobile device name", () => {
   assert.match(source, /authenticated: false/);
 });
 
+test("registration uses the Mê Sale logo instead of the fallback letter mark", () => {
+  const registerSource = fs.readFileSync(registerScreenPath, "utf8");
+
+  assert.match(registerSource, /logo=\{require\("\.\.\/\.\.\/assets\/mesale-logo\.png"\)\}/);
+  assert.match(registerSource, /<AuthForm/);
+});
+
 test("gates auth continuations and routes eligible sessions to referral onboarding", () => {
   assert.equal(resolveAuthGate({ kind: "email-verification", email: "member@example.test" }, true, true), "/verify-email");
   assert.equal(resolveAuthGate({ kind: "two-factor", challengeToken: "challenge", methods: ["email_otp"] }, true, true), "/two-factor");

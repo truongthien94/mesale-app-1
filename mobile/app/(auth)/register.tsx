@@ -44,7 +44,11 @@ export default function RegisterScreen() {
   }
 
   return (
-    <AuthForm title="Đăng ký tài khoản" subtitle="Gia nhập Mesale để nhận hoàn tiền và quản lý phần thưởng trên cùng tài khoản website.">
+    <AuthForm
+      logo={require("../../assets/mesale-logo.png")}
+      title="Đăng ký tài khoản"
+      subtitle="Gia nhập Mesale để nhận hoàn tiền và quản lý phần thưởng trên cùng tài khoản website."
+    >
       <AuthField label="Họ và tên (tùy chọn)" onChangeText={setName} placeholder="Nguyễn Văn A" value={name} />
       <AuthField autoCapitalize="none" autoComplete="email" error={errors.email} keyboardType="email-address" label="Địa chỉ email" onChangeText={setEmail} placeholder="email-cua-ban@gmail.com" value={email} />
       <AuthField autoCapitalize="none" autoComplete="tel" keyboardType="phone-pad" label="Số điện thoại (tùy chọn)" onChangeText={setPhone} placeholder="0987654321" value={phone} />

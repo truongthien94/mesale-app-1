@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-043`
-- Session: `SES-20260813-037`
+- Latest checkpoint: `CKP-20260813-044`
+- Session: `SES-20260813-038`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-052` / `CHG-20260813-043`; a current ARM64 Android test APK is built and locally verified without source changes.
+- Current batch: `TSK-MOB-053` / `CHG-20260813-044`; registration branding now uses the real Mê Sale logo and is locally verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -50,6 +50,15 @@
 - Built and installed a separate x86_64 release variant on `emulator-5554`; cold launch completed without `AndroidRuntime` or `ReactNativeJS` fatal errors.
 - The delivered APK uses the local Android debug certificate and is intended only for direct device testing, not Google Play submission.
 - Operational IDs: `SES-20260813-037`, `CKP-20260813-043`, `TSK-MOB-052`, `CHG-20260813-043`, `TST-20260813-043`.
+
+## 2026-08-13 Registration Logo
+
+- Replaced the registration header's fallback `M` letter mark with the existing `mesale-logo.png` asset already used by the login experience.
+- Kept the shared auth form, registration fields, auth gate, safe-area handling, keyboard behavior, validation, and backend contract unchanged.
+- Added a contract test requiring the registration screen to pass the real Mê Sale logo into `AuthForm`.
+- Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, x86_64 release build/install, logged-out registration deep link, screenshot inspection, and fatal-log check passed.
+- Screenshot evidence: `C:\Users\ThichMMO\AppData\Local\Temp\mesale-register-logo-release.png` (local only; not committed).
+- Operational IDs: `SES-20260813-038`, `CKP-20260813-044`, `TSK-MOB-053`, `CHG-20260813-044`, `TST-20260813-044`.
 
 ## 2026-08-13 Account Tab Hub Recovery
 
