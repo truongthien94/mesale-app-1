@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-049` / `CHG-20260813-040`; Android launcher icon safe-zone remediation is locally verified.
+- Current batch: `TSK-MOB-049` / `CHG-20260813-040`; Android launcher icon safe-zone remediation is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Android Launcher Icon Safe Zone
@@ -19,6 +19,7 @@
 - Added a dedicated transparent 1024x1024 foreground containing the shopping bag, percent tag, and sparkle with safe padding; the full in-app logo remains unchanged.
 - Expo prebuild and Android debug reinstall passed; Pixel Launcher home and app drawer showed the complete, sharper mark without clipping.
 - Verification: mobile `107/107`, TypeScript, Expo Doctor `18/18`, Android build/install, launcher inspection, and diff checks passed.
+- Source commit `2effeb2` is published directly to `origin/main`; GitHub Actions run `31702131858` passed mobile tests, Laravel tests, context/secret checks, and both platform exports.
 - Operational IDs: `SES-20260813-034`, `CKP-20260813-040`, `TSK-MOB-049`, `CHG-20260813-040`, `TST-20260813-040`.
 - Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
