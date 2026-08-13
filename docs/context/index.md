@@ -6,7 +6,7 @@
 - Latest decision: [DEC-20260812-012](../decisions/DEC-20260812-012.md)
 - Current batch: `TSK-MOB-046` / `CHG-20260813-037` / `TST-20260813-037`
 - Current source commit: `232ec18` (published directly to `origin/main`)
-- Current context commit: pending publication for `CKP-20260813-037`
+- Current context checkpoint: `CKP-20260813-037` (published directly to `origin/main`)
 - Current local evidence: mobile `103/103`; TypeScript; Home negative contract; ARM64 release APK; standalone x86_64 emulator install/startup
 - Current remote evidence: GitHub Actions run `31680909749` passed `context-log-check`, `laravel-tests`, and `mobile-tests`
 - Plan: [migration-plan.md](../migration-plan.md)
