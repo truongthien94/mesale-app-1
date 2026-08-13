@@ -90,6 +90,10 @@ test("keeps API-disabled, bare 503, cancellation, and client configuration state
   assert.equal(states[2].isCancellation, true);
   assert.equal(states[0].disablesProvider, true);
   assert.equal(states[3].disablesProvider, true);
+  const developerError = mapOAuthError("GOOGLE_DEVELOPER_ERROR", 0, "google", "vi");
+  assert.equal(developerError.kind, "client-not-configured");
+  assert.equal(developerError.disablesProvider, true);
+  assert.match(developerError.message, /vn\.mesale\.app/);
 });
 
 test("wires native provider actions into login and Apple reauthentication into deletion", () => {

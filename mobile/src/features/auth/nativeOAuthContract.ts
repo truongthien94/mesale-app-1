@@ -169,6 +169,12 @@ export function mapOAuthError(
       disablesProvider: true,
       isCancellation: false
     },
+    GOOGLE_DEVELOPER_ERROR: {
+      kind: "client-not-configured",
+      message: translated(locale, "Cáº¥u hÃ¬nh Google Android chÆ°a khá»›p vá»›i báº£n app nÃ y. Kiá»ƒm tra package vn.mesale.app vÃ  SHA-1 cá»§a APK.", "Google Android OAuth is not configured for this build. Check package vn.mesale.app and the APK SHA-1 certificate."),
+      disablesProvider: true,
+      isCancellation: false
+    },
     APPLE_NOT_AVAILABLE: {
       kind: "apple-not-available",
       message: translated(locale, "Sign in with Apple không khả dụng trên thiết bị này.", "Sign in with Apple is not available on this device."),

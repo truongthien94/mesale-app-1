@@ -19,6 +19,7 @@ import {
 type NativeOAuthFlowErrorCode =
   | "NATIVE_AUTH_CANCELLED"
   | "GOOGLE_CLIENT_NOT_CONFIGURED"
+  | "GOOGLE_DEVELOPER_ERROR"
   | "APPLE_NOT_AVAILABLE"
   | "NATIVE_CREDENTIAL_MISSING"
   | "GOOGLE_PLAY_SERVICES_UNAVAILABLE"
@@ -136,6 +137,10 @@ export async function signInWithGoogleNative(): Promise<LoginResult> {
   } catch (reason) {
     if (reason instanceof NativeOAuthFlowError) throw reason;
     const code = errorCode(reason);
+    // Google status 10 means the Android package/SHA-1 does not match OAuth.
+    if (code === "10" || code === "DEVELOPER_ERROR") {
+      throw new NativeOAuthFlowError("GOOGLE_DEVELOPER_ERROR", reason);
+    }
     if (code === google.statusCodes.SIGN_IN_CANCELLED) {
       throw new NativeOAuthFlowError("NATIVE_AUTH_CANCELLED", reason);
     }
