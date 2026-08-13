@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-045`
-- Session: `SES-20260813-039`
+- Latest checkpoint: `CKP-20260813-046`
+- Session: `SES-20260813-040`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-054` / `CHG-20260813-045`; the native registration UI now follows the approved reference, excludes inline referral entry, and is published and CI-verified.
+- Current batch: `TSK-MOB-055` / `CHG-20260813-046`; registration is compact, retains phone, excludes inline referral entry, and is published with CI pending.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+
+## 2026-08-13 Compact Registration With Phone
+
+- Reduced the registration-only hero, logo, card, field, CTA, OAuth, and footer spacing so the default Android viewport displays phone, Google, and login without initial scrolling.
+- Restored the requested phone field with phone-pad input, focus-chain behavior, and Laravel payload wiring.
+- Kept referral input out of registration and preserved the existing server-authoritative three-day post-registration flow.
+- Verification: mobile `109/109`, TypeScript, Expo Doctor `18/18`, Android release build/install, logged-out deep link, screenshot inspection, and fatal-log check passed.
+- Operational IDs: `SES-20260813-040`, `CKP-20260813-046`, `TSK-MOB-055`, `CHG-20260813-046`, `TST-20260813-046`.
+- Source commit `5ada35a` is published directly to `origin/main`; CI and context publication are pending.
 
 ## 2026-08-13 Registration UI Redesign
 
