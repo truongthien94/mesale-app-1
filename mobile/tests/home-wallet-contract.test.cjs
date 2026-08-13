@@ -259,6 +259,33 @@ test("home adds the referral CTA, approved cashback claim, and live Quick Access
   assert.ok(phoneDemoIndex > quickAccessIndex);
 });
 
+test("home renders a compact cashback result without exposing the raw affiliate URL", () => {
+  const source = read("../src/features/home/HomeScreen.tsx");
+  const inputIndex = source.indexOf("styles.inputFrame");
+  const resultIndex = source.indexOf("<ProductResult");
+  const referralIndex = source.indexOf("styles.referralCtaPressable");
+
+  assert.match(source, /const \[detailsOpen, setDetailsOpen\] = useState\(false\)/);
+  assert.match(source, /product\.commissionAmount \/ product\.price/);
+  assert.match(source, /product\.cashbackAmount \/ product\.commissionAmount/);
+  assert.match(source, /const totalLabel = product\.isEstimated \? strings\.estimatedRate : strings\.estimatedCashback/);
+  assert.match(source, /style=\{styles\.cashbackTotal\}/);
+  assert.match(source, /accessibilityState=\{\{ expanded: detailsOpen \}\}/);
+  assert.match(source, /styles\.resultActions/);
+  assert.match(source, /<ShoppingBag color="#ffffff"/);
+  assert.match(source, /<Share2 color=\{RESULT_BLUE\}/);
+  assert.match(source, /key=\{cashbackMutation\.data\.transId\}/);
+  assert.match(source, /formatVnd\(product\.commissionAmount, language\)/);
+  assert.match(source, /formatVnd\(product\.cashbackAmount, language\)/);
+  assert.match(source, /minimumFontScale=\{0\.72\}/);
+  assert.doesNotMatch(source, /styles\.affiliateBox|styles\.affiliateUrl|styles\.resultTopRow/);
+  assert.doesNotMatch(source, /<MetricCard/);
+  assert.match(source, /function openMarketplace\(\)[\s\S]*Linking\.openURL\(product\.affiliateUrl\)/);
+  assert.match(source, /Share\.share\(\{ message: product\.affiliateUrl \}\)/);
+  assert.ok(resultIndex > inputIndex);
+  assert.ok(referralIndex > resultIndex);
+});
+
 test("home ends at PhoneFlowDemo and does not mount the removed Round C blocks", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
   assert.match(source, /<View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View>\s*<\/ScrollView>/);

@@ -23,6 +23,7 @@ import {
   Banknote,
   Bell,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   Copy,
   Gift,
@@ -30,6 +31,7 @@ import {
   Lightbulb,
   Link2,
   MessageCircle,
+  Share2,
   ShoppingBag,
   Ticket,
   TrendingUp,
@@ -89,15 +91,15 @@ const copy = {
     referralCtaTitle: "Rủ bạn dùng Mê Sale",
     referralCtaSubtitle: "Chia sẻ mã giới thiệu, nhận hoa hồng!",
     referralCtaAction: "Mời bạn",
-    productReady: "Sản phẩm hợp lệ nhận hoàn tiền",
-    currentPrice: "Giá hiện tại",
-    estimatedCashback: "Tiền hoàn dự kiến",
+    productReady: "Sản phẩm có thể nhận hoàn tiền",
+    currentPrice: "Giá sản phẩm",
+    estimatedCashback: "Tổng hoa hồng đơn này",
     estimatedRate: "Tỷ lệ hoàn ước tính",
-    estimatedNote: "Số tiền thực tế được máy chủ cập nhật sau khi sàn ghi nhận đơn hàng.",
-    affiliateLink: "Liên kết hoàn tiền của bạn",
-    notice: "Lưu ý",
-    openMarketplace: "Mở sàn mua hàng",
-    shareLink: "Chia sẻ liên kết",
+    estimatedNote: "Mức hoàn thực tế được xác nhận sau khi sàn ghi nhận đơn hợp lệ.",
+    affiliateLink: "Link mua hàng đã tạo",
+    notice: "Chi tiết tính toán",
+    openMarketplace: "Mua ngay",
+    shareLink: "Chia sẻ",
     handoffTitle: "Rời Mê Sale?",
     handoffMessage: "Bạn sẽ mở ứng dụng hoặc website của sàn. Hãy mua hàng qua đúng liên kết này để hệ thống ghi nhận cashback.",
     cancel: "Ở lại",
@@ -145,15 +147,15 @@ const copy = {
     referralCtaTitle: "Invite friends to Mê Sale",
     referralCtaSubtitle: "Share your referral code and earn commission!",
     referralCtaAction: "Invite",
-    productReady: "Product eligible for cashback",
+    productReady: "Product may be eligible for cashback",
     currentPrice: "Current price",
-    estimatedCashback: "Estimated cashback",
+    estimatedCashback: "Total commission for this order",
     estimatedRate: "Estimated cashback rate",
-    estimatedNote: "The server updates the final amount after the marketplace records your order.",
-    affiliateLink: "Your cashback link",
-    notice: "Notice",
-    openMarketplace: "Open marketplace",
-    shareLink: "Share link",
+    estimatedNote: "The final cashback is confirmed after the marketplace records an eligible order.",
+    affiliateLink: "Generated purchase link",
+    notice: "Calculation details",
+    openMarketplace: "Buy now",
+    shareLink: "Share",
     handoffTitle: "Leave Mesale?",
     handoffMessage: "This opens the marketplace app or website. Complete the purchase through this exact link so cashback can be tracked.",
     cancel: "Stay",
@@ -177,6 +179,7 @@ const platformPresentation: Record<Marketplace, { label: string; color: string }
 };
 
 const SUPPORT_URL = "https://zalo.me/g/rb0b31ft7erer5slrcqb";
+const RESULT_BLUE = "#2f93f5";
 
 function isOfflineError(error: unknown): boolean {
   return error instanceof ApiError && (error.isNetworkError || error.isTimeout || error.status === 0);
@@ -235,18 +238,6 @@ function InlineNotice({ message, tone = "neutral", onRetry, strings }: {
           <Text style={styles.noticeActionText}>{strings.retry}</Text>
         </Pressable>
       ) : null}
-    </View>
-  );
-}
-
-function MetricCard({ label, value, accent }: { label: string; value: string; accent: string }) {
-  const { colors } = useTheme();
-
-  return (
-    <View style={[styles.metricCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.metricMark, { backgroundColor: accent }]} />
-      <Text numberOfLines={2} style={[styles.metricLabel, { color: colors.mutedText }]}>{label}</Text>
-      <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.metricValue, { color: colors.text }]}>{value}</Text>
     </View>
   );
 }
@@ -383,9 +374,17 @@ function ProductResult({ product, language, notice, strings }: {
   strings: Strings;
 }) {
   const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const { colors } = useTheme();
-  const presentation = platformPresentation[product.platform];
   const marketplaceNotice = stripMarkup(notice ?? null);
+  const commissionRate = product.price > 0 ? (product.commissionAmount / product.price) * 100 : 0;
+  const memberShare = product.commissionAmount > 0
+    ? Math.max(0, Math.min(100, (product.cashbackAmount / product.commissionAmount) * 100))
+    : 0;
+  const commissionSummary = product.isEstimated
+    ? `${product.cashbackRate}${strings.rateSuffix}`
+    : `${language === "vi" ? "Hoa hồng" : "Commission"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
+  const totalLabel = product.isEstimated ? strings.estimatedRate : strings.estimatedCashback;
 
   function openMarketplace() {
     setHandoffError(null);
@@ -409,66 +408,67 @@ function ProductResult({ product, language, notice, strings }: {
 
   return (
     <View style={[styles.resultCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={styles.resultTopRow}>
-        <View style={[styles.platformBadge, { backgroundColor: presentation.color }]}>
-          <Text style={styles.platformBadgeText}>{presentation.label}</Text>
-        </View>
-        <Text style={[styles.referenceText, { color: colors.mutedText }]}>{strings.reference}: {product.transId}</Text>
-      </View>
-
       <View style={styles.productRow}>
         <ProductImage key={product.image ?? product.transId} name={product.name} uri={product.image} />
         <View style={styles.productBody}>
-          <Text style={[styles.eligibleText, { backgroundColor: `${colors.primary}18`, color: colors.primary }]}>{strings.productReady}</Text>
-          <Text numberOfLines={4} style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
+          <Text numberOfLines={3} style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
+          {product.price > 0 ? <Text style={[styles.productPrice, { color: RESULT_BLUE }]}>{formatVnd(product.price, language)}</Text> : null}
+          <Text numberOfLines={1} style={[styles.productRate, { color: colors.mutedText }]}>{commissionSummary}</Text>
         </View>
       </View>
 
-      {product.isEstimated ? (
-        <View style={[styles.estimatedBox, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-          <Text style={[styles.estimatedLabel, { color: colors.primary }]}>{strings.estimatedRate}</Text>
-          <Text style={[styles.estimatedValue, { color: colors.primary }]}>{product.cashbackRate}{strings.rateSuffix}</Text>
-          <Text style={[styles.estimatedNote, { color: colors.text }]}>{strings.estimatedNote}</Text>
+      <LinearGradient colors={["#36a4ff", "#176fe5"]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.cashbackTotal}>
+        <View style={styles.cashbackTotalCopy}>
+          <Text style={styles.cashbackTotalLabel}>{totalLabel}</Text>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={styles.cashbackTotalValue}>
+            {product.isEstimated ? `~${product.cashbackRate}%` : formatVnd(product.commissionAmount, language)}
+          </Text>
         </View>
-      ) : (
-        <View style={styles.productMetrics}>
-          <MetricCard label={strings.currentPrice} value={formatVnd(product.price, language)} accent="#94a3b8" />
-          <MetricCard label={strings.estimatedCashback} value={formatVnd(product.cashbackAmount, language)} accent="#f97316" />
-        </View>
-      )}
+        {memberShare > 0 ? (
+          <View style={styles.memberSharePill}>
+            <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.memberShareText}>{language === "vi" ? "Bạn nhận" : "You receive"} {memberShare.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 0 })}%</Text>
+          </View>
+        ) : null}
+      </LinearGradient>
 
-      <View style={[styles.affiliateBox, { backgroundColor: colors.background, borderColor: colors.border }]}>
-        <Text style={[styles.affiliateLabel, { color: colors.mutedText }]}>{strings.affiliateLink}</Text>
-        <Text numberOfLines={2} selectable style={[styles.affiliateUrl, { color: colors.text }]}>{product.affiliateUrl}</Text>
-      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: detailsOpen }}
+        onPress={() => setDetailsOpen((open) => !open)}
+        style={({ pressed }) => [styles.detailsToggle, pressed && styles.pressed]}
+      >
+        <ChevronDown color={RESULT_BLUE} size={17} strokeWidth={2.4} style={detailsOpen ? styles.detailsChevronOpen : undefined} />
+        <Text style={[styles.detailsToggleText, { color: RESULT_BLUE }]}>{strings.notice}</Text>
+      </Pressable>
 
-      {marketplaceNotice ? (
-        <View style={[styles.marketplaceNotice, { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` }]}>
-          <Text style={[styles.marketplaceNoticeTitle, { color: colors.primary }]}>{strings.notice}</Text>
-          <Text style={[styles.marketplaceNoticeText, { color: colors.text }]}>{marketplaceNotice}</Text>
+      {detailsOpen ? (
+        <View style={[styles.detailsPanel, { backgroundColor: colors.background, borderColor: colors.border }]}>
+          <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.reference}</Text><Text selectable style={[styles.detailValue, { color: colors.text }]}>{product.transId}</Text></View>
+          {product.price > 0 ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.currentPrice}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.price, language)}</Text></View> : null}
+          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedCashback}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.commissionAmount, language)}</Text></View> : null}
+          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{language === "vi" ? "Tiền hoàn của bạn" : "Your cashback"}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.cashbackAmount, language)}</Text></View> : null}
+          <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedRate}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{product.cashbackRate}{strings.rateSuffix}</Text></View>
+          {marketplaceNotice ? <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{marketplaceNotice}</Text> : null}
+          <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{strings.estimatedNote}</Text>
         </View>
       ) : null}
 
       {handoffError ? <InlineNotice message={handoffError} tone="danger" strings={strings} /> : null}
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={openMarketplace}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
-      >
-        <Text style={styles.primaryButtonText}>{strings.openMarketplace}</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => void shareAffiliateLink()}
-        style={({ pressed }) => [
-          styles.secondaryButton,
-          { backgroundColor: `${colors.primary}12`, borderColor: `${colors.primary}45` },
-          pressed && styles.pressed
-        ]}
-      >
-        <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>{strings.shareLink}</Text>
-      </Pressable>
+      <View style={styles.resultActions}>
+        <Pressable accessibilityRole="button" onPress={openMarketplace} style={({ pressed }) => [styles.primaryButton, styles.resultAction, pressed && styles.pressed]}>
+          <ShoppingBag color="#ffffff" size={18} strokeWidth={2.2} />
+          <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={styles.primaryButtonText}>{strings.openMarketplace}</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => void shareAffiliateLink()}
+          style={({ pressed }) => [styles.secondaryButton, styles.resultAction, { backgroundColor: colors.surface, borderColor: RESULT_BLUE }, pressed && styles.pressed]}
+        >
+          <Share2 color={RESULT_BLUE} size={18} strokeWidth={2.2} />
+          <Text adjustsFontSizeToFit minimumFontScale={0.72} numberOfLines={1} style={[styles.secondaryButtonText, { color: RESULT_BLUE }]}>{strings.shareLink}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -723,6 +723,25 @@ export function HomeScreen() {
           </View>
           {inputError ? <Text accessibilityRole="alert" style={[styles.fieldError, { color: themeColors.danger }]}>{inputError}</Text> : null}
 
+          {cashbackMutation.data ? (
+            <ProductResult
+              key={cashbackMutation.data.transId}
+              language={language}
+              notice={config?.marketplaces[cashbackMutation.data.platform].notice}
+              product={cashbackMutation.data}
+              strings={strings}
+            />
+          ) : cashbackMutation.isPending ? (
+            <View accessibilityRole="progressbar" style={[styles.resultSkeleton, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
+              <View style={[styles.skeletonImage, { backgroundColor: themeColors.border }]} />
+              <View style={styles.skeletonBody}>
+                <View style={[styles.skeletonLine, styles.skeletonLineLong, { backgroundColor: themeColors.border }]} />
+                <View style={[styles.skeletonLine, { backgroundColor: themeColors.border }]} />
+                <View style={[styles.skeletonLine, styles.skeletonLineShort, { backgroundColor: themeColors.border }]} />
+              </View>
+            </View>
+          ) : null}
+
           <Pressable
             accessibilityHint={language === "vi" ? "Mở trang giới thiệu bạn bè" : "Open the referral page"}
             accessibilityLabel={strings.referralCtaTitle}
@@ -759,24 +778,6 @@ export function HomeScreen() {
             />
           ) : null}
         </View>
-
-        {cashbackMutation.data ? (
-          <ProductResult
-            language={language}
-            notice={config?.marketplaces[cashbackMutation.data.platform].notice}
-            product={cashbackMutation.data}
-            strings={strings}
-          />
-        ) : cashbackMutation.isPending ? (
-          <View accessibilityRole="progressbar" style={[styles.resultSkeleton, { backgroundColor: themeColors.surface, borderColor: themeColors.border }]}>
-            <View style={[styles.skeletonImage, { backgroundColor: themeColors.border }]} />
-            <View style={styles.skeletonBody}>
-              <View style={[styles.skeletonLine, styles.skeletonLineLong, { backgroundColor: themeColors.border }]} />
-              <View style={[styles.skeletonLine, { backgroundColor: themeColors.border }]} />
-              <View style={[styles.skeletonLine, styles.skeletonLineShort, { backgroundColor: themeColors.border }]} />
-            </View>
-          </View>
-        ) : null}
 
         <QuickAccessSection
           language={language}
@@ -851,14 +852,6 @@ const styles = StyleSheet.create({
   accountStatValue: { fontSize: 15, fontWeight: "900", marginTop: 7 },
   accountStatValueSkeleton: { borderRadius: 6, height: 17, marginTop: 8, width: "72%" },
   accountStatLabel: { fontSize: 9.5, fontWeight: "600", lineHeight: 13, marginTop: 2, minHeight: 26 },
-  metricCard: {
-    backgroundColor: colors.surface, borderColor: "#f1f5f9", borderRadius: 18, borderWidth: 1,
-    flexBasis: "47%", flexGrow: 1, minHeight: 112, padding: spacing.md,
-    shadowColor: "#0f172a", shadowOffset: { height: 3, width: 0 }, shadowOpacity: 0.04, shadowRadius: 9, elevation: 2
-  },
-  metricMark: { borderRadius: 3, height: 6, marginBottom: 12, width: 28 },
-  metricLabel: { color: colors.mutedText, fontSize: 11, fontWeight: "800", minHeight: 28, textTransform: "uppercase" },
-  metricValue: { color: colors.text, fontSize: 18, fontWeight: "900", marginTop: 6 },
   creatorCard: {
     backgroundColor: colors.surface, borderColor: "#fed7c7", borderRadius: 24, borderWidth: 1, gap: spacing.md,
     padding: spacing.lg, shadowColor: "#f97316", shadowOffset: { height: 5, width: 0 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 3
@@ -886,8 +879,8 @@ const styles = StyleSheet.create({
   input: { color: colors.text, flex: 1, fontSize: 13, minHeight: 54, paddingHorizontal: 10, paddingVertical: 12 },
   pasteButton: { alignItems: "center", justifyContent: "center", minHeight: 48, minWidth: 44 },
   fieldError: { color: colors.danger, fontSize: 12, fontWeight: "600", marginTop: -8 },
-  primaryButton: { alignItems: "center", backgroundColor: "#ee4d2d", borderRadius: 16, flexDirection: "row", gap: 9, justifyContent: "center", minHeight: 52, paddingHorizontal: spacing.lg },
-  primaryButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "900" },
+  primaryButton: { alignItems: "center", backgroundColor: "#2f93f5", borderRadius: 14, flexDirection: "row", gap: 9, justifyContent: "center", minHeight: 50, paddingHorizontal: spacing.md },
+  primaryButtonText: { color: "#ffffff", flexShrink: 1, fontSize: 14, fontWeight: "900" },
   referralCtaPressable: { borderRadius: 14, overflow: "hidden" },
   referralCta: { alignItems: "center", flexDirection: "row", gap: 9, minHeight: 66, paddingHorizontal: 11, paddingVertical: 9 },
   referralCtaIcon: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.2)", borderRadius: 11, height: 38, justifyContent: "center", width: 38 },
@@ -896,31 +889,35 @@ const styles = StyleSheet.create({
   referralCtaSubtitle: { color: "rgba(255,255,255,0.9)", fontSize: 9.5, fontWeight: "600", lineHeight: 13, marginTop: 1 },
   referralCtaAction: { alignItems: "center", backgroundColor: "#fff7ed", borderRadius: 999, flexDirection: "row", justifyContent: "center", minHeight: 34, paddingLeft: 10, paddingRight: 6 },
   referralCtaActionText: { color: "#c2410c", fontSize: 10.5, fontWeight: "900" },
-  secondaryButton: { alignItems: "center", backgroundColor: "#fff7ed", borderColor: "#fed7aa", borderRadius: 16, borderWidth: 1, justifyContent: "center", minHeight: 48, paddingHorizontal: spacing.lg },
-  secondaryButtonText: { color: "#c2410c", fontSize: 14, fontWeight: "800" },
+  secondaryButton: { alignItems: "center", borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 9, justifyContent: "center", minHeight: 50, paddingHorizontal: spacing.md },
+  secondaryButtonText: { color: "#c2410c", flexShrink: 1, fontSize: 14, fontWeight: "800" },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.78, transform: [{ scale: 0.99 }] },
-  resultCard: { backgroundColor: colors.surface, borderColor: "#fed7aa", borderRadius: 24, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
-  resultTopRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", gap: 10 },
-  referenceText: { color: colors.mutedText, flex: 1, fontSize: 10, fontWeight: "700", textAlign: "right" },
-  productRow: { flexDirection: "row", gap: spacing.md },
-  productImageFrame: { alignItems: "center", backgroundColor: "#f1f5f9", borderColor: colors.border, borderRadius: 16, borderWidth: 1, height: 108, justifyContent: "center", overflow: "hidden", width: 108 },
+  resultCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 12, padding: 14 },
+  productRow: { flexDirection: "row", gap: 11 },
+  productImageFrame: { alignItems: "center", backgroundColor: "#f1f5f9", borderColor: colors.border, borderRadius: 12, borderWidth: 1, height: 78, justifyContent: "center", overflow: "hidden", width: 78 },
   productImage: { height: "100%", width: "100%" },
   productImageFallback: { color: "#94a3b8", fontSize: 12, fontWeight: "900" },
-  productBody: { flex: 1, gap: 7 },
-  eligibleText: { alignSelf: "flex-start", backgroundColor: "#fff7ed", borderRadius: 8, color: "#c2410c", fontSize: 10, fontWeight: "900", overflow: "hidden", paddingHorizontal: 8, paddingVertical: 5 },
-  productName: { color: colors.text, fontSize: 16, fontWeight: "900", lineHeight: 22 },
-  productMetrics: { flexDirection: "row", gap: 12 },
-  estimatedBox: { backgroundColor: "#fffbeb", borderColor: "#fde68a", borderRadius: 16, borderWidth: 1, padding: spacing.md },
-  estimatedLabel: { color: "#92400e", fontSize: 10, fontWeight: "900", textTransform: "uppercase" },
-  estimatedValue: { color: "#c2410c", fontSize: 22, fontWeight: "900", marginTop: 4 },
-  estimatedNote: { color: "#92400e", fontSize: 12, lineHeight: 18, marginTop: spacing.sm },
-  affiliateBox: { backgroundColor: "#f8fafc", borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 5, padding: 13 },
-  affiliateLabel: { color: colors.mutedText, fontSize: 10, fontWeight: "900", textTransform: "uppercase" },
-  affiliateUrl: { color: "#334155", fontSize: 12, fontWeight: "600", lineHeight: 18 },
-  marketplaceNotice: { backgroundColor: "#fff7ed", borderColor: "#fed7aa", borderRadius: 16, borderWidth: 1, gap: 5, padding: 13 },
-  marketplaceNoticeTitle: { color: "#9a3412", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
-  marketplaceNoticeText: { color: "#7c2d12", fontSize: 12, lineHeight: 18 },
+  productBody: { flex: 1, gap: 3, minWidth: 0 },
+  productName: { color: colors.text, fontSize: 13, fontWeight: "800", lineHeight: 18 },
+  productPrice: { fontSize: 15, fontWeight: "900" },
+  productRate: { fontSize: 10.5, fontWeight: "600", lineHeight: 15 },
+  cashbackTotal: { alignItems: "center", borderRadius: 15, flexDirection: "row", justifyContent: "space-between", minHeight: 84, paddingHorizontal: 14, paddingVertical: 12 },
+  cashbackTotalCopy: { flex: 1, minWidth: 0 },
+  cashbackTotalLabel: { color: "rgba(255,255,255,0.78)", fontSize: 10.5, fontWeight: "600" },
+  cashbackTotalValue: { color: "#ffffff", fontSize: 28, fontWeight: "900", lineHeight: 34, marginTop: 2 },
+  memberSharePill: { backgroundColor: "rgba(255,255,255,0.24)", borderRadius: 999, marginLeft: 10, maxWidth: "46%", minWidth: 0, paddingHorizontal: 10, paddingVertical: 7 },
+  memberShareText: { color: "#ffffff", flexShrink: 1, fontSize: 10, fontWeight: "900" },
+  detailsToggle: { alignItems: "center", alignSelf: "flex-start", flexDirection: "row", gap: 4, minHeight: 38, paddingRight: 10 },
+  detailsToggleText: { fontSize: 11, fontWeight: "800" },
+  detailsChevronOpen: { transform: [{ rotate: "180deg" }] },
+  detailsPanel: { borderRadius: 12, borderWidth: 1, gap: 8, padding: 11 },
+  detailRow: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
+  detailLabel: { flex: 1, fontSize: 10.5, fontWeight: "600" },
+  detailValue: { flexShrink: 1, fontSize: 10.5, fontWeight: "800", textAlign: "right" },
+  detailNotice: { fontSize: 10.5, lineHeight: 16 },
+  resultActions: { flexDirection: "row", gap: 9 },
+  resultAction: { flex: 1, minWidth: 0 },
   resultSkeleton: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 24, borderWidth: 1, flexDirection: "row", gap: spacing.md, padding: spacing.lg },
   skeletonImage: { backgroundColor: "#e2e8f0", borderRadius: 16, height: 108, width: 108 },
   skeletonBody: { flex: 1, gap: 12, paddingTop: 7 },

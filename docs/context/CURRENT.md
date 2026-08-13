@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-034`
-- Session: `SES-20260813-028`
+- Latest checkpoint: `CKP-20260813-035`
+- Session: `SES-20260813-029`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-043` / `CHG-20260813-034`; production avatar upload and public storage serving were repaired and verified through the Android emulator.
+- Current batch: `TSK-MOB-044` / `CHG-20260813-035`; the Home cashback result was shortened to the approved compact product/commission/action composition.
 - Source state is locally verified at the current working tree; the authenticated disposable-account smoke gate remains open.
+
+## 2026-08-13 Compact Home Cashback Result
+
+- Moved the generated product result directly below the pasted link and reduced it to product image/name/price, truthful commission summary, blue total block, member share, expandable details, and `Mua ngay` / `Chia sẻ` actions.
+- Removed the raw affiliate URL, marketplace badge, reference, verbose notice, and large metrics from the collapsed card.
+- Kept calculations server-derived; no unsupported base/XTRA commission split was fabricated.
+- Added estimated-mode semantics, per-product state reset, blue theme-safe accents, and narrow-screen text constraints.
+- Verification: mobile `103/103`, TypeScript, diff check, and Android debug build/install on `emulator-5554` passed.
+- Operational IDs: `SES-20260813-029`, `CKP-20260813-035`, `TSK-MOB-044`, `CHG-20260813-035`, `TST-20260813-035`.
+- Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
 ## 2026-08-13 Avatar Upload Emulator Verification
 
