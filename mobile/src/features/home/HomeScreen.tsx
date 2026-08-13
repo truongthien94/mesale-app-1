@@ -387,22 +387,16 @@ function ProductResult({ product, language, notice, strings }: {
   const presentation = platformPresentation[product.platform];
   const marketplaceNotice = stripMarkup(notice ?? null);
 
-  async function confirmMarketplaceHandoff() {
+  function openMarketplace() {
     setHandoffError(null);
     if (!isSafeAffiliateUrl(product.affiliateUrl)) {
       setHandoffError(strings.handoffError);
       return;
     }
 
-    Alert.alert(strings.handoffTitle, strings.handoffMessage, [
-      { text: strings.cancel, style: "cancel" },
-      {
-        text: strings.continue,
-        onPress: () => {
-          void Linking.openURL(product.affiliateUrl).catch(() => setHandoffError(strings.handoffError));
-        }
-      }
-    ]);
+    // Let Android/iOS resolve the HTTPS affiliate URL to the marketplace app
+    // when its app-link association is installed; otherwise the browser opens it.
+    void Linking.openURL(product.affiliateUrl).catch(() => setHandoffError(strings.handoffError));
   }
 
   async function shareAffiliateLink() {
@@ -459,7 +453,7 @@ function ProductResult({ product, language, notice, strings }: {
 
       <Pressable
         accessibilityRole="button"
-        onPress={() => void confirmMarketplaceHandoff()}
+        onPress={openMarketplace}
         style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}
       >
         <Text style={styles.primaryButtonText}>{strings.openMarketplace}</Text>
