@@ -10,7 +10,7 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-048` / `CHG-20260813-039`; Account tab recovery is locally verified.
+- Current batch: `TSK-MOB-048` / `CHG-20260813-039`; Account tab recovery is published and CI-verified.
 - Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
 
 ## 2026-08-13 Account Tab Hub Recovery
@@ -19,6 +19,7 @@
 - Selecting the Account bottom tab now always opens the canonical Account hub, including after a direct child deep link or after leaving the tab.
 - Android runtime checks passed for Settings to Account, Settings to Home to Account, Account re-tap, child back navigation, and the full vertical Account inventory.
 - Verification: mobile `106/106`, TypeScript, Expo Doctor `18/18`, and diff checks passed.
+- Source commit `f575378` is published directly to `origin/main`; GitHub Actions run `31690494256` passed mobile tests, Laravel tests, context/secret checks, and both platform exports.
 - Operational IDs: `SES-20260813-033`, `CKP-20260813-039`, `TSK-MOB-048`, `CHG-20260813-039`, `TST-20260813-039`.
 - Google Sheet synchronization is pending because no live connector is available; release remains `NOT READY`.
 
