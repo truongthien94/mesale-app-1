@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-032`
-- Session: `SES-20260813-026`
+- Latest checkpoint: `CKP-20260813-033`
+- Session: `SES-20260813-027`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-041` / `CHG-20260813-026`; performance audit remediation covers token-bound session preview restore, canonical referral prefetch, removal of an unused Account withdrawal request, and focus/background-safe Home animation.
-- Source state is locally verified at the current working tree; publication remains gated on the exact reviewed file list and direct fast-forward push to `origin/main`.
+- Current batch: `TSK-MOB-042` / `CHG-20260813-033`; production avatar and payment-account contract remediation is deployed and runtime-verified.
+- Source state is locally verified at the current working tree; the authenticated disposable-account smoke gate remains open.
+
+## 2026-08-13 Production Avatar And Payment-Account Remediation
+
+- Production was behind the mobile contract: the avatar handler, `users.avatar_path`, idempotency storage, payment-account destination hash, and its global uniqueness constraint were missing from the live snapshot.
+- Only the reviewed backend files and three targeted migrations were deployed. The remaining pending migrations were not run, and no member, balance, order, payout, token, or credential data was changed.
+- Runtime evidence: live `/api/v1/openapi/config` returns HTTP `200`; unauthenticated payment-account access returns expected `401`; avatar route is registered and returns the expected method response without credentials.
+- Local verification: backend focused suites `74/74` (`733` assertions), mobile `102/102`, TypeScript, PHP syntax, and `git diff --check` pass.
+- Authenticated upload/create smoke remains required for one disposable member: upload avatar, add one bank account, add one e-wallet account. Record only status, API code, and request ID.
+- Operational IDs: `SES-20260813-027`, `CKP-20260813-033`, `TSK-MOB-042`, `CHG-20260813-033`, `TST-20260813-033`.
 
 ## 2026-08-13 Performance Audit Remediation
 
