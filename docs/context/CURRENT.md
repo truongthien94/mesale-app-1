@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260813-046`
-- Session: `SES-20260813-040`
+- Latest checkpoint: `CKP-20260814-001`
+- Session: `SES-20260814-001`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-055` / `CHG-20260813-046`; registration is compact, retains phone, excludes inline referral entry, and is published and CI-verified.
-- Source state, Android guide interaction, and app-selected light/dark presentation are locally verified; physical-device and store gates remain open.
+- Current batch: `TSK-MOB-056` / `CHG-20260814-001`; the native Tasks timeline tab is published and Android-emulator verified.
+- Production task milestone configuration, physical-device evidence, CI, and store gates remain open.
+
+## 2026-08-14 Native Reward Tasks Tab
+
+- Removed the duplicate Tasks row from Account and replaced the visible Withdrawal bottom tab with Tasks; Withdrawal remains a hidden routable financial destination.
+- Rebuilt Tasks into Laravel-backed referral and approved-order milestone timelines with sync, claim idempotency, offline/retry, safe area, and theme behavior preserved.
+- Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, Android API 35 debug build/install, Metro bundle, and emulator layout inspection passed.
+- Live config returned HTTP `200` with task features enabled. Production currently has referral targets 3/5 but no active cashback-order milestones; GitHub Issue #27 tracks approved Admin configuration and inconsistent task copy.
+- Operational IDs: `SES-20260814-001`, `CKP-20260814-001`, `TSK-MOB-056`, `DEC-20260814-001`, `CHG-20260814-001`, `TST-20260814-001`, `BLK-TASK-001`, `GATE-BOTH-023`.
+- Source commit `7f8ff85` is published directly to `origin/main`; CI and final context publication remain pending.
 
 ## 2026-08-13 Compact Registration With Phone
 
