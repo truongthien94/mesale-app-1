@@ -9,13 +9,13 @@ function read(relativePath) {
 
 test("the primary tab bar exposes Account as a real screen and retires the More sheet", () => {
   const layout = read("../app/(tabs)/_layout.tsx");
-  const primaryRoutes = ["home", "referrals", "orders", "withdraw", "account"];
+  const primaryRoutes = ["home", "referrals", "orders", "tasks", "account"];
   for (const route of primaryRoutes) {
     assert.match(layout, new RegExp(`name=\"${route}\"`));
   }
   const primaryPositions = primaryRoutes.map((route) => layout.indexOf(`name="${route}"`));
   assert.deepEqual(primaryPositions, [...primaryPositions].sort((left, right) => left - right));
-  for (const route of ["wallet", "earn", "inbox", "more"]) {
+  for (const route of ["withdraw", "wallet", "earn", "inbox", "more"]) {
     assert.match(layout, new RegExp(`name=\"${route}\" options=\\{\\{ href: null \\}\\}`));
   }
   assert.match(layout, /useTheme\(\)/);
@@ -48,7 +48,7 @@ test("Account is a server-authoritative native hub with approved destinations", 
   for (const hook of ["useAccount", "usePaymentAccounts", "useInfiniteQuery", "referralsQueryOptions"]) {
     assert.match(account, new RegExp(`${hook}\\(`));
   }
-  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "earn/tasks", "inbox"]) {
+  for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "inbox"]) {
     assert.match(account, new RegExp(`\\/\\(tabs\\)\\/${route.replaceAll("/", "\\/")}`));
   }
   for (const label of ["Số dư khả dụng", "Tổng đã nhận", "Từ giới thiệu", "Chưa liên kết ngân hàng", "Giới thiệu bạn bè", "Thông tin tài khoản", "Tài chính", "Thông báo", "Cài đặt", "KHÁM PHÁ", "HỖ TRỢ & PHÁP LÝ", "Đăng xuất", "Xóa tài khoản"]) {
@@ -95,6 +95,7 @@ test("Account is a server-authoritative native hub with approved destinations", 
   assert.match(account, /https:\/\/mesale\.vn\/terms/);
   assert.match(account, /https:\/\/mesale\.vn\/support/);
   assert.doesNotMatch(account, /title="Đổi quà tặng"|\/\(tabs\)\/earn\/gifts/);
+  assert.doesNotMatch(account, /title="Nhiệm vụ nhận thưởng"|navigateTo\("\/\(tabs\)\/earn\/tasks"\)/);
   assert.doesNotMatch(account, /80%|WebView|sk_live_/);
 });
 

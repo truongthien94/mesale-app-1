@@ -31,7 +31,9 @@ const taskScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/tasks.tsx");
 const giftScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gifts.tsx");
 const giftCodeScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gift-code.tsx");
 const checkinPresentationPath = path.resolve(__dirname, "../src/features/earn/checkinPresentation.ts");
+const taskPresentationPath = path.resolve(__dirname, "../src/features/earn/taskPresentation.ts");
 const referralScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/referrals.tsx");
+const taskTabPath = path.resolve(__dirname, "../app/(tabs)/tasks.tsx");
 
 const {
   referralsPath,
@@ -49,6 +51,11 @@ const {
   milestoneProgress,
   normalizeMilestones
 } = loadTypeScriptModule(checkinPresentationPath);
+const {
+  groupTaskMilestones,
+  isTaskMilestoneReached,
+  taskProgressPercent
+} = loadTypeScriptModule(taskPresentationPath);
 
 test("builds the existing referral and nested check-in pagination contracts", () => {
   assert.equal(referralsPath(3, "2", "approved"), "referrals?level=2&status=approved&page=3&per_page=15");
@@ -141,6 +148,39 @@ test("keeps task claim and physical gift validation rules explicit", () => {
   assert.equal(canSubmitCustomTask("profile", "in_progress"), false);
   assert.equal(requiresPhysicalAddress("physical"), true);
   assert.equal(requiresPhysicalAddress("giftcode"), false);
+});
+
+test("groups task timelines from server action and target values without inventing rewards", () => {
+  const tasks = [
+    { id: 9, action: "referral", target_count: 9, progress: 2, percent: 22, status: "in_progress", reward_amount: 9100 },
+    { id: 3, action: "cashback", target_count: 10, progress: 10, percent: 100, status: "completed", reward_amount: 7300 },
+    { id: 1, action: "referral", target_count: 1, progress: 1, percent: 100, status: "claimed", reward_amount: 1100 },
+    { id: 7, action: "custom", target_count: 1, progress: 0, percent: 0, status: "in_progress", reward_amount: 4200 }
+  ];
+  const grouped = groupTaskMilestones(tasks);
+
+  assert.deepEqual(grouped.referral.map((task) => task.target_count), [1, 9]);
+  assert.deepEqual(grouped.cashback.map((task) => task.reward_amount), [7300]);
+  assert.deepEqual(grouped.other.map((task) => task.id), [7]);
+  assert.equal(isTaskMilestoneReached(tasks[0]), false);
+  assert.equal(isTaskMilestoneReached(tasks[1]), true);
+  assert.equal(taskProgressPercent({ ...tasks[0], percent: 240 }), 100);
+  assert.equal(taskProgressPercent({ ...tasks[0], percent: Number.NaN, progress: 1, target_count: 4 }), 25);
+});
+
+test("renders the tasks bottom-tab route as server-authoritative referral and order timelines", () => {
+  const source = fs.readFileSync(taskScreenPath, "utf8");
+  const tabSource = fs.readFileSync(taskTabPath, "utf8");
+
+  assert.match(tabSource, /export \{ default \} from "\.\/earn\/tasks"/);
+  assert.match(source, /groupTaskMilestones\(query\.data\.items\)/);
+  assert.match(source, /action === "referral"|key: "referral"/);
+  assert.match(source, /action === "cashback"|key: "cashback"/);
+  assert.match(source, /task\.target_count/);
+  assert.match(source, /task\.reward_amount/);
+  assert.match(source, /Chưa có mốc được cấu hình/);
+  assert.match(source, /<ScrollView[\s\S]*horizontal/);
+  assert.doesNotMatch(source, /reward_amount:\s*[1-9][0-9]*/);
 });
 
 test("builds the notification list contract with type, unread filter, and pagination", () => {

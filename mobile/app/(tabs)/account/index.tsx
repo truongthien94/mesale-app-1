@@ -13,7 +13,6 @@ import {
   Gift,
   Languages,
   Lightbulb,
-  ListChecks,
   LogOut,
   ShieldCheck,
   Tag,
@@ -545,14 +544,6 @@ export default function AccountRoute() {
           onPress={() => navigateTo("/(tabs)/earn/checkin")}
           subtitle="Điểm danh và nhận thưởng mỗi ngày"
           title="Điểm danh nhận xu"
-        />
-        <AccountMenuRow
-          icon={ListChecks}
-          iconBackground={softGreen}
-          iconColor="#16a34a"
-          onPress={() => navigateTo("/(tabs)/earn/tasks")}
-          subtitle="Hoàn thành nhiệm vụ đang mở"
-          title="Nhiệm vụ nhận thưởng"
         />
         <AccountMenuRow
           icon={Lightbulb}

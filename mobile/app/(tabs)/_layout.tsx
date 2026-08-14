@@ -1,5 +1,5 @@
 import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
-import { Banknote, Home, ShoppingBag, UserRound, UsersRound } from "lucide-react-native";
+import { Home, ListChecks, ShoppingBag, UserRound, UsersRound } from "lucide-react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
 import { LoadingState } from "@/components/AsyncState";
@@ -57,12 +57,13 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="withdraw"
+          name="tasks"
           options={{
-            title: isVietnamese ? "Rút tiền" : "Withdraw",
-            tabBarIcon: ({ color, size }) => <Banknote color={color} size={size} />
+            title: isVietnamese ? "Nhiệm vụ" : "Tasks",
+            tabBarIcon: ({ color, size }) => <ListChecks color={color} size={size} />
           }}
         />
+        <Tabs.Screen name="withdraw" options={{ href: null }} />
       <Tabs.Screen name="wallet" options={{ href: null }} />
       <Tabs.Screen name="earn" options={{ href: null }} />
       <Tabs.Screen name="inbox" options={{ href: null }} />

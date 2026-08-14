@@ -20,8 +20,11 @@ test("authenticated tabs prefetch their server data without delaying navigation"
   assert.match(prefetch, /prefetchQuery\(paymentAccountsQueryOptions\(\)\)/);
   assert.match(prefetch, /InteractionManager\.runAfterInteractions\(\(\) => \{/);
   assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/referrals"\)/);
-  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/withdraw"\)/);
+  assert.match(prefetch, /router\.prefetch\("\/\(tabs\)\/tasks"\)/);
   assert.match(prefetch, /prefetchInfiniteQuery\(referralsQueryOptions\(\)\)/);
+  assert.match(prefetch, /queryKey: \["earn", "tasks"\]/);
+  assert.match(prefetch, /queryFn: \(\{ signal \}\) => fetchTasks\(signal\)/);
+  assert.doesNotMatch(prefetch, /router\.prefetch\("\/\(tabs\)\/withdraw"/);
   assert.doesNotMatch(prefetch, /prefetchInfiniteQuery\(withdrawalsQueryOptions/);
   assert.doesNotMatch(prefetch, /await Promise|setQueryData|initialData|placeholderData/);
 });

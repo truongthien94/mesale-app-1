@@ -5,7 +5,7 @@ import { InteractionManager } from "react-native";
 import { useAuth } from "@/auth/AuthProvider";
 import { accountDetailQueryOptions } from "@/features/account/query";
 import { appConfigRawQueryOptions } from "@/features/config/query";
-import { referralsQueryOptions } from "@/features/earn/api";
+import { fetchTasks, referralsQueryOptions } from "@/features/earn/api";
 import {
   ordersQueryOptions,
   paymentAccountsQueryOptions
@@ -27,8 +27,12 @@ export function AuthenticatedPrefetch() {
 
     const task = InteractionManager.runAfterInteractions(() => {
       router.prefetch("/(tabs)/referrals");
-      router.prefetch("/(tabs)/withdraw");
+      router.prefetch("/(tabs)/tasks");
       void queryClient.prefetchInfiniteQuery(referralsQueryOptions());
+      void queryClient.prefetchQuery({
+        queryKey: ["earn", "tasks"],
+        queryFn: ({ signal }) => fetchTasks(signal)
+      });
     });
 
     return () => task.cancel();
