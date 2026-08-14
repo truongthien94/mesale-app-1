@@ -1,6 +1,6 @@
 # Open Blockers
 
-Checkpoint `CKP-20260814-001` records the native Tasks bottom tab and Laravel-backed referral/order timelines. Android emulator evidence passes, but production currently exposes only referral targets 3 and 5, no active cashback-order milestones, and at least one task title whose stated count differs from `target_count`. `BLK-TASK-001` / GitHub Issue #27 requires approved Laravel Admin targets, rewards, conditions, and disposable-member device evidence. Release remains `NOT READY`.
+Checkpoint `CKP-20260814-002` records the compact native Tasks follow-up. Referral/order cards now use authoritative `target_count` values and omit inconsistent long titles; the approved qualification copy and compact emulator layout pass. Production still exposes only referral targets 3 and 5, no active cashback-order milestones, and requires approved Laravel Admin targets, rewards, conditions, and disposable-member evidence under `BLK-TASK-001` / GitHub Issue #27. Release remains `NOT READY`.
 
 Checkpoint `CKP-20260813-034` records the completed Android-emulator avatar smoke. The production controller/service/model contract was synchronized, the `public/storage` link was created, the photo picker and crop flow completed, the upload returned without `Server Error`, and the resulting public WebP returned HTTP `200` and rendered in the profile. The remaining production gate is an authenticated disposable-account smoke for one bank account and one e-wallet account; capture only status, API code, and request ID. Release remains `NOT READY`.
 

@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260813-046](checkpoints/CKP-20260813-046.md)
-- Latest session: [SES-20260813-040](sessions/SES-20260813-040.md)
-- Latest decision: [DEC-20260812-012](../decisions/DEC-20260812-012.md)
-- Current batch: `TSK-MOB-055` / `CHG-20260813-046` / `TST-20260813-046`
-- Current source base: `82ef8be` (`origin/main` before this batch)
-- Current context checkpoint: `CKP-20260813-046` (published)
-- Current local evidence: mobile `109/109`; TypeScript; Expo Doctor `18/18`; compact registration release build/install and screenshot inspection
-- Current remote evidence: source `5ada35a` and context `8ca066b` published to `origin/main`; GitHub Actions run `31717331941` passed
+- Latest checkpoint: [CKP-20260814-002](checkpoints/CKP-20260814-002.md)
+- Latest session: [SES-20260814-002](sessions/SES-20260814-002.md)
+- Latest decision: [DEC-20260814-002](../decisions/DEC-20260814-002.md)
+- Current batch: `TSK-MOB-057` / `CHG-20260814-002` / `TST-20260814-002`
+- Current source base: `919852e` (`origin/main` before this batch)
+- Current context checkpoint: `CKP-20260814-002` (local; source published, context publication pending)
+- Current local evidence: mobile `111/111`; TypeScript; Expo Doctor `18/18`; Android emulator task deep-link inspection
+- Current remote evidence: source `a06d139` published to `origin/main`; Sheet IDs synchronized; CI and final context publication pending
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

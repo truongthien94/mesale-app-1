@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260814-001`
-- Session: `SES-20260814-001`
+- Latest checkpoint: `CKP-20260814-002`
+- Session: `SES-20260814-002`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,17 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-056` / `CHG-20260814-001`; the native Tasks timeline tab is published and Android-emulator verified.
+- Current batch: `TSK-MOB-057` / `CHG-20260814-002`; compact task milestones are published and Android-emulator verified.
 - Production task milestone configuration, physical-device evidence, CI, and store gates remain open.
+
+## 2026-08-14 Compact Reward Task Milestones
+
+- Removed the three task summary boxes and compacted the hero, section headings, timeline circles, and milestone cards.
+- Added the approved Vietnamese referral/order descriptions with the minimum qualifying cashback condition emphasized.
+- Referral/order cards now show only target count/unit, server reward, progress, status, and action; custom task titles remain unchanged.
+- Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, and Android emulator deep-link inspection passed.
+- Operational IDs: `SES-20260814-002`, `CKP-20260814-002`, `TSK-MOB-057`, `DEC-20260814-002`, `CHG-20260814-002`, `TST-20260814-002`; existing `BLK-TASK-001` and `GATE-BOTH-023` remain open.
+- Source commit `a06d139` is published directly to `origin/main`; Google Sheet IDs are synchronized and unique; CI and final context publication evidence are pending.
 
 ## 2026-08-14 Native Reward Tasks Tab
 
