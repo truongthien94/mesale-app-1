@@ -185,10 +185,13 @@ test("renders the tasks bottom-tab route as server-authoritative referral and or
   assert.doesNotMatch(source, /styles\.statsRow|query\.data\.stats\.in_progress|query\.data\.stats\.completed|query\.data\.stats\.claimed/);
   assert.doesNotMatch(source, /milestoneTitle/);
   assert.doesNotMatch(source, /reward_amount:\s*[1-9][0-9]*/);
-  assert.match(source, /timelineSlot: \{[^}]*minWidth: 68[^}]*width: 68/);
-  assert.match(source, /milestoneCard: \{[^}]*minHeight: 112[^}]*width: 64/);
-  assert.match(source, /hitSlop=\{compact \? \{ top: 9, right: 1, bottom: 9, left: 1 \}/);
-  assert.match(source, /compactStatusLabel/);
+  assert.match(source, /timelineSlot: \{[^}]*minWidth: 47[^}]*width: 47/);
+  assert.match(source, /milestoneNode: \{[^}]*minHeight: 66[^}]*width: 47/);
+  assert.match(source, /milestoneStateIcon: \{[^}]*height: 34[^}]*width: 34/);
+  assert.match(source, /hitSlop=\{\{ top: 4, right: 2, bottom: 4, left: 2 \}\}/);
+  assert.match(source, /accessibilityState=\{\{ busy: isBusy, disabled: disabled \|\| isBusy \|\| !onPress \}\}/);
+  assert.doesNotMatch(source, /<StatusPill compact|compactStatusLabel|compactTaskAction/);
+  assert.doesNotMatch(source, /styles\.milestoneProgress|styles\.miniProgressTrack|styles\.milestoneCard/);
   assert.doesNotMatch(source, /Nhận \+\$\{formatMoney\(task\.reward_amount\)\}/);
 });
 

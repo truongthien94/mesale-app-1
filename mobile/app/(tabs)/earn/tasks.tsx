@@ -60,43 +60,24 @@ function statusLabel(status: string, vi: boolean): string {
   }[status] ?? status;
 }
 
-function compactStatusLabel(status: string, vi: boolean): string {
-  if (!vi) {
-    return {
-      in_progress: "Active",
-      pending: "Review",
-      completed: "Ready",
-      claimed: "Claimed"
-    }[status] ?? status.replaceAll("_", " ");
-  }
-  return {
-    in_progress: "Đang làm",
-    pending: "Chờ",
-    completed: "Sẵn sàng",
-    claimed: "Đã nhận"
-  }[status] ?? status;
-}
-
-function StatusPill({ compact = false, status, vi, styles }: { compact?: boolean; status: string; vi: boolean; styles: ReturnType<typeof createStyles> }) {
+function StatusPill({ status, vi, styles }: { status: string; vi: boolean; styles: ReturnType<typeof createStyles> }) {
   const positive = status === "claimed";
   const ready = status === "completed";
   const pending = status === "pending";
   return (
-    <View style={[styles.statusPill, compact && styles.compactStatusPill, positive && styles.statusPositive, ready && styles.statusReady, pending && styles.statusPending]}>
-      <Text numberOfLines={1} style={[styles.statusText, compact && styles.compactStatusText, (positive || ready) && styles.statusPositiveText]}>{compact ? compactStatusLabel(status, vi) : statusLabel(status, vi)}</Text>
+    <View style={[styles.statusPill, positive && styles.statusPositive, ready && styles.statusReady, pending && styles.statusPending]}>
+      <Text style={[styles.statusText, (positive || ready) && styles.statusPositiveText]}>{statusLabel(status, vi)}</Text>
     </View>
   );
 }
 
 function TaskAction({
-  compact = false,
   disabled = false,
   label,
   loading = false,
   onPress,
   styles
 }: {
-  compact?: boolean;
   disabled?: boolean;
   label: string;
   loading?: boolean;
@@ -109,12 +90,12 @@ function TaskAction({
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: disabled || loading }}
       disabled={disabled || loading || !onPress}
-      hitSlop={compact ? { top: 9, right: 1, bottom: 9, left: 1 } : { top: 7, right: 2, bottom: 7, left: 2 }}
+      hitSlop={{ top: 7, right: 2, bottom: 7, left: 2 }}
       onPress={onPress}
-      style={({ pressed }) => [styles.taskAction, compact && styles.compactTaskAction, (disabled || loading) && styles.taskActionDisabled, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.taskAction, (disabled || loading) && styles.taskActionDisabled, pressed && styles.pressed]}
     >
       {loading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-      {!loading || !compact ? <Text numberOfLines={1} style={[styles.taskActionText, compact && styles.compactTaskActionText]}>{label}</Text> : null}
+      <Text style={styles.taskActionText}>{label}</Text>
     </Pressable>
   );
 }
@@ -179,39 +160,50 @@ function MilestoneSection({
         >
           {section.tasks.map((task, index) => {
             const reached = isTaskMilestoneReached(task);
-            const percent = taskProgressPercent(task);
             const isClaiming = busyClaimId === task.id;
             const isSyncing = busySyncId === task.id;
-            const actionLabel = task.status === "completed"
-              ? (vi ? "Nhận" : "Claim")
-              : task.status === "claimed"
-                ? (vi ? "Đã nhận" : "Claimed")
-                : task.status === "pending"
-                  ? (vi ? "Chờ" : "Pending")
-                  : (vi ? "Cập nhật" : "Sync");
+            const isBusy = isClaiming || isSyncing;
+            const disabled = task.status === "claimed" || task.status === "pending";
+            const onPress = task.status === "completed"
+              ? () => onClaim(task)
+              : task.status === "in_progress"
+                ? () => onSync(task)
+                : undefined;
+            const accessibilityHint = task.status === "completed"
+              ? (vi ? "Nhấn để nhận thưởng" : "Tap to claim reward")
+              : task.status === "in_progress"
+                ? (vi ? "Nhấn để cập nhật tiến độ" : "Tap to sync progress")
+                : undefined;
+            const highlightedState = reached || task.status === "pending" || task.status === "completed" || task.status === "claimed";
+            const stateIconColor = highlightedState ? "#ffffff" : "#94a3b8";
 
             return (
-              <View accessibilityLabel={vi ? `${section.title}, mốc ${task.target_count}, thưởng ${formatMoney(task.reward_amount)}` : `${section.title}, target ${task.target_count}, reward ${formatMoney(task.reward_amount)}`} key={task.id} style={styles.timelineSlot}>
-                {index > 0 ? <View style={[styles.timelineConnector, reached && styles.timelineConnectorReached]} /> : null}
-                <View style={[styles.milestoneCircle, reached && styles.milestoneCircleReached, task.status === "completed" && styles.milestoneCircleReady]}>
-                  {task.status === "claimed" ? <Check color="#ffffff" size={17} strokeWidth={3} /> : task.status === "pending" ? <Clock3 color="#ffffff" size={17} strokeWidth={2.6} /> : task.status === "completed" ? <Gift color="#ffffff" size={17} strokeWidth={2.4} /> : <LockKeyhole color={reached ? "#ffffff" : "#94a3b8"} size={16} strokeWidth={2.2} />}
-                </View>
-                <View style={[styles.milestoneCard, task.status === "completed" && styles.milestoneCardReady, task.status === "claimed" && styles.milestoneCardClaimed]}>
-                  <Text style={styles.milestoneTarget}>{task.target_count}</Text>
-                  <Text style={styles.milestoneUnit}>{icon === "referral" ? (vi ? "NGƯỜI" : "PEOPLE") : (vi ? "ĐƠN" : "ORDERS")}</Text>
-                  <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.milestoneReward}>+{formatMoney(task.reward_amount)}</Text>
-                  <Text style={styles.milestoneProgress}>{task.progress}/{task.target_count} · {Math.round(percent)}%</Text>
-                  <View style={styles.miniProgressTrack}><View style={[styles.miniProgressFill, { width: `${percent}%` }]} /></View>
-                  <StatusPill compact status={task.status} styles={styles} vi={vi} />
-                  <TaskAction
-                    compact
-                    disabled={task.status === "claimed" || task.status === "pending"}
-                    label={actionLabel}
-                    loading={isClaiming || isSyncing}
-                    onPress={task.status === "completed" ? () => onClaim(task) : task.status === "in_progress" ? () => onSync(task) : undefined}
-                    styles={styles}
-                  />
-                </View>
+              <View key={task.id} style={styles.timelineSlot}>
+                <Pressable
+                  accessibilityHint={accessibilityHint}
+                  accessibilityLabel={vi ? `${section.title}, mốc ${task.target_count}, thưởng ${formatMoney(task.reward_amount)}, ${statusLabel(task.status, vi)}` : `${section.title}, target ${task.target_count}, reward ${formatMoney(task.reward_amount)}, ${statusLabel(task.status, vi)}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ busy: isBusy, disabled: disabled || isBusy || !onPress }}
+                  disabled={disabled || isBusy || !onPress}
+                  hitSlop={{ top: 4, right: 2, bottom: 4, left: 2 }}
+                  onPress={onPress}
+                  style={({ pressed }) => [styles.milestoneNode, pressed && styles.pressed]}
+                >
+                  {index > 0 ? <View pointerEvents="none" style={[styles.milestoneConnector, reached && styles.milestoneConnectorReached]} /> : null}
+                  <View style={[
+                    styles.milestoneStateIcon,
+                    reached && styles.milestoneStateIconReached,
+                    task.status === "pending" && styles.milestoneStateIconPending,
+                    task.status === "completed" && styles.milestoneStateIconReady,
+                    task.status === "claimed" && styles.milestoneStateIconClaimed
+                  ]}>
+                    {isBusy ? <ActivityIndicator color={highlightedState ? "#ffffff" : "#f97316"} size="small" /> : task.status === "claimed" ? <Check color={stateIconColor} size={16} strokeWidth={3} /> : task.status === "pending" ? <Clock3 color={stateIconColor} size={15} strokeWidth={2.6} /> : task.status === "completed" ? <Gift color={stateIconColor} size={15} strokeWidth={2.4} /> : <LockKeyhole color={stateIconColor} size={14} strokeWidth={2.2} />}
+                  </View>
+                  <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.milestoneLabel}>
+                    {task.target_count} {icon === "referral" ? (vi ? "người" : "people") : (vi ? "đơn" : "orders")}
+                  </Text>
+                  <Text adjustsFontSizeToFit minimumFontScale={0.65} numberOfLines={1} style={styles.milestoneReward}>+{formatMoney(task.reward_amount)}</Text>
+                </Pressable>
               </View>
             );
           })}
@@ -419,35 +411,27 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     sectionTitle: { color: colors.text, fontSize: 14.5, fontWeight: "900", letterSpacing: -0.2 },
     sectionSubtitle: { color: colors.mutedText, fontSize: 11, lineHeight: 16 },
     subtitleStrong: { color: colors.text, fontWeight: "900" },
-    timelineContent: { gap: 3, paddingHorizontal: 1, paddingVertical: 3 },
-    timelineSlot: { alignItems: "center", minWidth: 68, position: "relative", width: 68 },
-    timelineConnector: { backgroundColor: dark ? "#475569" : "#fed7aa", height: 2, left: -23, position: "absolute", top: 13, width: 43 },
-    timelineConnectorReached: { backgroundColor: "#22c55e" },
-    milestoneCircle: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#e2e8f0", borderColor: dark ? "#475569" : "#cbd5e1", borderRadius: 999, borderWidth: 1, height: 28, justifyContent: "center", width: 28, zIndex: 1 },
-    milestoneCircleReached: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
-    milestoneCircleReady: { backgroundColor: "#f97316", borderColor: "#f97316" },
-    milestoneCard: { alignItems: "center", backgroundColor: dark ? "#162132" : "#fffcf8", borderColor: dark ? "#475569" : "#fed7aa", borderRadius: 9, borderWidth: 1, gap: 2, marginTop: 4, minHeight: 112, paddingHorizontal: 3, paddingVertical: 5, width: 64 },
-    milestoneCardReady: { backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#c2410c" : "#fb923c" },
-    milestoneCardClaimed: { backgroundColor: dark ? "#0d3327" : "#f0fdf4", borderColor: dark ? "#166534" : "#86efac" },
-    milestoneTarget: { color: colors.text, fontSize: 16, fontWeight: "900", lineHeight: 18 },
-    milestoneUnit: { color: colors.mutedText, fontSize: 7, fontWeight: "900", letterSpacing: 0.45 },
-    milestoneReward: { color: colors.primary, fontSize: 9, fontWeight: "900", maxWidth: 58 },
-    milestoneProgress: { color: colors.mutedText, fontSize: 7.5, fontWeight: "700" },
-    miniProgressTrack: { backgroundColor: dark ? "#334155" : "#ffeadb", borderRadius: 999, height: 3, overflow: "hidden", width: "100%" },
-    miniProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
+    timelineContent: { gap: 3, paddingHorizontal: 1, paddingVertical: 2 },
+    timelineSlot: { alignItems: "center", minWidth: 47, width: 47 },
+    milestoneNode: { alignItems: "center", gap: 2, minHeight: 66, position: "relative", width: 47 },
+    milestoneConnector: { backgroundColor: dark ? "#475569" : "#cbd5e1", height: 2, left: -10, position: "absolute", top: 16, width: 17 },
+    milestoneConnectorReached: { backgroundColor: "#22c55e" },
+    milestoneStateIcon: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#eef2f7", borderColor: dark ? "#475569" : "#d7dee8", borderRadius: 999, borderWidth: 1, height: 34, justifyContent: "center", width: 34, zIndex: 1 },
+    milestoneStateIconReached: { backgroundColor: "#16a34a" },
+    milestoneStateIconPending: { backgroundColor: "#d97706" },
+    milestoneStateIconReady: { backgroundColor: "#f97316" },
+    milestoneStateIconClaimed: { backgroundColor: "#16a34a" },
+    milestoneLabel: { color: colors.text, fontSize: 8, fontWeight: "800", maxWidth: 47, textAlign: "center" },
+    milestoneReward: { color: colors.primary, fontSize: 8, fontWeight: "900", maxWidth: 47, textAlign: "center" },
     statusPill: { alignSelf: "center", backgroundColor: dark ? "#334155" : "#f1f5f9", borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
-    compactStatusPill: { maxWidth: "100%", paddingHorizontal: 4, paddingVertical: 2 },
     statusReady: { backgroundColor: dark ? "#431d12" : "#ffedd5" },
     statusPositive: { backgroundColor: dark ? "#14532d" : "#dcfce7" },
     statusPending: { backgroundColor: dark ? "#422006" : "#fef3c7" },
     statusText: { color: colors.mutedText, fontSize: 8.5, fontWeight: "800", textAlign: "center" },
-    compactStatusText: { fontSize: 7.2 },
     statusPositiveText: { color: dark ? "#bbf7d0" : "#15803d" },
     taskAction: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.primary, borderRadius: 8, flexDirection: "row", gap: 4, justifyContent: "center", minHeight: 31, paddingHorizontal: 5 },
-    compactTaskAction: { borderRadius: 6, minHeight: 26, paddingHorizontal: 2 },
     taskActionDisabled: { backgroundColor: dark ? "#475569" : "#cbd5e1" },
     taskActionText: { color: "#ffffff", fontSize: 10, fontWeight: "900", textAlign: "center" },
-    compactTaskActionText: { fontSize: 7.5 },
     pressed: { opacity: 0.75 },
     unconfigured: { alignItems: "center", backgroundColor: dark ? "#162132" : "#f8fafc", borderRadius: 13, gap: 7, paddingHorizontal: 20, paddingVertical: 20 },
     unconfiguredTitle: { color: colors.text, fontSize: 14, fontWeight: "900", textAlign: "center" },
