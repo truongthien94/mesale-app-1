@@ -6,9 +6,9 @@
 - Latest decision: [DEC-20260814-002](../decisions/DEC-20260814-002.md)
 - Current batch: `TSK-MOB-057` / `CHG-20260814-002` / `TST-20260814-002`
 - Current source base: `919852e` (`origin/main` before this batch)
-- Current context checkpoint: `CKP-20260814-002` (local; source published, context publication pending)
+- Current context checkpoint: `CKP-20260814-002` (published and CI-verified)
 - Current local evidence: mobile `111/111`; TypeScript; Expo Doctor `18/18`; Android emulator task deep-link inspection
-- Current remote evidence: source `a06d139` published to `origin/main`; Sheet IDs synchronized; CI and final context publication pending
+- Current remote evidence: source `a06d139` and context `21ee7b4` published to `origin/main`; Sheet IDs synchronized; GitHub Actions run `31808171896` passed
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

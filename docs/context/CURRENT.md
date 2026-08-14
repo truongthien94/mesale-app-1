@@ -11,7 +11,7 @@
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
 - Current batch: `TSK-MOB-057` / `CHG-20260814-002`; compact task milestones are published and Android-emulator verified.
-- Production task milestone configuration, physical-device evidence, CI, and store gates remain open.
+- Production task milestone configuration, physical-device evidence, and store gates remain open.
 
 ## 2026-08-14 Compact Reward Task Milestones
 
@@ -20,7 +20,7 @@
 - Referral/order cards now show only target count/unit, server reward, progress, status, and action; custom task titles remain unchanged.
 - Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, and Android emulator deep-link inspection passed.
 - Operational IDs: `SES-20260814-002`, `CKP-20260814-002`, `TSK-MOB-057`, `DEC-20260814-002`, `CHG-20260814-002`, `TST-20260814-002`; existing `BLK-TASK-001` and `GATE-BOTH-023` remain open.
-- Source commit `a06d139` is published directly to `origin/main`; Google Sheet IDs are synchronized and unique; CI and final context publication evidence are pending.
+- Source commit `a06d139` and context commit `21ee7b4` are published directly to `origin/main`; Google Sheet IDs are synchronized and unique; GitHub Actions run `31808171896` passed all jobs.
 
 ## 2026-08-14 Native Reward Tasks Tab
 
