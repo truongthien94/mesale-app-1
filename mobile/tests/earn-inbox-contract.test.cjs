@@ -180,6 +180,10 @@ test("renders the tasks bottom-tab route as server-authoritative referral and or
   assert.match(source, /task\.reward_amount/);
   assert.match(source, /Chưa có mốc được cấu hình/);
   assert.match(source, /<ScrollView[\s\S]*horizontal/);
+  assert.match(source, /Mời bạn qua mã giới thiệu, có ít nhất <Text style=\{styles\.subtitleStrong\}>1 đơn hoàn tiền từ 1\.000đ<\/Text> để nhận thêm thưởng theo từng mốc\./);
+  assert.match(source, /Hoàn thành đơn có tiền hoàn từ <Text style=\{styles\.subtitleStrong\}>1\.000đ<\/Text> để nhận thưởng theo từng mốc\./);
+  assert.doesNotMatch(source, /styles\.statsRow|query\.data\.stats\.in_progress|query\.data\.stats\.completed|query\.data\.stats\.claimed/);
+  assert.doesNotMatch(source, /milestoneTitle/);
   assert.doesNotMatch(source, /reward_amount:\s*[1-9][0-9]*/);
 });
 

@@ -89,6 +89,7 @@ function TaskAction({
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: disabled || loading }}
       disabled={disabled || loading || !onPress}
+      hitSlop={{ top: 7, right: 2, bottom: 7, left: 2 }}
       onPress={onPress}
       style={({ pressed }) => [styles.taskAction, (disabled || loading) && styles.taskActionDisabled, pressed && styles.pressed]}
     >
@@ -128,7 +129,17 @@ function MilestoneSection({
         </View>
         <View style={styles.sectionHeadingCopy}>
           <Text accessibilityRole="header" style={styles.sectionTitle}>{section.title}</Text>
-          <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
+          {vi ? (
+            icon === "referral" ? (
+              <Text style={styles.sectionSubtitle}>
+                Mời bạn qua mã giới thiệu, có ít nhất <Text style={styles.subtitleStrong}>1 đơn hoàn tiền từ 1.000đ</Text> để nhận thêm thưởng theo từng mốc.
+              </Text>
+            ) : (
+              <Text style={styles.sectionSubtitle}>
+                Hoàn thành đơn có tiền hoàn từ <Text style={styles.subtitleStrong}>1.000đ</Text> để nhận thưởng theo từng mốc.
+              </Text>
+            )
+          ) : <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>}
         </View>
       </View>
 
@@ -168,7 +179,6 @@ function MilestoneSection({
                 <View style={[styles.milestoneCard, task.status === "completed" && styles.milestoneCardReady, task.status === "claimed" && styles.milestoneCardClaimed]}>
                   <Text style={styles.milestoneTarget}>{task.target_count}</Text>
                   <Text style={styles.milestoneUnit}>{icon === "referral" ? (vi ? "NGƯỜI" : "PEOPLE") : (vi ? "ĐƠN" : "ORDERS")}</Text>
-                  <Text numberOfLines={2} style={styles.milestoneTitle}>{task.title}</Text>
                   <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.milestoneReward}>+{formatMoney(task.reward_amount)}</Text>
                   <Text style={styles.milestoneProgress}>{task.progress}/{task.target_count} · {Math.round(percent)}%</Text>
                   <View style={styles.miniProgressTrack}><View style={[styles.miniProgressFill, { width: `${percent}%` }]} /></View>
@@ -332,11 +342,6 @@ export default function TasksScreen() {
                   <Text style={styles.heroSubtitle}>{vi ? "Hoàn thành từng mốc, đồng bộ và nhận thưởng do máy chủ xác nhận." : "Complete milestones, sync progress, and claim server-confirmed rewards."}</Text>
                 </View>
               </View>
-              <View style={styles.statsRow}>
-                <Stat value={query.data.stats.in_progress} label={vi ? "Đang làm" : "In progress"} styles={styles} />
-                <Stat value={query.data.stats.completed} label={vi ? "Chờ nhận" : "Ready"} styles={styles} />
-                <Stat value={query.data.stats.claimed} label={vi ? "Đã nhận" : "Claimed"} styles={styles} />
-              </View>
               <View style={styles.totalReward}><CircleDollarSign color={colors.primary} size={18} /><Text style={styles.totalRewardLabel}>{vi ? "Tổng thưởng nhiệm vụ" : "Total task rewards"}</Text><Text style={styles.totalRewardAmount}>{formatMoney(query.data.stats.total_earned)}</Text></View>
             </View>
             {activeErrorMessages.length > 0 ? <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.errorBanner}>{activeErrorMessages.map((message) => <Text key={message} style={styles.errorText}>{message}</Text>)}</View> : null}
@@ -359,10 +364,6 @@ export default function TasksScreen() {
   );
 }
 
-function Stat({ label, styles, value }: { label: string; styles: ReturnType<typeof createStyles>; value: number }) {
-  return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.statLabel}>{label}</Text></View>;
-}
-
 function SectionHeading({ icon, section, styles }: { icon: SectionKey; section: TaskSection; styles: ReturnType<typeof createStyles> }) {
   const Icon = icon === "referral" ? UsersRound : icon === "cashback" ? ShoppingCart : ListChecks;
   return <View style={styles.sectionHeading}><View style={[styles.sectionIcon, icon === "referral" ? styles.referralIcon : icon === "cashback" ? styles.cashbackIcon : styles.otherIcon]}><Icon color={icon === "referral" ? "#16a34a" : icon === "cashback" ? "#f97316" : "#2563eb"} size={23} strokeWidth={2.4} /></View><View style={styles.sectionHeadingCopy}><Text accessibilityRole="header" style={styles.sectionTitle}>{section.title}</Text><Text style={styles.sectionSubtitle}>{section.subtitle}</Text></View></View>;
@@ -374,46 +375,42 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     screen: { backgroundColor: dark ? "#08111f" : "#f4f1ed", flex: 1 },
     listContent: { gap: 14, paddingHorizontal: 16 },
     headerContent: { gap: 12 },
-    heroCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 16, padding: 16, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 5 }, shadowOpacity: dark ? 0.18 : 0.06, shadowRadius: 12, elevation: 2 },
+    heroCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 10, padding: 13, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: dark ? 0.16 : 0.05, shadowRadius: 10, elevation: 2 },
     heroHeading: { alignItems: "center", flexDirection: "row", gap: 12 },
-    heroIcon: { alignItems: "center", backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 10, borderWidth: 1, height: 42, justifyContent: "center", width: 42 },
+    heroIcon: { alignItems: "center", backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 10, borderWidth: 1, height: 38, justifyContent: "center", width: 38 },
     heroCopy: { flex: 1, gap: 3 },
-    heroTitle: { color: colors.text, fontSize: 16, fontWeight: "900", letterSpacing: -0.2 },
-    heroSubtitle: { color: colors.mutedText, fontSize: 12.5, lineHeight: 18 },
-    statsRow: { flexDirection: "row", gap: 8 },
-    stat: { backgroundColor: dark ? "#162132" : "#f8fafc", borderColor: colors.border, borderRadius: 12, borderWidth: 1, flex: 1, gap: 3, padding: 10 },
-    statValue: { color: colors.text, fontSize: 20, fontWeight: "900" },
-    statLabel: { color: colors.mutedText, fontSize: 10.5, fontWeight: "700" },
-    totalReward: { alignItems: "center", borderTopColor: colors.border, borderTopWidth: 1, flexDirection: "row", gap: 7, paddingTop: 13 },
-    totalRewardLabel: { color: colors.mutedText, flex: 1, fontSize: 12, fontWeight: "700" },
-    totalRewardAmount: { color: colors.primary, fontSize: 17, fontWeight: "900" },
+    heroTitle: { color: colors.text, fontSize: 15, fontWeight: "900", letterSpacing: -0.2 },
+    heroSubtitle: { color: colors.mutedText, fontSize: 11.5, lineHeight: 16 },
+    totalReward: { alignItems: "center", backgroundColor: dark ? "#2f2017" : "#fff7ed", borderRadius: 10, flexDirection: "row", gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
+    totalRewardLabel: { color: colors.mutedText, flex: 1, fontSize: 11, fontWeight: "700" },
+    totalRewardAmount: { color: colors.primary, fontSize: 15, fontWeight: "900" },
     errorBanner: { backgroundColor: dark ? "#431b22" : "#fef2f2", borderColor: dark ? "#7f1d1d" : "#fecaca", borderRadius: 12, borderWidth: 1, padding: 13 },
     errorText: { color: dark ? "#fecaca" : "#b91c1c", fontSize: 13, lineHeight: 19 },
     feedback: { alignItems: "center", backgroundColor: dark ? "#0d3327" : "#ecfdf5", borderColor: dark ? "#166534" : "#86efac", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, padding: 12 },
     feedbackText: { color: dark ? "#bbf7d0" : "#15803d", flex: 1, fontSize: 13, lineHeight: 19 },
-    sectionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 14, padding: 16, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 5 }, shadowOpacity: dark ? 0.18 : 0.05, shadowRadius: 12, elevation: 2 },
+    sectionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 11, padding: 13, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: dark ? 0.16 : 0.04, shadowRadius: 10, elevation: 2 },
     sectionHeading: { alignItems: "center", flexDirection: "row", gap: 12 },
-    sectionIcon: { alignItems: "center", borderRadius: 999, height: 44, justifyContent: "center", width: 44 },
+    sectionIcon: { alignItems: "center", borderRadius: 999, height: 38, justifyContent: "center", width: 38 },
     referralIcon: { backgroundColor: dark ? "#0d3327" : "#ecfdf5" },
     cashbackIcon: { backgroundColor: dark ? "#3b2910" : "#fff3df" },
     otherIcon: { backgroundColor: dark ? "#172554" : "#eff6ff" },
     sectionHeadingCopy: { flex: 1, gap: 3 },
-    sectionTitle: { color: colors.text, fontSize: 15.5, fontWeight: "900", letterSpacing: -0.2 },
-    sectionSubtitle: { color: colors.mutedText, fontSize: 12, lineHeight: 17 },
-    timelineContent: { gap: 10, paddingHorizontal: 3, paddingVertical: 7 },
-    timelineSlot: { alignItems: "center", minWidth: 132, position: "relative" },
-    timelineConnector: { backgroundColor: dark ? "#475569" : "#fed7aa", height: 2, left: -10, position: "absolute", top: 19, width: 22 },
+    sectionTitle: { color: colors.text, fontSize: 14.5, fontWeight: "900", letterSpacing: -0.2 },
+    sectionSubtitle: { color: colors.mutedText, fontSize: 11, lineHeight: 16 },
+    subtitleStrong: { color: colors.text, fontWeight: "900" },
+    timelineContent: { gap: 8, paddingHorizontal: 2, paddingVertical: 5 },
+    timelineSlot: { alignItems: "center", minWidth: 120, position: "relative" },
+    timelineConnector: { backgroundColor: dark ? "#475569" : "#fed7aa", height: 2, left: -10, position: "absolute", top: 17, width: 22 },
     timelineConnectorReached: { backgroundColor: "#22c55e" },
-    milestoneCircle: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#e2e8f0", borderColor: dark ? "#475569" : "#cbd5e1", borderRadius: 999, borderWidth: 1, height: 38, justifyContent: "center", width: 38, zIndex: 1 },
+    milestoneCircle: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#e2e8f0", borderColor: dark ? "#475569" : "#cbd5e1", borderRadius: 999, borderWidth: 1, height: 34, justifyContent: "center", width: 34, zIndex: 1 },
     milestoneCircleReached: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
     milestoneCircleReady: { backgroundColor: "#f97316", borderColor: "#f97316" },
-    milestoneCard: { alignItems: "center", backgroundColor: dark ? "#162132" : "#fffcf8", borderColor: dark ? "#475569" : "#fed7aa", borderRadius: 13, borderWidth: 1, gap: 4, marginTop: 8, minHeight: 194, padding: 10, width: 124 },
+    milestoneCard: { alignItems: "center", backgroundColor: dark ? "#162132" : "#fffcf8", borderColor: dark ? "#475569" : "#fed7aa", borderRadius: 12, borderWidth: 1, gap: 3, marginTop: 6, minHeight: 150, padding: 8, width: 112 },
     milestoneCardReady: { backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#c2410c" : "#fb923c" },
     milestoneCardClaimed: { backgroundColor: dark ? "#0d3327" : "#f0fdf4", borderColor: dark ? "#166534" : "#86efac" },
-    milestoneTarget: { color: colors.text, fontSize: 23, fontWeight: "900", lineHeight: 26 },
+    milestoneTarget: { color: colors.text, fontSize: 21, fontWeight: "900", lineHeight: 23 },
     milestoneUnit: { color: colors.mutedText, fontSize: 8.5, fontWeight: "900", letterSpacing: 0.8 },
-    milestoneTitle: { color: colors.text, fontSize: 10.5, fontWeight: "800", lineHeight: 14, minHeight: 28, textAlign: "center" },
-    milestoneReward: { color: colors.primary, fontSize: 14, fontWeight: "900", maxWidth: 106 },
+    milestoneReward: { color: colors.primary, fontSize: 13, fontWeight: "900", maxWidth: 96 },
     milestoneProgress: { color: colors.mutedText, fontSize: 10, fontWeight: "700" },
     miniProgressTrack: { backgroundColor: dark ? "#334155" : "#ffeadb", borderRadius: 999, height: 5, overflow: "hidden", width: "100%" },
     miniProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
@@ -423,7 +420,7 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     statusPending: { backgroundColor: dark ? "#422006" : "#fef3c7" },
     statusText: { color: colors.mutedText, fontSize: 8.5, fontWeight: "800", textAlign: "center" },
     statusPositiveText: { color: dark ? "#bbf7d0" : "#15803d" },
-    taskAction: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.primary, borderRadius: 8, flexDirection: "row", gap: 4, justifyContent: "center", minHeight: 34, paddingHorizontal: 6 },
+    taskAction: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.primary, borderRadius: 8, flexDirection: "row", gap: 4, justifyContent: "center", minHeight: 31, paddingHorizontal: 5 },
     taskActionDisabled: { backgroundColor: dark ? "#475569" : "#cbd5e1" },
     taskActionText: { color: "#ffffff", fontSize: 10, fontWeight: "900", textAlign: "center" },
     pressed: { opacity: 0.75 },
