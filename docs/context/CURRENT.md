@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260814-002`
-- Session: `SES-20260814-002`
+- Latest checkpoint: `CKP-20260815-001`
+- Session: `SES-20260815-001`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-057` / `CHG-20260814-002`; compact task milestones are published and Android-emulator verified.
+- Current batch: `TSK-MOB-058` / `CHG-20260815-001`; dense task milestones are published and Android-emulator verified.
 - Production task milestone configuration, physical-device evidence, and store gates remain open.
+
+## 2026-08-15 Dense Reward Milestone Timeline
+
+- Replaced tall task cards with a check-in-style connected strip using `47dp` slots and `34dp` circular state markers, allowing about seven configured milestones on the current emulator viewport.
+- Each node shows only the target and Laravel-provided reward; visible progress/status/action chrome is removed and the whole node remains the accessible sync/claim control.
+- Kept all task targets, rewards, progress, status, sync, claim, and idempotency server-authoritative; no placeholder milestones were added.
+- Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, Metro development bundle, and Android deep-link inspection passed.
+- Operational IDs: `SES-20260815-001`, `CKP-20260815-001`, `TSK-MOB-058`, `DEC-20260815-001`, `CHG-20260815-001`, `TST-20260815-001`; existing `BLK-TASK-001` and `GATE-BOTH-023` remain open.
+- Source commit `de06847` is published directly to `origin/main`; Actions run `31851472343` passed all jobs, including both platform exports.
+- All eight operational Sheet IDs are synchronized and unique. Six duplicate rows created by a timed-out retry were removed before final read-back; final context publication is pending.
 
 ## 2026-08-14 Compact Reward Task Milestones
 

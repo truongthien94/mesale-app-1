@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260814-002](checkpoints/CKP-20260814-002.md)
-- Latest session: [SES-20260814-002](sessions/SES-20260814-002.md)
-- Latest decision: [DEC-20260814-002](../decisions/DEC-20260814-002.md)
-- Current batch: `TSK-MOB-057` / `CHG-20260814-002` / `TST-20260814-002`
-- Current source base: `919852e` (`origin/main` before this batch)
-- Current context checkpoint: `CKP-20260814-002` (published and CI-verified)
-- Current local evidence: mobile `111/111`; TypeScript; Expo Doctor `18/18`; Android emulator task deep-link inspection
-- Current remote evidence: source `a06d139` and context `21ee7b4` published to `origin/main`; Sheet IDs synchronized; GitHub Actions run `31808171896` passed
+- Latest checkpoint: [CKP-20260815-001](checkpoints/CKP-20260815-001.md)
+- Latest session: [SES-20260815-001](sessions/SES-20260815-001.md)
+- Latest decision: [DEC-20260815-001](../decisions/DEC-20260815-001.md)
+- Current batch: `TSK-MOB-058` / `CHG-20260815-001` / `TST-20260815-001`
+- Current source base: `88675cb` (`origin/main` before this batch)
+- Current context checkpoint: `CKP-20260815-001` (local; source published, context publication pending)
+- Current local evidence: mobile `111/111`; TypeScript; Expo Doctor `18/18`; Android emulator dense task timeline inspection
+- Current remote evidence: source `de06847` published to `origin/main`; Actions run `31851472343` and Google Sheet synchronization passed; final context publication pending
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)
