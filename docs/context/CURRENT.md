@@ -20,7 +20,7 @@
 - Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, Android API 35 debug build/install, Metro bundle, and emulator layout inspection passed.
 - Live config returned HTTP `200` with task features enabled. Production currently has referral targets 3/5 but no active cashback-order milestones; GitHub Issue #27 tracks approved Admin configuration and inconsistent task copy.
 - Operational IDs: `SES-20260814-001`, `CKP-20260814-001`, `TSK-MOB-056`, `DEC-20260814-001`, `CHG-20260814-001`, `TST-20260814-001`, `BLK-TASK-001`, `GATE-BOTH-023`.
-- Source commit `7f8ff85` is published directly to `origin/main`; CI and final context publication remain pending.
+- Source commit `7f8ff85` and context commit `533b8a4` are published directly to `origin/main`; the eight Google Sheet operational IDs were upserted and read back exactly once. CI remains pending.
 
 ## 2026-08-13 Compact Registration With Phone
 
