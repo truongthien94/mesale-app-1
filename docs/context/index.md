@@ -8,7 +8,7 @@
 - Current source base: `88675cb` (`origin/main` before this batch)
 - Current context checkpoint: `CKP-20260815-001` (local; source published, context publication pending)
 - Current local evidence: mobile `111/111`; TypeScript; Expo Doctor `18/18`; Android emulator dense task timeline inspection
-- Current remote evidence: source `de06847` published to `origin/main`; Actions run `31851472343` and Google Sheet synchronization passed; final context publication pending
+- Current remote evidence: source `de06847` and context `924f147` published to `origin/main`; Actions runs `31851472343`/`31851776872` and Google Sheet synchronization passed
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

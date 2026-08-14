@@ -21,7 +21,8 @@
 - Verification: mobile `111/111`, TypeScript, Expo Doctor `18/18`, diff checks, Metro development bundle, and Android deep-link inspection passed.
 - Operational IDs: `SES-20260815-001`, `CKP-20260815-001`, `TSK-MOB-058`, `DEC-20260815-001`, `CHG-20260815-001`, `TST-20260815-001`; existing `BLK-TASK-001` and `GATE-BOTH-023` remain open.
 - Source commit `de06847` is published directly to `origin/main`; Actions run `31851472343` passed all jobs, including both platform exports.
-- All eight operational Sheet IDs are synchronized and unique. Six duplicate rows created by a timed-out retry were removed before final read-back; final context publication is pending.
+- Context commit `924f147` is published directly to `origin/main`; Actions run `31851776872` passed all jobs, including both platform exports.
+- All eight operational Sheet IDs are synchronized and unique. Six duplicate rows created by a timed-out retry were removed before final read-back.
 
 ## 2026-08-14 Compact Reward Task Milestones
 
