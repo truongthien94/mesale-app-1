@@ -185,6 +185,11 @@ test("renders the tasks bottom-tab route as server-authoritative referral and or
   assert.doesNotMatch(source, /styles\.statsRow|query\.data\.stats\.in_progress|query\.data\.stats\.completed|query\.data\.stats\.claimed/);
   assert.doesNotMatch(source, /milestoneTitle/);
   assert.doesNotMatch(source, /reward_amount:\s*[1-9][0-9]*/);
+  assert.match(source, /timelineSlot: \{[^}]*minWidth: 68[^}]*width: 68/);
+  assert.match(source, /milestoneCard: \{[^}]*minHeight: 112[^}]*width: 64/);
+  assert.match(source, /hitSlop=\{compact \? \{ top: 9, right: 1, bottom: 9, left: 1 \}/);
+  assert.match(source, /compactStatusLabel/);
+  assert.doesNotMatch(source, /Nhận \+\$\{formatMoney\(task\.reward_amount\)\}/);
 });
 
 test("builds the notification list contract with type, unread filter, and pagination", () => {

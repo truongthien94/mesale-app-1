@@ -60,24 +60,43 @@ function statusLabel(status: string, vi: boolean): string {
   }[status] ?? status;
 }
 
-function StatusPill({ status, vi, styles }: { status: string; vi: boolean; styles: ReturnType<typeof createStyles> }) {
+function compactStatusLabel(status: string, vi: boolean): string {
+  if (!vi) {
+    return {
+      in_progress: "Active",
+      pending: "Review",
+      completed: "Ready",
+      claimed: "Claimed"
+    }[status] ?? status.replaceAll("_", " ");
+  }
+  return {
+    in_progress: "Đang làm",
+    pending: "Chờ",
+    completed: "Sẵn sàng",
+    claimed: "Đã nhận"
+  }[status] ?? status;
+}
+
+function StatusPill({ compact = false, status, vi, styles }: { compact?: boolean; status: string; vi: boolean; styles: ReturnType<typeof createStyles> }) {
   const positive = status === "claimed";
   const ready = status === "completed";
   const pending = status === "pending";
   return (
-    <View style={[styles.statusPill, positive && styles.statusPositive, ready && styles.statusReady, pending && styles.statusPending]}>
-      <Text style={[styles.statusText, (positive || ready) && styles.statusPositiveText]}>{statusLabel(status, vi)}</Text>
+    <View style={[styles.statusPill, compact && styles.compactStatusPill, positive && styles.statusPositive, ready && styles.statusReady, pending && styles.statusPending]}>
+      <Text numberOfLines={1} style={[styles.statusText, compact && styles.compactStatusText, (positive || ready) && styles.statusPositiveText]}>{compact ? compactStatusLabel(status, vi) : statusLabel(status, vi)}</Text>
     </View>
   );
 }
 
 function TaskAction({
+  compact = false,
   disabled = false,
   label,
   loading = false,
   onPress,
   styles
 }: {
+  compact?: boolean;
   disabled?: boolean;
   label: string;
   loading?: boolean;
@@ -86,15 +105,16 @@ function TaskAction({
 }) {
   return (
     <Pressable
+      accessibilityLabel={label}
       accessibilityRole="button"
       accessibilityState={{ busy: loading, disabled: disabled || loading }}
       disabled={disabled || loading || !onPress}
-      hitSlop={{ top: 7, right: 2, bottom: 7, left: 2 }}
+      hitSlop={compact ? { top: 9, right: 1, bottom: 9, left: 1 } : { top: 7, right: 2, bottom: 7, left: 2 }}
       onPress={onPress}
-      style={({ pressed }) => [styles.taskAction, (disabled || loading) && styles.taskActionDisabled, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.taskAction, compact && styles.compactTaskAction, (disabled || loading) && styles.taskActionDisabled, pressed && styles.pressed]}
     >
       {loading ? <ActivityIndicator color="#ffffff" size="small" /> : null}
-      <Text style={styles.taskActionText}>{label}</Text>
+      {!loading || !compact ? <Text numberOfLines={1} style={[styles.taskActionText, compact && styles.compactTaskActionText]}>{label}</Text> : null}
     </Pressable>
   );
 }
@@ -163,11 +183,11 @@ function MilestoneSection({
             const isClaiming = busyClaimId === task.id;
             const isSyncing = busySyncId === task.id;
             const actionLabel = task.status === "completed"
-              ? (vi ? `Nhận +${formatMoney(task.reward_amount)}` : `Claim +${formatMoney(task.reward_amount)}`)
+              ? (vi ? "Nhận" : "Claim")
               : task.status === "claimed"
                 ? (vi ? "Đã nhận" : "Claimed")
                 : task.status === "pending"
-                  ? (vi ? "Chờ duyệt" : "Pending")
+                  ? (vi ? "Chờ" : "Pending")
                   : (vi ? "Cập nhật" : "Sync");
 
             return (
@@ -182,8 +202,9 @@ function MilestoneSection({
                   <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.milestoneReward}>+{formatMoney(task.reward_amount)}</Text>
                   <Text style={styles.milestoneProgress}>{task.progress}/{task.target_count} · {Math.round(percent)}%</Text>
                   <View style={styles.miniProgressTrack}><View style={[styles.miniProgressFill, { width: `${percent}%` }]} /></View>
-                  <StatusPill status={task.status} styles={styles} vi={vi} />
+                  <StatusPill compact status={task.status} styles={styles} vi={vi} />
                   <TaskAction
+                    compact
                     disabled={task.status === "claimed" || task.status === "pending"}
                     label={actionLabel}
                     loading={isClaiming || isSyncing}
@@ -388,7 +409,7 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     errorText: { color: dark ? "#fecaca" : "#b91c1c", fontSize: 13, lineHeight: 19 },
     feedback: { alignItems: "center", backgroundColor: dark ? "#0d3327" : "#ecfdf5", borderColor: dark ? "#166534" : "#86efac", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, padding: 12 },
     feedbackText: { color: dark ? "#bbf7d0" : "#15803d", flex: 1, fontSize: 13, lineHeight: 19 },
-    sectionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 11, padding: 13, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: dark ? 0.16 : 0.04, shadowRadius: 10, elevation: 2 },
+    sectionCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 10, paddingHorizontal: 10, paddingVertical: 12, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: dark ? 0.16 : 0.04, shadowRadius: 10, elevation: 2 },
     sectionHeading: { alignItems: "center", flexDirection: "row", gap: 12 },
     sectionIcon: { alignItems: "center", borderRadius: 999, height: 38, justifyContent: "center", width: 38 },
     referralIcon: { backgroundColor: dark ? "#0d3327" : "#ecfdf5" },
@@ -398,31 +419,35 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     sectionTitle: { color: colors.text, fontSize: 14.5, fontWeight: "900", letterSpacing: -0.2 },
     sectionSubtitle: { color: colors.mutedText, fontSize: 11, lineHeight: 16 },
     subtitleStrong: { color: colors.text, fontWeight: "900" },
-    timelineContent: { gap: 8, paddingHorizontal: 2, paddingVertical: 5 },
-    timelineSlot: { alignItems: "center", minWidth: 120, position: "relative" },
-    timelineConnector: { backgroundColor: dark ? "#475569" : "#fed7aa", height: 2, left: -10, position: "absolute", top: 17, width: 22 },
+    timelineContent: { gap: 3, paddingHorizontal: 1, paddingVertical: 3 },
+    timelineSlot: { alignItems: "center", minWidth: 68, position: "relative", width: 68 },
+    timelineConnector: { backgroundColor: dark ? "#475569" : "#fed7aa", height: 2, left: -23, position: "absolute", top: 13, width: 43 },
     timelineConnectorReached: { backgroundColor: "#22c55e" },
-    milestoneCircle: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#e2e8f0", borderColor: dark ? "#475569" : "#cbd5e1", borderRadius: 999, borderWidth: 1, height: 34, justifyContent: "center", width: 34, zIndex: 1 },
+    milestoneCircle: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#e2e8f0", borderColor: dark ? "#475569" : "#cbd5e1", borderRadius: 999, borderWidth: 1, height: 28, justifyContent: "center", width: 28, zIndex: 1 },
     milestoneCircleReached: { backgroundColor: "#16a34a", borderColor: "#16a34a" },
     milestoneCircleReady: { backgroundColor: "#f97316", borderColor: "#f97316" },
-    milestoneCard: { alignItems: "center", backgroundColor: dark ? "#162132" : "#fffcf8", borderColor: dark ? "#475569" : "#fed7aa", borderRadius: 12, borderWidth: 1, gap: 3, marginTop: 6, minHeight: 150, padding: 8, width: 112 },
+    milestoneCard: { alignItems: "center", backgroundColor: dark ? "#162132" : "#fffcf8", borderColor: dark ? "#475569" : "#fed7aa", borderRadius: 9, borderWidth: 1, gap: 2, marginTop: 4, minHeight: 112, paddingHorizontal: 3, paddingVertical: 5, width: 64 },
     milestoneCardReady: { backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#c2410c" : "#fb923c" },
     milestoneCardClaimed: { backgroundColor: dark ? "#0d3327" : "#f0fdf4", borderColor: dark ? "#166534" : "#86efac" },
-    milestoneTarget: { color: colors.text, fontSize: 21, fontWeight: "900", lineHeight: 23 },
-    milestoneUnit: { color: colors.mutedText, fontSize: 8.5, fontWeight: "900", letterSpacing: 0.8 },
-    milestoneReward: { color: colors.primary, fontSize: 13, fontWeight: "900", maxWidth: 96 },
-    milestoneProgress: { color: colors.mutedText, fontSize: 10, fontWeight: "700" },
-    miniProgressTrack: { backgroundColor: dark ? "#334155" : "#ffeadb", borderRadius: 999, height: 5, overflow: "hidden", width: "100%" },
+    milestoneTarget: { color: colors.text, fontSize: 16, fontWeight: "900", lineHeight: 18 },
+    milestoneUnit: { color: colors.mutedText, fontSize: 7, fontWeight: "900", letterSpacing: 0.45 },
+    milestoneReward: { color: colors.primary, fontSize: 9, fontWeight: "900", maxWidth: 58 },
+    milestoneProgress: { color: colors.mutedText, fontSize: 7.5, fontWeight: "700" },
+    miniProgressTrack: { backgroundColor: dark ? "#334155" : "#ffeadb", borderRadius: 999, height: 3, overflow: "hidden", width: "100%" },
     miniProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
     statusPill: { alignSelf: "center", backgroundColor: dark ? "#334155" : "#f1f5f9", borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
+    compactStatusPill: { maxWidth: "100%", paddingHorizontal: 4, paddingVertical: 2 },
     statusReady: { backgroundColor: dark ? "#431d12" : "#ffedd5" },
     statusPositive: { backgroundColor: dark ? "#14532d" : "#dcfce7" },
     statusPending: { backgroundColor: dark ? "#422006" : "#fef3c7" },
     statusText: { color: colors.mutedText, fontSize: 8.5, fontWeight: "800", textAlign: "center" },
+    compactStatusText: { fontSize: 7.2 },
     statusPositiveText: { color: dark ? "#bbf7d0" : "#15803d" },
     taskAction: { alignItems: "center", alignSelf: "stretch", backgroundColor: colors.primary, borderRadius: 8, flexDirection: "row", gap: 4, justifyContent: "center", minHeight: 31, paddingHorizontal: 5 },
+    compactTaskAction: { borderRadius: 6, minHeight: 26, paddingHorizontal: 2 },
     taskActionDisabled: { backgroundColor: dark ? "#475569" : "#cbd5e1" },
     taskActionText: { color: "#ffffff", fontSize: 10, fontWeight: "900", textAlign: "center" },
+    compactTaskActionText: { fontSize: 7.5 },
     pressed: { opacity: 0.75 },
     unconfigured: { alignItems: "center", backgroundColor: dark ? "#162132" : "#f8fafc", borderRadius: 13, gap: 7, paddingHorizontal: 20, paddingVertical: 20 },
     unconfiguredTitle: { color: colors.text, fontSize: 14, fontWeight: "900", textAlign: "center" },
