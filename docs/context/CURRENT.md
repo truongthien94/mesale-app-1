@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260815-005`
-- Session: `SES-20260815-005`
+- Latest checkpoint: `CKP-20260815-006`
+- Session: `SES-20260815-006`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,13 +10,13 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-062` / `CHG-20260815-005`; server-claimable task and shared blue-hero work is locally verified.
-- Source commit: `5c6622c`; context commit `5650c10` is published directly to `origin/main`.
-- Latest local evidence: mobile `114/114`, Laravel `95/95` (`884` assertions), TypeScript, Expo Doctor `18/18`, Android/iOS exports, and diff/secret checks.
-- Remote CI `31858190739` passed context/secret, Laravel, mobile tests, TypeScript, Expo Doctor, and iOS/Android exports.
-- Google Sheet operational sync for all seven new IDs was appended and read back exactly once.
-- Reward rollout note: Laravel domain `completed` is exposed as API `claimable`; coordinate production API deployment with the new mobile binary because older binaries may expect `completed`.
-- Password-change physical-device/error-state evidence and wider store gates remain open.
+- Current batch: `TSK-MOB-063` / `CHG-20260815-006`; Android Play AAB `0.1.1` / code `2` is locally built and verified.
+- Source base: `8d60594`; release/version and context changes are pending publication to `origin/main`.
+- Latest local evidence: mobile `114/114`, TypeScript, Expo Doctor `18/18`, Bundletool, upload signature, API 35 manifest, 16 KB alignment, production API/OAuth canary, and legal-resource HTTP checks.
+- Release artifact: `Me-Sale-v0.1.1-vc2-20260815.aab`, `49,620,794` bytes, SHA-256 `C5DE525AAD341B66552B5E51B3E859A5E5E6CB01723E8149E1F339FFB6CD2DBB`; binary is not committed.
+- Google OAuth source/artifact checks pass, but the Google Cloud Android client for the Play App Signing SHA-1 was not externally verified because the browser session is signed out.
+- Google Sheet operational rows and blocker/gate updates were synchronized and read back uniquely.
+- Upload to Internal Testing, install from Play, and complete a real Google-to-Laravel Bearer-session smoke before production rollout.
 
 ## 2026-08-15 Current ARM64 Test APK
 
