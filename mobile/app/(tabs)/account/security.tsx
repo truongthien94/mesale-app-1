@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { ApiError } from "@/api/client";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
@@ -11,10 +12,11 @@ import {
   useSendEmailOtp,
   useSetupTwoFactor
 } from "@/features/account/api";
-import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
+import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMenuRow, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
 import { colors, spacing } from "@/theme/tokens";
 
 export default function SecurityScreen() {
+  const router = useRouter();
   const query = useSecurity();
   const setup = useSetupTwoFactor();
   const enableTwoFactor = useEnableTwoFactor();
@@ -97,7 +99,14 @@ export default function SecurityScreen() {
 
   return (
     <AccountFormScreen>
-      <AccountHeader title="Bảo mật tài khoản" subtitle="Thiết lập xác thực hai lớp trực tiếp với Laravel. Không có secret nào được ghi log hoặc đưa vào repository." />
+      <AccountHeader title="Bảo mật tài khoản" />
+      <AccountCard>
+        <AccountMenuRow
+          onPress={() => router.push("/(tabs)/account/password")}
+          subtitle="Cập nhật mật khẩu đăng nhập và bảo vệ các phiên đang hoạt động"
+          title="Đổi mật khẩu"
+        />
+      </AccountCard>
       <AccountCard>
         <View style={accountStyles.row}>
           <View style={styles.copy}><Text style={accountStyles.strong}>Google Authenticator</Text><Text style={accountStyles.body}>{status.google2fa_enabled ? "Đang bật" : "Chưa bật"}</Text></View>

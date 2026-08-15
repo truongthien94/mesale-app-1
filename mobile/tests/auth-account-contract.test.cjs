@@ -34,6 +34,8 @@ const accountFinancePath = path.resolve(__dirname, "../app/(tabs)/account/financ
 const accountSettingsPath = path.resolve(__dirname, "../app/(tabs)/account/settings.tsx");
 const sessionsScreenPath = path.resolve(__dirname, "../app/(tabs)/account/sessions.tsx");
 const deletionScreenPath = path.resolve(__dirname, "../app/(tabs)/account/delete.tsx");
+const securityScreenPath = path.resolve(__dirname, "../app/(tabs)/account/security.tsx");
+const passwordScreenPath = path.resolve(__dirname, "../app/(tabs)/account/password.tsx");
 const authProviderPath = path.resolve(__dirname, "../src/auth/AuthProvider.tsx");
 const authRoutingPath = path.resolve(__dirname, "../src/auth/routing.ts");
 const indexScreenPath = path.resolve(__dirname, "../app/index.tsx");
@@ -63,6 +65,24 @@ test("uses only the existing auth and account endpoints", () => {
   assert.equal(accountPaths.sessions, "sessions");
   assert.equal(sessionRevokePath(42), "sessions/42/revoke");
   assert.throws(() => sessionRevokePath(0));
+});
+
+test("links security to the single password-change flow without exposing technical copy", () => {
+  const securitySource = fs.readFileSync(securityScreenPath, "utf8");
+  const passwordSource = fs.readFileSync(passwordScreenPath, "utf8");
+
+  assert.match(securitySource, /<AccountHeader title="Bảo mật tài khoản" \/>/);
+  assert.match(securitySource, /router\.push\("\/\(tabs\)\/account\/password"\)/);
+  assert.match(securitySource, /title="Đổi mật khẩu"/);
+  assert.doesNotMatch(securitySource, /Thiết lập xác thực hai lớp trực tiếp với Laravel/);
+  assert.match(passwordSource, /useChangePassword\(\)/);
+  assert.match(passwordSource, /currentPassword, password, passwordConfirmation: confirmation/);
+  assert.match(passwordSource, /secureTextEntry=\{!visible\}/);
+  assert.match(passwordSource, /Mật khẩu mới phải có ít nhất 8 ký tự/);
+  assert.match(passwordSource, /Mật khẩu xác nhận không khớp/);
+  assert.match(passwordSource, /mutation\.isPending/);
+  assert.match(passwordSource, /mutation\.isSuccess/);
+  assert.doesNotMatch(passwordSource, /AsyncStorage|SecureStore|setItem/);
 });
 
 test("keeps account categories collapsed on the hub and preserves the existing child contracts", () => {
