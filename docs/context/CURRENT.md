@@ -14,6 +14,7 @@
 - Source commit: `5c6622c`; context commit `5650c10` is published directly to `origin/main`.
 - Latest local evidence: mobile `114/114`, Laravel `95/95` (`884` assertions), TypeScript, Expo Doctor `18/18`, Android/iOS exports, and diff/secret checks.
 - Remote CI `31858190739` passed context/secret, Laravel, mobile tests, TypeScript, Expo Doctor, and iOS/Android exports.
+- Google Sheet operational sync for all seven new IDs was appended and read back exactly once.
 - Reward rollout note: Laravel domain `completed` is exposed as API `claimable`; coordinate production API deployment with the new mobile binary because older binaries may expect `completed`.
 - Password-change physical-device/error-state evidence and wider store gates remain open.
 
