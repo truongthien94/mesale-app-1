@@ -1,14 +1,14 @@
 # Migration Context Index
 
 - Current context: [CURRENT.md](CURRENT.md)
-- Latest checkpoint: [CKP-20260815-004](checkpoints/CKP-20260815-004.md)
-- Latest session: [SES-20260815-004](sessions/SES-20260815-004.md)
-- Latest decision: [DEC-20260815-004](../decisions/DEC-20260815-004.md)
-- Current batch: `TSK-MOB-061` / `CHG-20260815-004` / `TST-20260815-004`
-- Current source base: `b95fafe`
-- Current context checkpoint: `CKP-20260815-004`
-- Current local evidence: ARM64 standalone APK; package/version/SDK/ABI; production API; APK v2 signing; 16 KB zip alignment; SHA-256
-- Current remote evidence: context `c536758` is on `origin/main`; Actions run `31855985496` and Google Sheet synchronization passed
+- Latest checkpoint: [CKP-20260815-005](checkpoints/CKP-20260815-005.md)
+- Latest session: [SES-20260815-005](sessions/SES-20260815-005.md)
+- Latest decision: [DEC-20260815-005](../decisions/DEC-20260815-005.md)
+- Current batch: `TSK-MOB-062` / `CHG-20260815-005` / `TST-20260815-005`
+- Current source base: `5c6622c`
+- Current context checkpoint: `CKP-20260815-005`
+- Current local evidence: 114/114 mobile tests, 95/95 Laravel tests, TypeScript, Expo Doctor 18/18, Android/iOS exports
+- Current remote evidence: pending direct publication and CI run; Google Sheet synchronization pending
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

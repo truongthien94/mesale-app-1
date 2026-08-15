@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260815-004`
-- Session: `SES-20260815-004`
+- Latest checkpoint: `CKP-20260815-005`
+- Session: `SES-20260815-005`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,7 +10,10 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-061` / `CHG-20260815-004`; current ARM64 standalone test APK is built and locally verified.
+- Current batch: `TSK-MOB-062` / `CHG-20260815-005`; server-claimable task and shared blue-hero work is locally verified.
+- Source commit: `5c6622c`; direct publication and CI evidence are pending.
+- Latest local evidence: mobile `114/114`, Laravel `95/95` (`884` assertions), TypeScript, Expo Doctor `18/18`, Android/iOS exports, and diff/secret checks.
+- Reward rollout note: Laravel domain `completed` is exposed as API `claimable`; coordinate production API deployment with the new mobile binary because older binaries may expect `completed`.
 - Password-change physical-device/error-state evidence and wider store gates remain open.
 
 ## 2026-08-15 Current ARM64 Test APK
