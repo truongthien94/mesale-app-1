@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260815-001`
-- Session: `SES-20260815-001`
+- Latest checkpoint: `CKP-20260815-002`
+- Session: `SES-20260815-002`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-058` / `CHG-20260815-001`; dense task milestones are published and Android-emulator verified.
-- Production task milestone configuration, physical-device evidence, and store gates remain open.
+- Current batch: `TSK-MOB-059` / `CHG-20260815-002`; Security password entry recovery is published and Android-emulator verified.
+- Password-change physical-device/error-state evidence and wider store gates remain open.
+
+## 2026-08-15 Security Password Entry Recovery
+
+- Removed the technical Laravel/secret subtitle from Security and added `Doi mat khau` as the first compact action.
+- Reused the existing native password route and authenticated `account/password` API instead of duplicating the form or endpoint.
+- Added show/hide controls, local validation, normalized Laravel errors, loading/success behavior, and password-state clearing after success.
+- Verification: mobile `112/112`, TypeScript, Expo Doctor `18/18`, diff checks, and Android Security/password navigation inspection passed.
+- Operational IDs: `SES-20260815-002`, `CKP-20260815-002`, `TSK-MOB-059`, `DEC-20260815-002`, `CHG-20260815-002`, `TST-20260815-002`; `GATE-BOTH-015` remains partial/blocked.
+- Source commit `c8928cc` is published directly to `origin/main`; Actions run `31853146753` passed all jobs, including both platform exports.
+- All seven operational Sheet IDs are synchronized and unique; context publication is pending.
 
 ## 2026-08-15 Dense Reward Milestone Timeline
 
