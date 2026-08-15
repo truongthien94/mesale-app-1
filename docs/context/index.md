@@ -6,9 +6,9 @@
 - Latest decision: [DEC-20260815-004](../decisions/DEC-20260815-004.md)
 - Current batch: `TSK-MOB-061` / `CHG-20260815-004` / `TST-20260815-004`
 - Current source base: `b95fafe`
-- Current context checkpoint: `CKP-20260815-004` (local artifact verified; context publication pending)
+- Current context checkpoint: `CKP-20260815-004`
 - Current local evidence: ARM64 standalone APK; package/version/SDK/ABI; production API; APK v2 signing; 16 KB zip alignment; SHA-256
-- Current remote evidence: source/context base `b95fafe` is on `origin/main`; workflow run `31854446302` and Google Sheet synchronization passed; current context publication pending
+- Current remote evidence: context `c536758` is on `origin/main`; Actions run `31855985496` and Google Sheet synchronization passed
 - Plan: [migration-plan.md](../migration-plan.md)
 - Checkpoints: [checkpoints/](checkpoints/)
 - Sessions: [sessions/](sessions/)

@@ -23,7 +23,8 @@
 - Size: `31,021,016` bytes; SHA-256: `3359C7090EDA4EE004A242515047B945C6CFF276949EC55D04880A8891FE1145`.
 - This artifact is for direct physical-device testing only and must not be uploaded to Google Play.
 - Operational IDs: `SES-20260815-004`, `CKP-20260815-004`, `TSK-MOB-061`, `DEC-20260815-004`, `CHG-20260815-004`, `TST-20260815-004`; `GATE-AND-004` remains partial/blocked.
-- All six new operational IDs and the `GATE-AND-004` update are synchronized and unique in Google Sheet; context publication is pending.
+- Context commit `c536758` is published directly to `origin/main`; Actions run `31855985496` passed all jobs, including both platform exports.
+- All six new operational IDs and the `GATE-AND-004` update are synchronized and unique in Google Sheet.
 
 ## 2026-08-15 Social Password Reset Guidance
 
