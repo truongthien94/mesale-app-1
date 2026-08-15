@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260815-003`
-- Session: `SES-20260815-003`
+- Latest checkpoint: `CKP-20260815-004`
+- Session: `SES-20260815-004`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,20 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-060` / `CHG-20260815-003`; social-login password guidance is published and Android-emulator verified.
+- Current batch: `TSK-MOB-061` / `CHG-20260815-004`; current ARM64 standalone test APK is built and locally verified.
 - Password-change physical-device/error-state evidence and wider store gates remain open.
+
+## 2026-08-15 Current ARM64 Test APK
+
+- Built a standalone ARM64 release APK from commit `b95fafe` with the production Open API embedded.
+- Signed the test artifact with the local Android debug certificate to avoid using the Google Play upload key and to remain compatible with prior internal test APKs.
+- Delivered artifact: `C:\Users\ThichMMO\Desktop\Me-Sale-Android-Test-b95fafe-arm64.apk`; the APK remains outside Git.
+- Verified package `vn.mesale.app`, installed label `Mê Sale`, version `0.1.0` (`versionCode 1`), min SDK `24`, target SDK `35`, and ABI `arm64-v8a`.
+- APK Signature Scheme v2, embedded production API, 16 KB zip alignment, and SHA-256 verification passed.
+- Size: `31,021,016` bytes; SHA-256: `3359C7090EDA4EE004A242515047B945C6CFF276949EC55D04880A8891FE1145`.
+- This artifact is for direct physical-device testing only and must not be uploaded to Google Play.
+- Operational IDs: `SES-20260815-004`, `CKP-20260815-004`, `TSK-MOB-061`, `DEC-20260815-004`, `CHG-20260815-004`, `TST-20260815-004`; `GATE-AND-004` remains partial/blocked.
+- All six new operational IDs and the `GATE-AND-004` update are synchronized and unique in Google Sheet; context publication is pending.
 
 ## 2026-08-15 Social Password Reset Guidance
 
