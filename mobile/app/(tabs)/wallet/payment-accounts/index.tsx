@@ -1,8 +1,10 @@
 import { useCallback, useState } from "react";
 import { useRouter } from "expo-router";
+import { Landmark } from "lucide-react-native";
 import { Alert, FlatList, Pressable, StyleSheet, Text, View, type ListRenderItemInfo } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState, LoadingState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { InlineError, PageFrame, PrimaryButton, QueryFailure } from "@/features/wallet/components";
 import { useDeletePaymentAccount, usePaymentAccounts, useSetDefaultPaymentAccount } from "@/features/wallet/api";
 import type { PaymentAccount } from "@/features/wallet/types";
@@ -86,6 +88,7 @@ export default function PaymentAccountsScreen() {
         keyExtractor={(item) => String(item.id)}
         ListHeaderComponent={
           <View style={styles.header}>
+            <CompactBlueHero icon={Landmark} subtitle="Quản lý ngân hàng và ví điện tử dùng khi rút tiền." title="Tài khoản nhận tiền" />
             <PrimaryButton disabled={accounts.length >= 10} label={accounts.length >= 10 ? "Đã đạt giới hạn 10 tài khoản" : "Thêm tài khoản nhận tiền"} onPress={() => router.push("/(tabs)/wallet/payment-accounts/create")} />
             <InlineError error={setDefault.error ?? remove.error} />
           </View>

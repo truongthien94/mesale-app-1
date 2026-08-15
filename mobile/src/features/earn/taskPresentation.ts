@@ -41,5 +41,5 @@ export function taskProgressPercent(task: EarnTask): number {
 }
 
 export function isTaskMilestoneReached(task: EarnTask): boolean {
-  return task.status === "completed" || task.status === "claimed" || task.progress >= task.target_count;
+  return task.status === "claimable" || task.status === "claimed" || task.progress >= task.target_count;
 }

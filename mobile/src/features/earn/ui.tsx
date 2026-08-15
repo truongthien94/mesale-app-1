@@ -135,7 +135,7 @@ export function Field({
 
 export function StatusBadge({ status }: { status: string }) {
   const normalized = status.toLowerCase();
-  const positive = ["approved", "completed", "claimed", "success"].includes(normalized);
+  const positive = ["approved", "claimable", "completed", "claimed", "success"].includes(normalized);
   const negative = ["rejected", "failed", "expired"].includes(normalized);
 
   return (

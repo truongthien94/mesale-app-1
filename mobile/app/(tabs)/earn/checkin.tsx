@@ -17,6 +17,7 @@ import {
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { checkinQueryOptions, performCheckin, type CheckinResult } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
@@ -51,14 +52,12 @@ function CheckinLoadingShell({ insets, styles, vi }: {
 }) {
   return (
     <View style={[styles.loadingShell, { paddingTop: insets.top + 12 }]}>
+      <CompactBlueHero
+        icon={CalendarCheck}
+        subtitle={vi ? "Đang cập nhật tiến độ của bạn..." : "Updating your progress..."}
+        title={vi ? "CHUỖI ĐIỂM DANH ✨" : "CHECK-IN STREAK ✨"}
+      />
       <View style={styles.streakCard}>
-        <View style={styles.heroHeading}>
-          <View style={styles.heroIcon}><CalendarCheck color="#f97316" size={25} strokeWidth={2.4} /></View>
-          <View style={styles.heroCopy}>
-            <Text accessibilityRole="header" style={styles.heroTitle}>{vi ? "CHUỖI ĐIỂM DANH ✨" : "CHECK-IN STREAK ✨"}</Text>
-            <Text style={styles.heroSubtitle}>{vi ? "Đang cập nhật tiến độ của bạn..." : "Updating your progress..."}</Text>
-          </View>
-        </View>
         <View accessibilityLabel={vi ? "Đang tải dữ liệu điểm danh" : "Loading check-in data"} accessibilityRole="progressbar" style={styles.loadingStreakRow}>
           {Array.from({ length: 7 }, (_, index) => <View key={index} style={styles.loadingDay} />)}
         </View>
@@ -189,21 +188,12 @@ export default function CheckinScreen() {
       ListFooterComponent={<ListFooterLoading visible={query.isFetchingNextPage} />}
       ListHeaderComponent={(
         <View style={[styles.headerContent, { paddingTop: insets.top + 12 }]}>
+          <CompactBlueHero
+            icon={CalendarCheck}
+            subtitle={vi ? "Điểm danh mỗi ngày để nhận thưởng hấp dẫn" : "Check in daily to receive configured rewards"}
+            title={vi ? "CHUỖI ĐIỂM DANH ✨" : "CHECK-IN STREAK ✨"}
+          />
           <View style={styles.streakCard}>
-            <View style={styles.heroHeading}>
-              <View style={styles.heroIcon}>
-                <CalendarCheck color="#f97316" size={25} strokeWidth={2.4} />
-              </View>
-              <View style={styles.heroCopy}>
-                <Text accessibilityRole="header" style={styles.heroTitle}>
-                  {vi ? "CHUỖI ĐIỂM DANH ✨" : "CHECK-IN STREAK ✨"}
-                </Text>
-                <Text style={styles.heroSubtitle}>
-                  {vi ? "Điểm danh mỗi ngày để nhận thưởng hấp dẫn" : "Check in daily to receive configured rewards"}
-                </Text>
-              </View>
-            </View>
-
             <View accessibilityLabel={vi ? `Chuỗi hiện tại ${firstPage.current_streak} ngày` : `Current streak ${firstPage.current_streak} days`} style={styles.streakRow}>
               {streakDays.map((item, index) => (
                 <View
@@ -346,11 +336,6 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     listContent: { gap: 14, paddingHorizontal: 16 },
     headerContent: { gap: 16 },
     streakCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: 18, padding: 16, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 5 }, shadowOpacity: dark ? 0.18 : 0.06, shadowRadius: 12, elevation: 2 },
-    heroHeading: { alignItems: "center", flexDirection: "row", gap: 12 },
-    heroIcon: { alignItems: "center", backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 10, borderWidth: 1, height: 42, justifyContent: "center", width: 42 },
-    heroCopy: { flex: 1, gap: 3 },
-    heroTitle: { color: colors.text, fontSize: 17, fontWeight: "900", letterSpacing: -0.2 },
-    heroSubtitle: { color: colors.mutedText, fontSize: 12.5, lineHeight: 18 },
     streakRow: { flexDirection: "row", justifyContent: "space-between", paddingTop: 2 },
     daySlot: { alignItems: "center", flex: 1, gap: 4, minWidth: 0, position: "relative" },
     dayConnector: { backgroundColor: dark ? "#334155" : "#e2e8f0", height: 1, position: "absolute", right: -4, top: 18, width: 8 },

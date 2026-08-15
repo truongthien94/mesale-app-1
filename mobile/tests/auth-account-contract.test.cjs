@@ -35,6 +35,7 @@ const accountSettingsPath = path.resolve(__dirname, "../app/(tabs)/account/setti
 const sessionsScreenPath = path.resolve(__dirname, "../app/(tabs)/account/sessions.tsx");
 const deletionScreenPath = path.resolve(__dirname, "../app/(tabs)/account/delete.tsx");
 const securityScreenPath = path.resolve(__dirname, "../app/(tabs)/account/security.tsx");
+const profileScreenPath = path.resolve(__dirname, "../app/(tabs)/account/profile.tsx");
 const passwordScreenPath = path.resolve(__dirname, "../app/(tabs)/account/password.tsx");
 const authProviderPath = path.resolve(__dirname, "../src/auth/AuthProvider.tsx");
 const authRoutingPath = path.resolve(__dirname, "../src/auth/routing.ts");
@@ -71,7 +72,8 @@ test("links security to the single password-change flow without exposing technic
   const securitySource = fs.readFileSync(securityScreenPath, "utf8");
   const passwordSource = fs.readFileSync(passwordScreenPath, "utf8");
 
-  assert.match(securitySource, /<AccountHeader title="Bảo mật tài khoản" \/>/);
+  assert.match(securitySource, /<CompactBlueHero[^>]*title="Bảo mật tài khoản"/);
+  assert.match(fs.readFileSync(profileScreenPath, "utf8"), /<CompactBlueHero[^>]*title="Thông tin cá nhân"/);
   assert.match(securitySource, /router\.push\("\/\(tabs\)\/account\/password"\)/);
   assert.match(securitySource, /title="Đổi mật khẩu"/);
   assert.doesNotMatch(securitySource, /Thiết lập xác thực hai lớp trực tiếp với Laravel/);
@@ -91,6 +93,8 @@ test("keeps account categories collapsed on the hub and preserves the existing c
   const informationSource = fs.readFileSync(accountInformationPath, "utf8");
   const financeSource = fs.readFileSync(accountFinancePath, "utf8");
   const settingsSource = fs.readFileSync(accountSettingsPath, "utf8");
+
+  assert.match(hubSource, /<CompactBlueHero[\s\S]*subtitle="Số dư khả dụng"[\s\S]*title=\{formatKnownMoney\(account\.wallet\?\.balance\)\}/);
 
   for (const route of ["information", "finance", "settings"]) {
     assert.match(hubSource, new RegExp(`account/${route}`));

@@ -1,6 +1,5 @@
 import { useRef, useState, type ComponentType } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, type Href } from "expo-router";
 import {
   ArrowDownCircle,
@@ -37,6 +36,7 @@ import { applyReferralCode } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import { useAccount } from "@/features/account/api";
 import { referralsQueryOptions } from "@/features/earn/api";
@@ -349,15 +349,11 @@ export default function AccountRoute() {
         </Pressable>
       </View>
 
-      <LinearGradient
-        colors={scheme === "dark" ? ["#1269c7", "#0b4d9f"] : ["#39a8ff", "#1473df"]}
-        end={{ x: 1, y: 1 }}
-        start={{ x: 0, y: 0 }}
-        style={styles.walletCard}
+      <CompactBlueHero
+        icon={CreditCard}
+        subtitle="Số dư khả dụng"
+        title={formatKnownMoney(account.wallet?.balance)}
       >
-        <View pointerEvents="none" style={styles.walletBubble} />
-        <Text style={styles.balanceLabel}>Số dư khả dụng</Text>
-        <Text adjustsFontSizeToFit numberOfLines={1} style={styles.balanceValue}>{formatKnownMoney(account.wallet?.balance)}</Text>
         <View style={styles.walletStats}>
           <View style={styles.walletStat}>
             <Text style={styles.walletStatLabel}>Tổng đã nhận</Text>
@@ -378,7 +374,7 @@ export default function AccountRoute() {
           <ArrowDownCircle color="#197ddd" size={22} />
           <Text style={styles.withdrawButtonText}>Rút tiền về ngân hàng</Text>
         </Pressable>
-      </LinearGradient>
+      </CompactBlueHero>
 
       {hasConfirmedNoPaymentAccount ? (
         <View style={[styles.bankWarning, { backgroundColor: scheme === "dark" ? "#33290f" : "#fffbea", borderColor: scheme === "dark" ? "#8a6c10" : "#f5d666" }]}>
@@ -632,11 +628,7 @@ const styles = StyleSheet.create({
   identityCopy: { flex: 1, gap: 3, minWidth: 0 },
   profileName: { fontSize: 19, fontWeight: "900" },
   profileEmail: { fontSize: 13 },
-  walletCard: { borderRadius: 24, gap: 5, overflow: "hidden", padding: 22 },
-  walletBubble: { backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 130, height: 220, position: "absolute", right: -64, top: -96, width: 220 },
-  balanceLabel: { color: "rgba(255,255,255,0.86)", fontSize: 15 },
-  balanceValue: { color: "#ffffff", fontSize: 34, fontWeight: "900", letterSpacing: -1, marginBottom: 18 },
-  walletStats: { flexDirection: "row", marginBottom: 18 },
+  walletStats: { flexDirection: "row", marginBottom: 12 },
   walletStat: { flex: 1, gap: 4 },
   walletStatDivider: { backgroundColor: "rgba(255,255,255,0.28)", marginHorizontal: 16, width: StyleSheet.hairlineWidth },
   walletStatLabel: { color: "rgba(255,255,255,0.76)", fontSize: 12 },

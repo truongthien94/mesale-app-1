@@ -249,6 +249,7 @@ class FinancialIdempotencyContractTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.amount', 1000)
             ->assertJsonPath('data.idempotent_replay', false);
+        $this->assertIsInt($first->json('data.amount'));
 
         $this->postTaskClaim($firstTask, 'task-claim-replay-0001')
             ->assertOk()
@@ -294,6 +295,59 @@ class FinancialIdempotencyContractTest extends TestCase
         $this->assertSame(101500, (int) $this->user->fresh()->balance);
         $this->assertDatabaseCount('balance_logs', 1);
         $this->assertDatabaseCount('idempotency_keys', 1);
+    }
+
+    public function test_task_read_contract_maps_completed_to_claimable_without_changing_domain_statuses(): void
+    {
+        $expectedApiStatuses = [
+            'in_progress' => 'in_progress',
+            'pending' => 'pending',
+            'completed' => 'claimable',
+            'claimed' => 'claimed',
+        ];
+        $tasks = [];
+
+        foreach ($expectedApiStatuses as $domainStatus => $apiStatus) {
+            $task = Task::create([
+                'title' => 'Task status '.$domainStatus,
+                'type' => 'one_time',
+                'action' => 'custom',
+                'target_count' => 1,
+                'reward_amount' => 1000,
+                'reward_type' => 'balance',
+                'is_active' => true,
+                'sort_order' => count($tasks),
+            ]);
+            UserTask::create([
+                'user_id' => $this->user->id,
+                'task_id' => $task->id,
+                'progress' => $domainStatus === 'in_progress' ? 0 : 1,
+                'status' => $domainStatus,
+                'period_key' => null,
+                'completed_at' => in_array($domainStatus, ['completed', 'claimed'], true) ? now() : null,
+                'claimed_at' => $domainStatus === 'claimed' ? now() : null,
+            ]);
+            $tasks[$domainStatus] = $task;
+        }
+
+        $items = collect($this->getFinancial('/api/v1/openapi/tasks')
+            ->assertOk()
+            ->json('data.items'))
+            ->keyBy('id');
+
+        foreach ($expectedApiStatuses as $domainStatus => $apiStatus) {
+            $task = $tasks[$domainStatus];
+            $this->assertSame($apiStatus, $items->get($task->id)['status']);
+
+            $this->getFinancial('/api/v1/openapi/tasks/'.$task->id.'/sync')
+                ->assertOk()
+                ->assertJsonPath('data.status', $apiStatus);
+
+            $this->assertSame(
+                $domainStatus,
+                UserTask::query()->where('task_id', $task->id)->value('status')
+            );
+        }
     }
 
     public function test_payment_account_replay_is_side_effect_free_and_a_different_key_creates_a_new_account(): void

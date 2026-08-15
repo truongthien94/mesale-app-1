@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell } from "lucide-react-native";
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
 import {
   fetchNotifications,
@@ -94,18 +96,19 @@ export default function InboxRoute() {
         ListFooterComponent={listQuery.isFetchingNextPage ? <ActivityIndicator color={colors.primary} style={styles.footer} /> : null}
         ListHeaderComponent={
           <View style={styles.headerContent}>
-            <View style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}>
-              <View style={styles.heroTop}>
-                <View style={styles.heroText}>
-                  <Text style={styles.eyebrow}>MESALE INBOX</Text>
-                  <Text accessibilityRole="header" style={styles.heroTitle}>{vi ? "Thông báo" : "Notifications"}</Text>
-                  <Text style={styles.heroSubtitle}>{vi ? "Cập nhật tài khoản, đơn hàng và quyền lợi của bạn." : "Updates about your account, orders, and benefits."}</Text>
-                </View>
+            <CompactBlueHero
+              aside={(
                 <View accessibilityLabel={vi ? `${unreadTotal} thông báo chưa đọc` : `${unreadTotal} unread notifications`} style={styles.unreadBadge}>
                   <Text style={styles.unreadValue}>{unreadTotal}</Text>
                   <Text style={styles.unreadLabel}>{vi ? "CHƯA ĐỌC" : "UNREAD"}</Text>
                 </View>
-              </View>
+              )}
+              eyebrow="MESALE INBOX"
+              icon={Bell}
+              style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}
+              subtitle={vi ? "Cập nhật tài khoản, đơn hàng và quyền lợi của bạn." : "Updates about your account, orders, and benefits."}
+              title={vi ? "Thông báo" : "Notifications"}
+            >
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: unreadTotal === 0 || readAllMutation.isPending, busy: readAllMutation.isPending }}
@@ -116,10 +119,10 @@ export default function InboxRoute() {
                 }}
                 style={({ pressed }) => [styles.readAll, (unreadTotal === 0 || readAllMutation.isPending) && styles.disabled, pressed && styles.pressed]}
               >
-                {readAllMutation.isPending ? <ActivityIndicator color={colors.primary} /> : null}
+                {readAllMutation.isPending ? <ActivityIndicator color="#197ddd" /> : null}
                 <Text style={styles.readAllText}>{vi ? "Đánh dấu đọc tất cả" : "Mark all as read"}</Text>
               </Pressable>
-            </View>
+            </CompactBlueHero>
 
             <View style={styles.chips}>
               {([
@@ -204,17 +207,12 @@ const styles = StyleSheet.create({
   screen: { backgroundColor: colors.background, flex: 1 },
   content: { gap: spacing.md, paddingHorizontal: spacing.md },
   headerContent: { gap: spacing.md, marginHorizontal: -spacing.md },
-  hero: { backgroundColor: "#f97316", borderBottomLeftRadius: 28, borderBottomRightRadius: 28, gap: spacing.md, padding: spacing.lg },
-  heroTop: { alignItems: "flex-start", flexDirection: "row", gap: spacing.md, justifyContent: "space-between" },
-  heroText: { flex: 1, gap: spacing.xs },
-  eyebrow: { color: "#ffedd5", fontSize: 11, fontWeight: "900", letterSpacing: 1.2 },
-  heroTitle: { color: colors.surface, fontSize: 28, fontWeight: "900" },
-  heroSubtitle: { color: "#fff7ed", fontSize: 14, lineHeight: 20 },
+  hero: { borderRadius: 0, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   unreadBadge: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 16, minWidth: 72, padding: spacing.sm },
-  unreadValue: { color: colors.primary, fontSize: 22, fontWeight: "900" },
+  unreadValue: { color: "#197ddd", fontSize: 22, fontWeight: "900" },
   unreadLabel: { color: colors.mutedText, fontSize: 9, fontWeight: "900", letterSpacing: 0.7 },
   readAll: { alignItems: "center", alignSelf: "flex-start", backgroundColor: colors.surface, borderRadius: 12, flexDirection: "row", gap: spacing.sm, minHeight: 44, paddingHorizontal: spacing.md },
-  readAllText: { color: colors.primary, fontSize: 13, fontWeight: "900" },
+  readAllText: { color: "#197ddd", fontSize: 13, fontWeight: "900" },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.78 },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm, paddingHorizontal: spacing.md },

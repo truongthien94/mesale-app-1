@@ -61,12 +61,20 @@ class TaskController extends ApiController
             'end_at' => optional($task->end_at)->toIso8601String(),
             'progress' => $userTask?->progress ?? 0,
             'percent' => $userTask?->getProgressPercent() ?? 0,
-            'status' => $userTask?->status ?? 'in_progress',
+            'status' => $this->toApiTaskStatus($userTask?->status),
             // Thông tin luồng thành viên tự xác nhận hoàn thành nhiệm vụ thủ công
             'submitted_at' => optional($userTask?->submitted_at)->toIso8601String(),
             'submit_note' => $userTask?->submit_note,
             'reject_reason' => $userTask?->reject_reason,
         ];
+    }
+
+    /**
+     * Expose an actionable mobile status without changing the domain/database enum.
+     */
+    private function toApiTaskStatus(?string $status): string
+    {
+        return $status === 'completed' ? 'claimable' : ($status ?? 'in_progress');
     }
 
     /**
@@ -123,7 +131,7 @@ class TaskController extends ApiController
             'progress' => $userTask->progress,
             'target' => (int) $task->target_count,
             'percent' => $userTask->getProgressPercent(),
-            'status' => $userTask->status,
+            'status' => $this->toApiTaskStatus($userTask->status),
         ]);
     }
 

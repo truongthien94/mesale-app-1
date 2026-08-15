@@ -25,6 +25,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { fetchTasks, claimTask, submitTask, syncTask, type EarnTask } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
 import { canClaimTask, canSubmitCustomTask } from "@/features/earn/contracts";
@@ -55,14 +56,14 @@ function statusLabel(status: string, vi: boolean): string {
   return {
     in_progress: "Đang thực hiện",
     pending: "Chờ duyệt",
-    completed: "Chờ nhận thưởng",
+    claimable: "Chờ nhận thưởng",
     claimed: "Đã nhận thưởng"
   }[status] ?? status;
 }
 
 function StatusPill({ status, vi, styles }: { status: string; vi: boolean; styles: ReturnType<typeof createStyles> }) {
   const positive = status === "claimed";
-  const ready = status === "completed";
+  const ready = status === "claimable";
   const pending = status === "pending";
   return (
     <View style={[styles.statusPill, positive && styles.statusPositive, ready && styles.statusReady, pending && styles.statusPending]}>
@@ -103,21 +104,17 @@ function TaskAction({
 function MilestoneSection({
   icon,
   onClaim,
-  onSync,
   section,
   styles,
   vi,
-  busyClaimId,
-  busySyncId
+  busyClaimId
 }: {
   icon: "referral" | "cashback";
   onClaim: (task: EarnTask) => void;
-  onSync: (task: EarnTask) => void;
   section: TaskSection;
   styles: ReturnType<typeof createStyles>;
   vi: boolean;
   busyClaimId: number | null;
-  busySyncId: number | null;
 }) {
   const Icon = icon === "referral" ? UsersRound : ShoppingCart;
   const IconColor = icon === "referral" ? "#16a34a" : "#f97316";
@@ -161,20 +158,11 @@ function MilestoneSection({
           {section.tasks.map((task, index) => {
             const reached = isTaskMilestoneReached(task);
             const isClaiming = busyClaimId === task.id;
-            const isSyncing = busySyncId === task.id;
-            const isBusy = isClaiming || isSyncing;
-            const disabled = task.status === "claimed" || task.status === "pending";
-            const onPress = task.status === "completed"
-              ? () => onClaim(task)
-              : task.status === "in_progress"
-                ? () => onSync(task)
-                : undefined;
-            const accessibilityHint = task.status === "completed"
-              ? (vi ? "Nhấn để nhận thưởng" : "Tap to claim reward")
-              : task.status === "in_progress"
-                ? (vi ? "Nhấn để cập nhật tiến độ" : "Tap to sync progress")
-                : undefined;
-            const highlightedState = reached || task.status === "pending" || task.status === "completed" || task.status === "claimed";
+            const claimable = canClaimTask(task.status);
+            const disabled = !claimable || isClaiming;
+            const onPress = claimable ? () => onClaim(task) : undefined;
+            const accessibilityHint = claimable ? (vi ? "Nhấn để nhận thưởng" : "Tap to claim reward") : undefined;
+            const highlightedState = reached || task.status === "pending" || task.status === "claimable" || task.status === "claimed";
             const stateIconColor = highlightedState ? "#ffffff" : "#94a3b8";
 
             return (
@@ -183,8 +171,8 @@ function MilestoneSection({
                   accessibilityHint={accessibilityHint}
                   accessibilityLabel={vi ? `${section.title}, mốc ${task.target_count}, thưởng ${formatMoney(task.reward_amount)}, ${statusLabel(task.status, vi)}` : `${section.title}, target ${task.target_count}, reward ${formatMoney(task.reward_amount)}, ${statusLabel(task.status, vi)}`}
                   accessibilityRole="button"
-                  accessibilityState={{ busy: isBusy, disabled: disabled || isBusy || !onPress }}
-                  disabled={disabled || isBusy || !onPress}
+                  accessibilityState={{ busy: isClaiming, disabled }}
+                  disabled={disabled}
                   hitSlop={{ top: 4, right: 2, bottom: 4, left: 2 }}
                   onPress={onPress}
                   style={({ pressed }) => [styles.milestoneNode, pressed && styles.pressed]}
@@ -194,10 +182,10 @@ function MilestoneSection({
                     styles.milestoneStateIcon,
                     reached && styles.milestoneStateIconReached,
                     task.status === "pending" && styles.milestoneStateIconPending,
-                    task.status === "completed" && styles.milestoneStateIconReady,
+                    task.status === "claimable" && styles.milestoneStateIconReady,
                     task.status === "claimed" && styles.milestoneStateIconClaimed
                   ]}>
-                    {isBusy ? <ActivityIndicator color={highlightedState ? "#ffffff" : "#f97316"} size="small" /> : task.status === "claimed" ? <Check color={stateIconColor} size={16} strokeWidth={3} /> : task.status === "pending" ? <Clock3 color={stateIconColor} size={15} strokeWidth={2.6} /> : task.status === "completed" ? <Gift color={stateIconColor} size={15} strokeWidth={2.4} /> : <LockKeyhole color={stateIconColor} size={14} strokeWidth={2.2} />}
+                    {isClaiming ? <ActivityIndicator color={highlightedState ? "#ffffff" : "#f97316"} size="small" /> : task.status === "claimed" ? <Check color={stateIconColor} size={14} strokeWidth={3} /> : task.status === "pending" ? <Clock3 color={stateIconColor} size={13} strokeWidth={2.6} /> : task.status === "claimable" ? <Gift color={stateIconColor} size={13} strokeWidth={2.4} /> : <LockKeyhole color={stateIconColor} size={12} strokeWidth={2.2} />}
                   </View>
                   <Text adjustsFontSizeToFit minimumFontScale={0.75} numberOfLines={1} style={styles.milestoneLabel}>
                     {task.target_count} {icon === "referral" ? (vi ? "người" : "people") : (vi ? "đơn" : "orders")}
@@ -293,15 +281,12 @@ export default function TasksScreen() {
   const refreshTasks = () => queryClient.invalidateQueries({ queryKey: ["earn", "tasks"] });
   const syncMutation = useMutation({
     mutationFn: syncTask,
-    onSuccess: async (response) => {
-      setFeedback(response.message ?? (vi ? "Đã đồng bộ tiến độ." : "Progress synced."));
-      await refreshTasks();
-    }
+    onSuccess: refreshTasks
   });
   const claimMutation = useMutation({
     mutationFn: claimTask,
     onSuccess: async (response, variables) => {
-      setFeedback(response.message ?? (vi ? "Đã nhận thưởng nhiệm vụ." : "Task reward claimed."));
+      setFeedback(vi ? `Đã nhận thưởng ${formatMoney(response.data.amount)}` : `Reward received ${formatMoney(response.data.amount)}`);
       stableClaim.reset(variables.payload);
       await Promise.all([refreshTasks(), invalidateRewardCaches(queryClient)]);
     }
@@ -347,16 +332,13 @@ export default function TasksScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={(
           <View style={[styles.headerContent, { paddingTop: insets.top + 12 }]}>
-            <View style={styles.heroCard}>
-              <View style={styles.heroHeading}>
-                <View style={styles.heroIcon}><ListChecks color={colors.primary} size={25} strokeWidth={2.4} /></View>
-                <View style={styles.heroCopy}>
-                  <Text accessibilityRole="header" style={styles.heroTitle}>{vi ? "NHIỆM VỤ NHẬN THƯỞNG ✨" : "REWARD TASKS ✨"}</Text>
-                  <Text style={styles.heroSubtitle}>{vi ? "Hoàn thành từng mốc, đồng bộ và nhận thưởng do máy chủ xác nhận." : "Complete milestones, sync progress, and claim server-confirmed rewards."}</Text>
-                </View>
-              </View>
-              <View style={styles.totalReward}><CircleDollarSign color={colors.primary} size={18} /><Text style={styles.totalRewardLabel}>{vi ? "Tổng thưởng nhiệm vụ" : "Total task rewards"}</Text><Text style={styles.totalRewardAmount}>{formatMoney(query.data.stats.total_earned)}</Text></View>
-            </View>
+            <CompactBlueHero
+              icon={ListChecks}
+              subtitle={vi ? "Hoàn thành từng mốc và nhận thưởng do máy chủ xác nhận." : "Complete milestones and claim server-confirmed rewards."}
+              title={vi ? "NHIỆM VỤ NHẬN THƯỞNG ✨" : "REWARD TASKS ✨"}
+            >
+              <View style={styles.totalReward}><CircleDollarSign color="#ffffff" size={18} /><Text style={styles.totalRewardLabel}>{vi ? "Tổng thưởng nhiệm vụ" : "Total task rewards"}</Text><Text style={styles.totalRewardAmount}>{formatMoney(query.data.stats.total_earned)}</Text></View>
+            </CompactBlueHero>
             {activeErrorMessages.length > 0 ? <View accessibilityLiveRegion="polite" accessibilityRole="alert" style={styles.errorBanner}>{activeErrorMessages.map((message) => <Text key={message} style={styles.errorText}>{message}</Text>)}</View> : null}
             {feedback ? <View accessibilityLiveRegion="polite" style={styles.feedback}><Check color="#16a34a" size={18} strokeWidth={3} /><Text style={styles.feedbackText}>{feedback}</Text></View> : null}
           </View>
@@ -369,7 +351,7 @@ export default function TasksScreen() {
             {item.tasks.map((task) => <OtherTaskCard busyClaimId={claimMutation.isPending ? claimMutation.variables?.payload.taskId ?? null : null} busySubmitId={submitMutation.isPending ? submitTaskId : null} busySyncId={syncMutation.isPending ? syncMutation.variables ?? null : null} key={task.id} note={note} onClaim={(selected) => { setFeedback(null); claimMutation.mutate(stableClaim.getVariables({ taskId: selected.id })); }} onSubmit={(selected) => { setFeedback(null); submitMutation.mutate({ taskId: selected.id, note: note.trim() || undefined }); }} onSync={(selected) => { setFeedback(null); syncMutation.mutate(selected.id); }} setNote={setNote} setSubmitTaskId={setSubmitTaskId} styles={styles} submitTaskId={submitTaskId} task={task} vi={vi} />)}
           </View>
         ) : (
-          <MilestoneSection busyClaimId={claimMutation.isPending ? claimMutation.variables?.payload.taskId ?? null : null} busySyncId={syncMutation.isPending ? syncMutation.variables ?? null : null} icon={item.key} onClaim={(selected) => { setFeedback(null); claimMutation.mutate(stableClaim.getVariables({ taskId: selected.id })); }} onSync={(selected) => { setFeedback(null); syncMutation.mutate(selected.id); }} section={item} styles={styles} vi={vi} />
+          <MilestoneSection busyClaimId={claimMutation.isPending ? claimMutation.variables?.payload.taskId ?? null : null} icon={item.key} onClaim={(selected) => { setFeedback(null); claimMutation.mutate(stableClaim.getVariables({ taskId: selected.id })); }} section={item} styles={styles} vi={vi} />
         )}
         showsVerticalScrollIndicator={false}
       />
@@ -388,15 +370,9 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     screen: { backgroundColor: dark ? "#08111f" : "#f4f1ed", flex: 1 },
     listContent: { gap: 14, paddingHorizontal: 16 },
     headerContent: { gap: 12 },
-    heroCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 10, padding: 13, shadowColor: "#0f172a", shadowOffset: { width: 0, height: 4 }, shadowOpacity: dark ? 0.16 : 0.05, shadowRadius: 10, elevation: 2 },
-    heroHeading: { alignItems: "center", flexDirection: "row", gap: 12 },
-    heroIcon: { alignItems: "center", backgroundColor: dark ? "#3b2910" : "#fff7ed", borderColor: dark ? "#854d0e" : "#fed7aa", borderRadius: 10, borderWidth: 1, height: 38, justifyContent: "center", width: 38 },
-    heroCopy: { flex: 1, gap: 3 },
-    heroTitle: { color: colors.text, fontSize: 15, fontWeight: "900", letterSpacing: -0.2 },
-    heroSubtitle: { color: colors.mutedText, fontSize: 11.5, lineHeight: 16 },
-    totalReward: { alignItems: "center", backgroundColor: dark ? "#2f2017" : "#fff7ed", borderRadius: 10, flexDirection: "row", gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
-    totalRewardLabel: { color: colors.mutedText, flex: 1, fontSize: 11, fontWeight: "700" },
-    totalRewardAmount: { color: colors.primary, fontSize: 15, fontWeight: "900" },
+    totalReward: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 10, flexDirection: "row", gap: 6, paddingHorizontal: 10, paddingVertical: 8 },
+    totalRewardLabel: { color: "rgba(255,255,255,0.84)", flex: 1, fontSize: 11, fontWeight: "700" },
+    totalRewardAmount: { color: "#ffffff", fontSize: 15, fontWeight: "900" },
     errorBanner: { backgroundColor: dark ? "#431b22" : "#fef2f2", borderColor: dark ? "#7f1d1d" : "#fecaca", borderRadius: 12, borderWidth: 1, padding: 13 },
     errorText: { color: dark ? "#fecaca" : "#b91c1c", fontSize: 13, lineHeight: 19 },
     feedback: { alignItems: "center", backgroundColor: dark ? "#0d3327" : "#ecfdf5", borderColor: dark ? "#166534" : "#86efac", borderRadius: 12, borderWidth: 1, flexDirection: "row", gap: 8, padding: 12 },
@@ -411,18 +387,18 @@ function createStyles(colors: Theme["colors"], scheme: Theme["scheme"]) {
     sectionTitle: { color: colors.text, fontSize: 14.5, fontWeight: "900", letterSpacing: -0.2 },
     sectionSubtitle: { color: colors.mutedText, fontSize: 11, lineHeight: 16 },
     subtitleStrong: { color: colors.text, fontWeight: "900" },
-    timelineContent: { gap: 3, paddingHorizontal: 1, paddingVertical: 2 },
-    timelineSlot: { alignItems: "center", minWidth: 47, width: 47 },
-    milestoneNode: { alignItems: "center", gap: 2, minHeight: 66, position: "relative", width: 47 },
-    milestoneConnector: { backgroundColor: dark ? "#475569" : "#cbd5e1", height: 2, left: -10, position: "absolute", top: 16, width: 17 },
+    timelineContent: { gap: 2, paddingHorizontal: 1, paddingVertical: 2 },
+    timelineSlot: { alignItems: "center", minWidth: 42, width: 42 },
+    milestoneNode: { alignItems: "center", gap: 1, minHeight: 56, position: "relative", width: 42 },
+    milestoneConnector: { backgroundColor: dark ? "#475569" : "#cbd5e1", height: 2, left: -9, position: "absolute", top: 14, width: 15 },
     milestoneConnectorReached: { backgroundColor: "#22c55e" },
-    milestoneStateIcon: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#eef2f7", borderColor: dark ? "#475569" : "#d7dee8", borderRadius: 999, borderWidth: 1, height: 34, justifyContent: "center", width: 34, zIndex: 1 },
+    milestoneStateIcon: { alignItems: "center", backgroundColor: dark ? "#1e293b" : "#eef2f7", borderColor: dark ? "#475569" : "#d7dee8", borderRadius: 999, borderWidth: 1, height: 29, justifyContent: "center", width: 29, zIndex: 1 },
     milestoneStateIconReached: { backgroundColor: "#16a34a" },
     milestoneStateIconPending: { backgroundColor: "#d97706" },
     milestoneStateIconReady: { backgroundColor: "#f97316" },
     milestoneStateIconClaimed: { backgroundColor: "#16a34a" },
-    milestoneLabel: { color: colors.text, fontSize: 8, fontWeight: "800", maxWidth: 47, textAlign: "center" },
-    milestoneReward: { color: colors.primary, fontSize: 8, fontWeight: "900", maxWidth: 47, textAlign: "center" },
+    milestoneLabel: { color: colors.text, fontSize: 7.5, fontWeight: "800", maxWidth: 42, textAlign: "center" },
+    milestoneReward: { color: colors.primary, fontSize: 7.5, fontWeight: "900", maxWidth: 42, textAlign: "center" },
     statusPill: { alignSelf: "center", backgroundColor: dark ? "#334155" : "#f1f5f9", borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
     statusReady: { backgroundColor: dark ? "#431d12" : "#ffedd5" },
     statusPositive: { backgroundColor: dark ? "#14532d" : "#dcfce7" },

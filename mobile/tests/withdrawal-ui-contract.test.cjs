@@ -93,6 +93,14 @@ test("withdrawal destination stays saved-account-derived and server authoritativ
   assert.doesNotMatch(source, /placeholder="Nhập số tài khoản|placeholder="Nhập họ tên chủ tài khoản/);
 });
 
+test("payment accounts keeps a compact blue hero above the white account cards", () => {
+  const source = read("../app/(tabs)/wallet/payment-accounts/index.tsx");
+
+  assert.match(source, /<CompactBlueHero[^>]*title="Tài khoản nhận tiền"/);
+  assert.match(source, /backgroundColor: colors\.surface/);
+  assert.match(source, /usePaymentAccounts\(\)/);
+});
+
 test("withdrawal creation keeps validation, OTP, retry, success and keyboard states", () => {
   const source = read("../app/(tabs)/wallet/withdrawals/create.tsx");
 

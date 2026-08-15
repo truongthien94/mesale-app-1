@@ -28,6 +28,9 @@ const notificationContractsPath = path.resolve(__dirname, "../src/features/notif
 const earnApiPath = path.resolve(__dirname, "../src/features/earn/api.ts");
 const notificationApiPath = path.resolve(__dirname, "../src/features/notifications/api.ts");
 const taskScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/tasks.tsx");
+const checkinScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/checkin.tsx");
+const inboxScreenPath = path.resolve(__dirname, "../app/(tabs)/inbox/index.tsx");
+const compactHeroPath = path.resolve(__dirname, "../src/components/CompactBlueHero.tsx");
 const giftScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gifts.tsx");
 const giftCodeScreenPath = path.resolve(__dirname, "../app/(tabs)/earn/gift-code.tsx");
 const checkinPresentationPath = path.resolve(__dirname, "../src/features/earn/checkinPresentation.ts");
@@ -138,13 +141,14 @@ test("builds gift catalog and redemption history filters without inventing endpo
 });
 
 test("keeps task claim and physical gift validation rules explicit", () => {
-  assert.equal(canClaimTask("completed", 25), true);
+  assert.equal(canClaimTask("claimable", 25), true);
+  assert.equal(canClaimTask("completed", 25), false);
   assert.equal(canClaimTask("in_progress"), false);
   assert.equal(canClaimTask("pending"), false);
   assert.equal(canClaimTask("claimed"), false);
   assert.equal(canSubmitCustomTask("custom", "in_progress"), true);
   assert.equal(canSubmitCustomTask("custom", "pending"), false);
-  assert.equal(canSubmitCustomTask("custom", "completed"), false);
+  assert.equal(canSubmitCustomTask("custom", "claimable"), false);
   assert.equal(canSubmitCustomTask("profile", "in_progress"), false);
   assert.equal(requiresPhysicalAddress("physical"), true);
   assert.equal(requiresPhysicalAddress("giftcode"), false);
@@ -153,7 +157,7 @@ test("keeps task claim and physical gift validation rules explicit", () => {
 test("groups task timelines from server action and target values without inventing rewards", () => {
   const tasks = [
     { id: 9, action: "referral", target_count: 9, progress: 2, percent: 22, status: "in_progress", reward_amount: 9100 },
-    { id: 3, action: "cashback", target_count: 10, progress: 10, percent: 100, status: "completed", reward_amount: 7300 },
+    { id: 3, action: "cashback", target_count: 10, progress: 10, percent: 100, status: "claimable", reward_amount: 7300 },
     { id: 1, action: "referral", target_count: 1, progress: 1, percent: 100, status: "claimed", reward_amount: 1100 },
     { id: 7, action: "custom", target_count: 1, progress: 0, percent: 0, status: "in_progress", reward_amount: 4200 }
   ];
@@ -185,14 +189,41 @@ test("renders the tasks bottom-tab route as server-authoritative referral and or
   assert.doesNotMatch(source, /styles\.statsRow|query\.data\.stats\.in_progress|query\.data\.stats\.completed|query\.data\.stats\.claimed/);
   assert.doesNotMatch(source, /milestoneTitle/);
   assert.doesNotMatch(source, /reward_amount:\s*[1-9][0-9]*/);
-  assert.match(source, /timelineSlot: \{[^}]*minWidth: 47[^}]*width: 47/);
-  assert.match(source, /milestoneNode: \{[^}]*minHeight: 66[^}]*width: 47/);
-  assert.match(source, /milestoneStateIcon: \{[^}]*height: 34[^}]*width: 34/);
+  assert.match(source, /timelineSlot: \{[^}]*minWidth: 42[^}]*width: 42/);
+  assert.match(source, /milestoneNode: \{[^}]*minHeight: 56[^}]*width: 42/);
+  assert.match(source, /milestoneStateIcon: \{[^}]*height: 29[^}]*width: 29/);
+  assert.match(source, /task\.status === "claimable"/);
+  assert.doesNotMatch(source, /task\.status === "completed"/);
   assert.match(source, /hitSlop=\{\{ top: 4, right: 2, bottom: 4, left: 2 \}\}/);
-  assert.match(source, /accessibilityState=\{\{ busy: isBusy, disabled: disabled \|\| isBusy \|\| !onPress \}\}/);
+  assert.match(source, /const claimable = canClaimTask\(task\.status\)/);
+  assert.match(source, /const disabled = !claimable \|\| isClaiming/);
+  assert.match(source, /const onPress = claimable \? \(\) => onClaim\(task\) : undefined/);
+  assert.match(source, /accessibilityState=\{\{ busy: isClaiming, disabled \}\}/);
+  assert.match(source, /disabled=\{disabled\}/);
   assert.doesNotMatch(source, /<StatusPill compact|compactStatusLabel|compactTaskAction/);
   assert.doesNotMatch(source, /styles\.milestoneProgress|styles\.miniProgressTrack|styles\.milestoneCard/);
   assert.doesNotMatch(source, /Nhận \+\$\{formatMoney\(task\.reward_amount\)\}/);
+  const milestoneSource = source.slice(source.indexOf("function MilestoneSection"), source.indexOf("function OtherTaskCard"));
+  assert.doesNotMatch(milestoneSource, /syncTask|onSync|syncMutation/);
+  const syncMutationSource = source.slice(source.indexOf("const syncMutation"), source.indexOf("const claimMutation"));
+  assert.doesNotMatch(syncMutationSource, /setFeedback|Đã đồng bộ tiến độ|Progress synced/);
+  assert.match(source, /Đã nhận thưởng \$\{formatMoney\(response\.data\.amount\)\}/);
+  assert.doesNotMatch(source, /Đã nhận thưởng nhiệm vụ/);
+});
+
+test("uses the shared compact blue hero across earn and notification headers", () => {
+  const heroSource = fs.readFileSync(compactHeroPath, "utf8");
+  const taskSource = fs.readFileSync(taskScreenPath, "utf8");
+  const checkinSource = fs.readFileSync(checkinScreenPath, "utf8");
+  const inboxSource = fs.readFileSync(inboxScreenPath, "utf8");
+
+  assert.match(heroSource, /<LinearGradient/);
+  assert.match(heroSource, /\["#3ba8ff", "#0872df"\]/);
+  assert.match(heroSource, /scheme === "dark"/);
+  for (const source of [taskSource, checkinSource, inboxSource]) {
+    assert.match(source, /<CompactBlueHero/);
+  }
+  assert.doesNotMatch(inboxSource, /hero: \{ backgroundColor: "#f97316"/);
 });
 
 test("builds the notification list contract with type, unread filter, and pagination", () => {

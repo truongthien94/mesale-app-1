@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { UserRound } from "lucide-react-native";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { useAccount, useUpdateProfile } from "@/features/account/api";
 import { AvatarEditor } from "@/features/account/AvatarEditor";
-import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMutationError, AccountNotice } from "@/features/account/components";
+import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountMutationError, AccountNotice } from "@/features/account/components";
 
 export default function ProfileScreen() {
   const query = useAccount();
@@ -43,7 +45,7 @@ export default function ProfileScreen() {
 
   return (
     <AccountFormScreen>
-      <AccountHeader title="Thông tin cá nhân" subtitle="Thay đổi tại đây được lưu vào cùng hồ sơ thành viên trên mesale.vn." />
+      <CompactBlueHero icon={UserRound} subtitle="Thông tin được lưu vào cùng hồ sơ thành viên trên mesale.vn." title="Thông tin cá nhân" />
       <AccountCard>
         <AvatarEditor avatar={query.data.avatar} name={query.data.name} />
       </AccountCard>

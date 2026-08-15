@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { ShieldCheck } from "lucide-react-native";
 import { Linking, Platform, StyleSheet, Text, View } from "react-native";
 import { ApiError } from "@/api/client";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { CompactBlueHero } from "@/components/CompactBlueHero";
 import {
   useDisableEmailOtp,
   useDisableTwoFactor,
@@ -12,7 +14,7 @@ import {
   useSendEmailOtp,
   useSetupTwoFactor
 } from "@/features/account/api";
-import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMenuRow, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
+import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountMenuRow, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
 import { colors, spacing } from "@/theme/tokens";
 
 export default function SecurityScreen() {
@@ -99,7 +101,7 @@ export default function SecurityScreen() {
 
   return (
     <AccountFormScreen>
-      <AccountHeader title="Bảo mật tài khoản" />
+      <CompactBlueHero icon={ShieldCheck} subtitle="Quản lý mật khẩu, OTP email và xác thực hai lớp." title="Bảo mật tài khoản" />
       <AccountCard>
         <AccountMenuRow
           onPress={() => router.push("/(tabs)/account/password")}

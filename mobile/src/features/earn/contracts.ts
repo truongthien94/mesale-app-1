@@ -29,7 +29,7 @@ export function giftRedemptionsPath(page: number, search?: string, status?: stri
 }
 
 export function canClaimTask(status: string): boolean {
-  return status === "completed";
+  return status === "claimable";
 }
 
 export function canSubmitCustomTask(action: string, status: string): boolean {
