@@ -1,7 +1,7 @@
 # Current Migration Context
 
-- Latest checkpoint: `CKP-20260815-002`
-- Session: `SES-20260815-002`
+- Latest checkpoint: `CKP-20260815-003`
+- Session: `SES-20260815-003`
 - Plan: [migration-plan.md](../migration-plan.md)
 - Phase: M0 P0 remediation and M1 MVP foundation; production referral eligibility gap closed with a scoped additive patch
 - Milestone status: M0 open; M1 open and not complete
@@ -10,8 +10,18 @@
 - Repository: `thichmmo/mesale-app`, intentionally maintained as a Laravel + Expo monorepo
 - Local branch: `codex/mvp-p0-20260809`
 - Remote target: `origin/main`
-- Current batch: `TSK-MOB-059` / `CHG-20260815-002`; Security password entry recovery is published and Android-emulator verified.
+- Current batch: `TSK-MOB-060` / `CHG-20260815-003`; social-login password guidance is published and Android-emulator verified.
 - Password-change physical-device/error-state evidence and wider store gates remain open.
+
+## 2026-08-15 Social Password Reset Guidance
+
+- Replaced the technical token-revocation subtitle on the password form with owner-approved guidance for Google and iCloud sign-ins.
+- Final copy: `Nếu bạn đăng nhập bằng Google hoặc iCloud, bạn cần đặt lại mật khẩu trước khi đổi mật khẩu.`
+- Kept the existing password route, authenticated Laravel mutation, validation, visibility controls, and security behavior unchanged.
+- Verification: mobile `112/112`, TypeScript, Expo Doctor `18/18`, diff checks, and Android API 35 text/layout inspection passed.
+- Operational IDs: `SES-20260815-003`, `CKP-20260815-003`, `TSK-MOB-060`, `DEC-20260815-003`, `CHG-20260815-003`, `TST-20260815-003`; `GATE-BOTH-015` remains partial/blocked.
+- Source commit `e7ed770` is published directly to `origin/main`; Actions run `31853935065` passed all jobs, including both platform exports.
+- All six new operational IDs and the `GATE-BOTH-015` update are synchronized and unique in Google Sheet; context publication is pending.
 
 ## 2026-08-15 Security Password Entry Recovery
 
@@ -21,7 +31,8 @@
 - Verification: mobile `112/112`, TypeScript, Expo Doctor `18/18`, diff checks, and Android Security/password navigation inspection passed.
 - Operational IDs: `SES-20260815-002`, `CKP-20260815-002`, `TSK-MOB-059`, `DEC-20260815-002`, `CHG-20260815-002`, `TST-20260815-002`; `GATE-BOTH-015` remains partial/blocked.
 - Source commit `c8928cc` is published directly to `origin/main`; Actions run `31853146753` passed all jobs, including both platform exports.
-- All seven operational Sheet IDs are synchronized and unique; context publication is pending.
+- Context commit `f2beb4b` is published directly to `origin/main`; Actions run `31853381274` passed all jobs, including both platform exports.
+- All seven operational Sheet IDs are synchronized and unique.
 
 ## 2026-08-15 Dense Reward Milestone Timeline
 
