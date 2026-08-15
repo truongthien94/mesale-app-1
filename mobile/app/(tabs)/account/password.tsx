@@ -55,7 +55,7 @@ export default function PasswordScreen() {
 
   return (
     <AccountFormScreen>
-      <AccountHeader title="Đổi mật khẩu" subtitle="Sau khi đổi, Laravel sẽ thu hồi mọi access token trên thiết bị khác và giữ phiên hiện tại." />
+      <AccountHeader title="Đổi mật khẩu" subtitle="Nếu bạn đăng nhập bằng Google hoặc iCloud, bạn cần đặt lại mật khẩu trước khi đổi mật khẩu." />
       <AccountCard>
         <PasswordField autoComplete="password" error={localErrors.current_password ?? serverErrors?.current_password?.[0]} label="Mật khẩu hiện tại" onChangeText={(value) => updateField("current_password", value, setCurrentPassword)} onToggle={() => setCurrentVisible((current) => !current)} value={currentPassword} visible={currentVisible} />
         <PasswordField autoComplete="new-password" error={localErrors.password ?? serverErrors?.password?.[0]} label="Mật khẩu mới" onChangeText={(value) => updateField("password", value, setPassword)} onToggle={() => setPasswordVisible((current) => !current)} value={password} visible={passwordVisible} />

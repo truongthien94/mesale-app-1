@@ -76,6 +76,7 @@ test("links security to the single password-change flow without exposing technic
   assert.match(securitySource, /title="Đổi mật khẩu"/);
   assert.doesNotMatch(securitySource, /Thiết lập xác thực hai lớp trực tiếp với Laravel/);
   assert.match(passwordSource, /useChangePassword\(\)/);
+  assert.match(passwordSource, /Nếu bạn đăng nhập bằng Google hoặc iCloud, bạn cần đặt lại mật khẩu trước khi đổi mật khẩu\./);
   assert.match(passwordSource, /currentPassword, password, passwordConfirmation: confirmation/);
   assert.match(passwordSource, /secureTextEntry=\{!visible\}/);
   assert.match(passwordSource, /Mật khẩu mới phải có ít nhất 8 ký tự/);
