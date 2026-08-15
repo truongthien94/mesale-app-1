@@ -21,7 +21,8 @@
 - Verification: mobile `112/112`, TypeScript, Expo Doctor `18/18`, diff checks, and Android API 35 text/layout inspection passed.
 - Operational IDs: `SES-20260815-003`, `CKP-20260815-003`, `TSK-MOB-060`, `DEC-20260815-003`, `CHG-20260815-003`, `TST-20260815-003`; `GATE-BOTH-015` remains partial/blocked.
 - Source commit `e7ed770` is published directly to `origin/main`; Actions run `31853935065` passed all jobs, including both platform exports.
-- All six new operational IDs and the `GATE-BOTH-015` update are synchronized and unique in Google Sheet; context publication is pending.
+- Context commit `7a6b481` is published directly to `origin/main`; Actions run `31854279094` passed all jobs, including both platform exports.
+- All six new operational IDs and the `GATE-BOTH-015` update are synchronized and unique in Google Sheet.
 
 ## 2026-08-15 Security Password Entry Recovery
 
