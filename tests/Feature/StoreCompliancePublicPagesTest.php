@@ -24,6 +24,7 @@ class StoreCompliancePublicPagesTest extends TestCase
             ['legal.terms', 'Điều khoản dịch vụ', 'Cashback, số dư và rút tiền'],
             ['support', 'Hỗ trợ và liên hệ', 'Thông tin cần cung cấp'],
             ['account-deletion', 'Hướng dẫn xóa tài khoản', 'Xóa trong ứng dụng'],
+            ['account-deletion.legacy', 'Hướng dẫn xóa tài khoản', 'Xóa trong ứng dụng'],
         ];
 
         foreach ($pages as [$routeName, $title, $content]) {
@@ -57,7 +58,28 @@ class StoreCompliancePublicPagesTest extends TestCase
         $android->assertJsonPath('0.target.package_name', 'vn.mesale.app')
             ->assertJsonPath(
                 '0.target.sha256_cert_fingerprints.0',
-                'REPLACE_WITH_RELEASE_CERTIFICATE_SHA256_FINGERPRINT'
+                '3E:C2:23:72:37:0E:47:7A:1C:F1:9C:93:74:41:5B:5E:96:96:FB:2F:89:73:19:AD:54:7C:9C:4B:F3:DE:B9:A7'
             );
+    }
+
+    public function test_android_app_link_uses_the_canonical_account_deletion_path(): void
+    {
+        $config = json_decode(
+            (string) file_get_contents(base_path('mobile/app.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR
+        );
+
+        $paths = collect($config['expo']['android']['intentFilters'])
+            ->flatMap(static fn (array $filter): array => $filter['data'] ?? [])
+            ->where('host', 'mesale.vn')
+            ->pluck('pathPrefix');
+
+        $this->assertTrue($paths->contains('/account-deletion'));
+        $this->assertFalse($paths->contains('/account/delete'));
+        $this->assertSame(
+            'https://mesale.vn/account-deletion',
+            $config['expo']['extra']['storeUrls']['accountDeletion']
+        );
     }
 }

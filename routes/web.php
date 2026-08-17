@@ -35,6 +35,7 @@ Route::get('/privacy', [StoreCompliancePageController::class, 'privacy'])->name(
 Route::get('/terms', [StoreCompliancePageController::class, 'terms'])->name('legal.terms');
 Route::get('/support', [StoreCompliancePageController::class, 'support'])->name('support');
 Route::get('/account-deletion', [StoreCompliancePageController::class, 'accountDeletion'])->name('account-deletion');
+Route::get('/account/delete', [StoreCompliancePageController::class, 'accountDeletion'])->name('account-deletion.legacy');
 Route::get('/.well-known/apple-app-site-association', [WellKnownController::class, 'appleAppSiteAssociation'])
     ->name('well-known.apple');
 Route::get('/.well-known/assetlinks.json', [WellKnownController::class, 'assetLinks'])
