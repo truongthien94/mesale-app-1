@@ -46,7 +46,7 @@ The app exchanges account identifiers, cashback, orders, wallet balances, referr
 ## Open Release Gaps
 
 - Signed AAB, version code, merged manifest, upload certificate, and 16 KB compatibility now have local evidence; Play App Signing runtime behavior and staged rollout evidence remain open.
-- Android App Links intent filters and `assetlinks.json` groundwork exist in source with a release-certificate fingerprint placeholder; production HTTPS verification and the owner fingerprint remain required.
+- Android App Links and `assetlinks.json` are deployed and verified for package `vn.mesale.app` with the Play App Signing SHA-256. Play Console Deep Links reports all configured links working and no issue for `mesale.vn`; the next mobile build uses `/account-deletion` as the canonical deletion path.
 - The release merged manifest confirms no restricted SMS/Call Log, broad storage/media, location, `QUERY_ALL_PACKAGES`, `MANAGE_EXTERNAL_STORAGE`, camera, overlay, or package-inventory permission.
 - Notification permission/push registration is not complete; OTP remains server/email based and does not request SMS permission.
 - No physical-device accessibility, edge-to-edge, keyboard, offline/retry, crash, performance, or screenshot regression evidence.

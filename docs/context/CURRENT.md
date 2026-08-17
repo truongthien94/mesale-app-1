@@ -1,5 +1,7 @@
 # Current Migration Context
 
+- Latest checkpoint: `CKP-20260817-001`; account deletion web fallback and Android App Links are deployed and verified. Production `/account/delete`, `/account-deletion`, and `/.well-known/assetlinks.json` return HTTP `200`; Play Console Deep Links reports no `mesale.vn` domain issues. Source commit `a1b1ec4` is on `origin/main`. Google Sheet synchronization is pending because no live connector is available in this session.
+
 - Latest checkpoint: `CKP-20260815-006`
 - Session: `SES-20260815-006`
 - Plan: [migration-plan.md](../migration-plan.md)
