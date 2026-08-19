@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Helpers\MoneyHelper;
 use App\Models\Banner;
 use App\Models\Setting;
+use App\Services\AppleOAuthConfiguration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,6 +23,7 @@ class ConfigController extends ApiController
     {
         $withdrawalFeeType = Setting::getVal('withdrawal_fee_type', 'percentage');
         $withdrawalFeeValue = Setting::getVal('withdrawal_fee_value', 0);
+        $appleOAuthReady = app(AppleOAuthConfiguration::class)->isReady();
 
         // Danh sách banner đang hiển thị ở trang chủ (giống logic web)
         $banners = Banner::where('is_active', true)
@@ -94,7 +96,8 @@ class ConfigController extends ApiController
                 // Cờ bật/tắt từng nhóm Open API để App ẩn tính năng chưa mở
                 'api_auth' => Setting::getVal('openapi_auth_status', '1') === '1',
                 'api_auth_oauth_google' => Setting::getVal('openapi_auth_oauth_google_status', '0') === '1',
-                'api_auth_oauth_apple' => Setting::getVal('openapi_auth_oauth_apple_status', '0') === '1',
+                'api_auth_oauth_apple' => Setting::getVal('openapi_auth_oauth_apple_status', '0') === '1'
+                    && $appleOAuthReady,
                 'api_cashback_link' => Setting::getVal('openapi_cashback_link_status', '1') === '1',
                 'api_orders' => Setting::getVal('openapi_orders_status', '1') === '1',
                 'api_withdraw' => Setting::getVal('openapi_withdraw_status', '1') === '1',

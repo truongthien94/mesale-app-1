@@ -87,12 +87,14 @@ test("theme preference writes are serialized and stale hydration revisions are r
 test("Round A keeps current UI stable while mounting the theme boundary", () => {
   const tokens = read("../src/theme/tokens.ts");
   const layout = read("../app/_layout.tsx");
+  const appConfig = JSON.parse(read("../app.json"));
   assert.match(tokens, /export const colors = lightColors/);
   assert.match(tokens, /primary: "#f97316"/g);
   assert.match(layout, /<ThemeProvider>[\s\S]*<AuthProvider>/);
   assert.match(layout, /function ThemedStatusBar/);
   assert.match(layout, /style=\{scheme === "dark" \? "light" : "dark"\}/);
   assert.match(layout, /<ThemedStatusBar \/>/);
+  assert.equal(appConfig.expo.ios.infoPlist.UIViewControllerBasedStatusBarAppearance, false);
 });
 
 test("shared async states use the active theme in light and dark mode", () => {

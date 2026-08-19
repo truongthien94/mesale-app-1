@@ -21,24 +21,30 @@ test("withdrawal form uses server financial terms and saved payment accounts in 
   const layout = read("../app/(tabs)/wallet/_layout.tsx");
 
   assert.match(layout, /name="withdrawals\/create"/);
+  assert.doesNotMatch(layout, /@react-navigation\//);
   assert.match(layout, /title: "Rút tiền"/);
   assert.match(layout, /accessibilityLabel="Quay lại"/);
   assert.match(layout, /navigation\.canGoBack\(\)/);
   assert.match(layout, /navigation\.goBack\(\)/);
-  assert.match(layout, /route\.name === "withdrawals\/create" \? "\/\(tabs\)\/wallet\/withdrawals" : "\/\(tabs\)\/wallet"/);
+  assert.match(
+    layout,
+    /route\.name === "withdrawals\/create"\s*\? "\/\(tabs\)\/wallet\/withdrawals"\s*: "\/\(tabs\)\/wallet"/,
+  );
   assert.match(layout, /useTheme\(\)/);
-  assert.match(layout, /const \{ colors, scheme \} = useTheme\(\)/);
+  assert.match(layout, /const \{ colors \} = useTheme\(\)/);
   assert.match(layout, /header: \(props\) => <WalletStackHeader \{\.\.\.props\} \/>/);
   assert.match(layout, /useSafeAreaInsets\(\)/);
   assert.match(layout, /paddingTop: insets\.top/);
   assert.match(layout, /allowFontScaling=\{false\}/);
   assert.match(layout, /numberOfLines=\{1\}/);
   assert.match(layout, /headerTitle: \{[^}]*fontSize: 17/);
-  assert.match(layout, /statusBarStyle: scheme === "dark" \? "light" : "dark"/);
+  assert.doesNotMatch(layout, /statusBarStyle/);
   assert.match(layout, /<ChevronLeft color=\{colors\.text\}/);
   assert.match(layout, /showBack = navigation\.canGoBack\(\) \|\| route\.name !== "index"/);
   assert.doesNotMatch(layout, /import \{ colors \} from "@\/theme\/tokens"/);
   assert.match(source, /accountQuery\.data\?\.wallet\.balance/);
+  assert.match(source, /from "expo-router\/tabs"/);
+  assert.doesNotMatch(source, /@react-navigation\//);
   assert.match(source, /withdrawConfig\.min_amount/);
   assert.match(source, /config\.fee_type === "percentage"/);
   assert.match(source, /withdrawConfig\.otp_required/);

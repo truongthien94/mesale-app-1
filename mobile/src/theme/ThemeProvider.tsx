@@ -1,9 +1,22 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useColorScheme } from "react-native";
 import { darkColors, lightColors, radius, spacing } from "@/theme/tokens";
-import { createThemePreferenceCoordinator, loadThemePreference, type ThemePreference } from "@/theme/themePreference";
+import {
+  createThemePreferenceCoordinator,
+  loadThemePreference,
+  type ThemePreference,
+} from "@/theme/themePreference";
 
 type ColorScheme = "light" | "dark";
+type SystemColorScheme = ReturnType<typeof useColorScheme>;
 
 type ThemeContextValue = {
   colors: typeof lightColors;
@@ -16,7 +29,10 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function resolveScheme(preference: ThemePreference, systemScheme: ColorScheme | null | undefined): ColorScheme {
+function resolveScheme(
+  preference: ThemePreference,
+  systemScheme: SystemColorScheme,
+): ColorScheme {
   if (preference === "light" || preference === "dark") return preference;
   return systemScheme === "dark" ? "dark" : "light";
 }
@@ -24,20 +40,28 @@ function resolveScheme(preference: ThemePreference, systemScheme: ColorScheme | 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>("system");
-  const coordinatorRef = useRef<ReturnType<typeof createThemePreferenceCoordinator> | null>(null);
+  const coordinatorRef = useRef<ReturnType<
+    typeof createThemePreferenceCoordinator
+  > | null>(null);
   coordinatorRef.current ??= createThemePreferenceCoordinator();
 
   useEffect(() => {
     let mounted = true;
     const coordinator = coordinatorRef.current!;
     const observedRevision = coordinator.currentRevision();
-    void loadThemePreference().then((storedPreference) => {
-      if (mounted && storedPreference && coordinator.isCurrentRevision(observedRevision)) {
-        setPreferenceState(storedPreference);
-      }
-    }).catch(() => {
-      // Storage failures fall back to the system preference without breaking launch.
-    });
+    void loadThemePreference()
+      .then((storedPreference) => {
+        if (
+          mounted &&
+          storedPreference &&
+          coordinator.isCurrentRevision(observedRevision)
+        ) {
+          setPreferenceState(storedPreference);
+        }
+      })
+      .catch(() => {
+        // Storage failures fall back to the system preference without breaking launch.
+      });
     return () => {
       mounted = false;
     };
@@ -49,16 +73,21 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const scheme = resolveScheme(preference, systemScheme);
-  const value = useMemo<ThemeContextValue>(() => ({
-    colors: scheme === "dark" ? darkColors : lightColors,
-    spacing,
-    radius,
-    scheme,
-    preference,
-    setPreference
-  }), [preference, scheme, setPreference]);
+  const value = useMemo<ThemeContextValue>(
+    () => ({
+      colors: scheme === "dark" ? darkColors : lightColors,
+      spacing,
+      radius,
+      scheme,
+      preference,
+      setPreference,
+    }),
+    [preference, scheme, setPreference],
+  );
 
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
+  );
 }
 
 export function useTheme(): ThemeContextValue {

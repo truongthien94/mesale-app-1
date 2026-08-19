@@ -48,9 +48,10 @@ mobile/dist/
 mobile/dist-review/
 mobile/dist-verify-*/
 mobile/.eas/
-mobile/android/.gradle/
-mobile/android/local.properties
-mobile/ios/Pods/
+mobile/android/
+mobile/ios/
+mobile/key_store/
+mobile/credentials.json
 
 # Editors and OS files
 .idea/
@@ -67,3 +68,5 @@ hosts.txt
 *.p8
 *.keystore
 *.jks
+mobile/README.md
+mobile/Makefile

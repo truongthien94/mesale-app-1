@@ -13,7 +13,10 @@ test("Account opens the full native usage guide and hides the primary tab bar", 
   const tabs = read("../app/(tabs)/_layout.tsx");
 
   assert.match(account, /navigateTo\("\/\(tabs\)\/account\/guide"\)/);
-  assert.match(layout, /<Stack\.Screen name="guide" options=\{\{ headerShown: false, title: "Hướng dẫn sử dụng" \}\} \/>/);
+  assert.match(
+    layout,
+    /<Stack\.Screen\s+name="guide"\s+options=\{\{ headerShown: false, title: "Hướng dẫn sử dụng" \}\}\s+\/>/,
+  );
   assert.match(tabs, /pathname === "\/account\/guide"/);
   assert.match(tabs, /display: hideTabBar \? "none" : "flex"/);
   assert.doesNotMatch(account, /showUnavailable\("Hướng dẫn sử dụng"\)/);

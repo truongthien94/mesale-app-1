@@ -21,6 +21,7 @@ type NativeOAuthFlowErrorCode =
   | "GOOGLE_CLIENT_NOT_CONFIGURED"
   | "GOOGLE_DEVELOPER_ERROR"
   | "APPLE_NOT_AVAILABLE"
+  | "APPLE_AUTHORIZATION_FAILED"
   | "NATIVE_CREDENTIAL_MISSING"
   | "GOOGLE_PLAY_SERVICES_UNAVAILABLE"
   | "OAUTH_REQUEST_IN_PROGRESS";
@@ -96,10 +97,14 @@ export async function requestAppleNativeCredential(): Promise<AppleNativeCredent
     };
   } catch (reason) {
     if (reason instanceof NativeOAuthFlowError) throw reason;
-    if (errorCode(reason) === "ERR_REQUEST_CANCELED") {
+    const code = errorCode(reason);
+    if (code === "ERR_REQUEST_CANCELED") {
       throw new NativeOAuthFlowError("NATIVE_AUTH_CANCELLED", reason);
     }
-    throw reason;
+    if (__DEV__) {
+      console.warn("[Apple OAuth] Native authorization failed", { code: code ?? "UNKNOWN" });
+    }
+    throw new NativeOAuthFlowError("APPLE_AUTHORIZATION_FAILED", reason);
   }
 }
 

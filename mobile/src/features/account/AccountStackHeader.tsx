@@ -1,16 +1,28 @@
-import type { NativeStackHeaderProps } from "@react-navigation/native-stack";
-import { getHeaderTitle } from "@react-navigation/elements";
 import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  resolveHeaderTitle,
+  type HeaderTitleOptions,
+} from "@/navigation/header";
 import { useTheme } from "@/theme/ThemeProvider";
 
-export function AccountStackHeader({ navigation, options, route }: NativeStackHeaderProps) {
+type StackHeaderProps = {
+  navigation: { canGoBack: () => boolean; goBack: () => void };
+  options: HeaderTitleOptions;
+  route: { name: string };
+};
+
+export function AccountStackHeader({
+  navigation,
+  options,
+  route,
+}: StackHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
-  const title = getHeaderTitle(options, route.name);
+  const title = resolveHeaderTitle(options, route.name);
 
   function goBack() {
     if (navigation.canGoBack()) {
@@ -21,19 +33,41 @@ export function AccountStackHeader({ navigation, options, route }: NativeStackHe
   }
 
   return (
-    <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: colors.surface,
+          borderBottomColor: colors.border,
+          paddingTop: insets.top,
+        },
+      ]}
+    >
       <View style={styles.content}>
         <Pressable
           accessibilityLabel="Quay lại Tài khoản"
           accessibilityRole="button"
           hitSlop={8}
           onPress={goBack}
-          style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
+          style={({ pressed }) => [
+            styles.backButton,
+            pressed && styles.pressed,
+          ]}
         >
           <ChevronLeft color={colors.text} size={26} />
         </Pressable>
-        <Text accessibilityRole="header" numberOfLines={1} style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.trailingSpace} />
+        <Text
+          accessibilityRole="header"
+          numberOfLines={1}
+          style={[styles.title, { color: colors.text }]}
+        >
+          {title}
+        </Text>
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={styles.trailingSpace}
+        />
       </View>
     </View>
   );
@@ -41,9 +75,19 @@ export function AccountStackHeader({ navigation, options, route }: NativeStackHe
 
 const styles = StyleSheet.create({
   header: { borderBottomWidth: StyleSheet.hairlineWidth },
-  content: { alignItems: "center", flexDirection: "row", minHeight: 56, paddingHorizontal: 8 },
-  backButton: { alignItems: "center", height: 44, justifyContent: "center", width: 44 },
+  content: {
+    alignItems: "center",
+    flexDirection: "row",
+    minHeight: 56,
+    paddingHorizontal: 8,
+  },
+  backButton: {
+    alignItems: "center",
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
   title: { flex: 1, fontSize: 17, fontWeight: "800", textAlign: "center" },
   trailingSpace: { height: 44, width: 44 },
-  pressed: { opacity: 0.62 }
+  pressed: { opacity: 0.62 },
 });

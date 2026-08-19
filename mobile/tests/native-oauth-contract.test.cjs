@@ -63,6 +63,8 @@ test("maps every required Laravel OAuth error to a distinct UI state", () => {
     "OAUTH_CREDENTIAL_INVALID",
     "OAUTH_PROVIDER_UNAVAILABLE",
     "OAUTH_REQUEST_IN_PROGRESS",
+    "NETWORK_ERROR",
+    "REQUEST_TIMEOUT",
     "ENDPOINT_DISABLED"
   ];
   const states = codes.map((code) => mapOAuthError(code, code === "OAUTH_PROVIDER_UNAVAILABLE" ? 503 : 409, "google", "en"));
@@ -95,6 +97,10 @@ test("keeps API-disabled, bare 503, cancellation, and client configuration state
   assert.equal(developerError.disablesProvider, true);
   assert.match(developerError.message, /vn\.mesale\.app/);
   assert.match(developerError.message, /Cáº¥u hÃ¬nh|Cấu hình/);
+
+  const appleAuthorizationError = mapOAuthError("APPLE_AUTHORIZATION_FAILED", 0, "apple", "vi");
+  assert.equal(appleAuthorizationError.kind, "apple-authorization-failed");
+  assert.match(appleAuthorizationError.message, /Apple/);
 });
 
 test("wires native provider actions into login and Apple reauthentication into deletion", () => {

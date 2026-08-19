@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const ts = require("typescript");
+const bundledNativeModules = require("expo/bundledNativeModules.json");
 
 function read(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, relativePath), "utf8");
@@ -29,8 +30,8 @@ test("avatar dependencies and system photo-picker configuration request no camer
   const appJson = JSON.parse(read("../app.json"));
   const imagePickerPlugin = appJson.expo.plugins.find((plugin) => Array.isArray(plugin) && plugin[0] === "expo-image-picker");
 
-  assert.equal(packageJson.dependencies["expo-image-picker"], "~16.1.4");
-  assert.equal(packageJson.dependencies["expo-image-manipulator"], "~13.1.7");
+  assert.equal(packageJson.dependencies["expo-image-picker"], bundledNativeModules["expo-image-picker"]);
+  assert.equal(packageJson.dependencies["expo-image-manipulator"], bundledNativeModules["expo-image-manipulator"]);
   assert.ok(imagePickerPlugin);
   assert.equal(imagePickerPlugin[1].cameraPermission, false);
   assert.equal(imagePickerPlugin[1].microphonePermission, false);

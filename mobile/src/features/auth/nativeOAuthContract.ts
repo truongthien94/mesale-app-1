@@ -41,6 +41,9 @@ export type OAuthUiStateKind =
   | "cancelled"
   | "client-not-configured"
   | "apple-not-available"
+  | "apple-authorization-failed"
+  | "network-error"
+  | "request-timeout"
   | "credential-missing"
   | "play-services-unavailable"
   | "unknown";
@@ -173,6 +176,24 @@ export function mapOAuthError(
       kind: "apple-not-available",
       message: translated(locale, "Sign in with Apple không khả dụng trên thiết bị này.", "Sign in with Apple is not available on this device."),
       disablesProvider: true,
+      isCancellation: false
+    },
+    APPLE_AUTHORIZATION_FAILED: {
+      kind: "apple-authorization-failed",
+      message: translated(locale, "Không thể hoàn tất xác thực Apple trên thiết bị này. Kiểm tra cấu hình Sign in with Apple và thử lại.", "Apple authorization could not be completed on this device. Check the Sign in with Apple configuration and try again."),
+      disablesProvider: false,
+      isCancellation: false
+    },
+    NETWORK_ERROR: {
+      kind: "network-error",
+      message: translated(locale, "Không thể kết nối máy chủ để đăng nhập. Kiểm tra mạng và thử lại.", "Unable to reach the server for sign-in. Check your connection and try again."),
+      disablesProvider: false,
+      isCancellation: false
+    },
+    REQUEST_TIMEOUT: {
+      kind: "request-timeout",
+      message: translated(locale, "Yêu cầu đăng nhập đã quá thời gian chờ. Vui lòng thử lại.", "The sign-in request timed out. Please try again."),
+      disablesProvider: false,
       isCancellation: false
     },
     NATIVE_CREDENTIAL_MISSING: {

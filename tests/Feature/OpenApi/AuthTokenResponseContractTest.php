@@ -1583,6 +1583,7 @@ class AuthTokenResponseContractTest extends TestCase
 
     public function test_apple_native_exchange_rejects_nonce_mismatch_and_redacts_reauth_fields(): void
     {
+        $this->configureAppleExchange();
         Setting::setVal('openapi_auth_oauth_apple_status', '1');
         Setting::setVal('apple_services_id', 'apple-services.test');
         [$identityToken, $jwks] = $this->signedProviderToken([
@@ -1641,7 +1642,7 @@ class AuthTokenResponseContractTest extends TestCase
         ])->assertStatus(503)
             ->assertJsonPath('code', 'OAUTH_PROVIDER_UNAVAILABLE');
 
-        Http::assertSentCount(1);
+        Http::assertNothingSent();
         $this->assertDatabaseCount('users', 0);
     }
 
@@ -1992,7 +1993,8 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertTrue(openssl_pkey_export($key, $privateKey, null, $options));
 
         config()->set([
-            'services.apple.team_id' => 'TESTTEAM123',
+            'services.apple.bundle_id' => 'vn.mesale.app',
+            'services.apple.team_id' => 'TEAMID1234',
             'services.apple.key_id' => 'TESTKEY123',
             'services.apple.private_key' => $privateKey,
             'services.apple.private_key_path' => null,

@@ -47,6 +47,8 @@ return [
     ],
 
     'apple' => [
+        'bundle_id' => env('APPLE_BUNDLE_ID'),
+        'services_id' => env('APPLE_SERVICES_ID'),
         'client_ids' => array_values(array_filter(array_map(
             'trim',
             explode(',', (string) env('APPLE_OAUTH_AUDIENCES', ''))
