@@ -27,14 +27,20 @@ test("Withdraw shell previews only balance and keeps authoritative dependencies 
 
   assert.match(source, /const previewBalance = user\?\.financialSnapshot\?\.balance/);
   assert.match(source, /const displayBalance = authoritativeBalance \?\? previewBalance/);
-  assert.match(source, /const dependenciesReady = accountQuery\.isSuccess && configQuery\.isSuccess && accountsQuery\.isSuccess/);
-  assert.match(source, /const canSubmit = dependenciesReady && Boolean\(selectedAccount\)/);
+  assert.match(
+    source,
+    /const dependenciesReady\s*=\s*accountQuery\.isSuccess\s*&&\s*configQuery\.isSuccess\s*&&\s*accountsQuery\.isSuccess/,
+  );
+  assert.match(
+    source,
+    /const canSubmit\s*=\s*dependenciesReady\s*&&\s*Boolean\(selectedAccount\)/,
+  );
   assert.match(source, /if \(!dependenciesReady \|\| !withdrawConfig\) return null/);
   assert.match(source, /editable=\{dependenciesReady\}/);
   assert.match(source, /disabled=\{!canSubmit\}/);
-  assert.match(source, /accountQuery\.isError \? <InlineError/);
-  assert.match(source, /configQuery\.isError \? <InlineError/);
-  assert.match(source, /accountsQuery\.isError \? <InlineError/);
+  assert.match(source, /accountQuery\.isError\s*\?\s*\(\s*<InlineError/);
+  assert.match(source, /configQuery\.isError\s*\?\s*\(\s*<InlineError/);
+  assert.match(source, /accountsQuery\.isError\s*\?\s*\(\s*<InlineError/);
   assert.doesNotMatch(source, /if \(accountQuery\.isPending \|\| configQuery\.isPending \|\| accountsQuery\.isPending\) return <LoadingState/);
   assert.doesNotMatch(source, /previewBalance.*min_amount|previewBalance.*fee_|previewBalance.*otp|required.*previewBalance/);
 });

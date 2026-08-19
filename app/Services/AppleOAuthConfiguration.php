@@ -95,8 +95,8 @@ class AppleOAuthConfiguration
         $privateKey = $this->privateKey();
         if ($privateKey === '') {
             $issues[] = 'APPLE_PRIVATE_KEY hoặc APPLE_PRIVATE_KEY_PATH chưa đọc được.';
-        } elseif (! $this->isValidEcPrivateKey($privateKey)) {
-            $issues[] = 'Khóa Apple phải là private key EC hợp lệ từ file AuthKey_*.p8.';
+        } elseif (! $this->isValidAppleSigningKey($privateKey)) {
+            $issues[] = 'Khóa Apple phải là private key EC P-256 hợp lệ từ file AuthKey_*.p8.';
         }
 
         $redirectUri = $this->redirectUri();
@@ -112,7 +112,7 @@ class AppleOAuthConfiguration
         return $this->issues() === [];
     }
 
-    private function isValidEcPrivateKey(string $privateKey): bool
+    private function isValidAppleSigningKey(string $privateKey): bool
     {
         $key = @openssl_pkey_get_private($privateKey);
         if ($key === false) {
@@ -121,6 +121,14 @@ class AppleOAuthConfiguration
 
         $details = openssl_pkey_get_details($key);
 
-        return is_array($details) && ($details['type'] ?? null) === OPENSSL_KEYTYPE_EC;
+        if (! is_array($details) || ($details['type'] ?? null) !== OPENSSL_KEYTYPE_EC) {
+            return false;
+        }
+
+        $curveName = strtolower((string) ($details['ec']['curve_name'] ?? ''));
+        $curveOid = (string) ($details['ec']['curve_oid'] ?? '');
+
+        return in_array($curveName, ['prime256v1', 'secp256r1'], true)
+            || $curveOid === '1.2.840.10045.3.1.7';
     }
 }

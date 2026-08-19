@@ -29,6 +29,7 @@ Yêu cầu vận hành:
 
 - File `.p8` nằm ngoài web root và ngoài Git.
 - User chạy PHP-FPM/queue phải đọc được file; quyền khuyến nghị `600` hoặc quyền tối thiểu tương đương.
+- Preflight chỉ chấp nhận khóa EC P-256, đúng thuật toán ES256 mà Apple sử dụng.
 - `APPLE_REDIRECT_URI` để trống cho native flow hiện tại. Chỉ đặt khi authorization request thực sự sử dụng cùng HTTPS redirect URI.
 - Có thể dùng `APPLE_PRIVATE_KEY` thay cho file path; khi đó newline phải được giữ nguyên hoặc biểu diễn bằng `\\n`.
 

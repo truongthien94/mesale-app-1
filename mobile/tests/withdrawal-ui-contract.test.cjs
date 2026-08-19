@@ -70,18 +70,30 @@ test("withdrawal form follows the compact native field order and server-enabled 
   ]);
   assert.match(source, /styles\.balanceStrip/);
   assert.match(source, /styles\.formCard/);
-  assert.match(source, /balanceStrip: \{[^\n]*minHeight: 48/);
+  assert.match(source, /balanceStrip:\s*\{[\s\S]*?minHeight:\s*48/);
   assert.doesNotMatch(source, /styles\.amountCard|styles\.footer|fontSize: 47/);
   assert.match(source, /const \[selectedMethod, setSelectedMethod\]/);
   assert.match(source, /account\.payment_method === selectedMethod/);
-  assert.match(source, /method === "bank" \? withdrawConfig\.bank_enabled : withdrawConfig\.wallet_enabled/);
+  assert.match(
+    source,
+    /method === "bank"\s*\?\s*withdrawConfig\.bank_enabled\s*:\s*withdrawConfig\.wallet_enabled/,
+  );
   assert.match(source, /if \(!enabled\) return/);
-  assert.match(source, /accessibilityState=\{\{ checked: selected, disabled: !enabled \}\}/);
+  assert.match(
+    source,
+    /accessibilityState=\{\{[\s\S]*?checked:\s*selected,[\s\S]*?disabled:\s*!enabled,[\s\S]*?\}\}/,
+  );
   assert.match(source, /disabled=\{!enabled\}/);
   assert.match(source, /Chưa hỗ trợ/);
   assert.match(source, /styles\.addAccountButton/);
-  assert.match(source, /Thêm \{selectedMethod === "bank" \? "tài khoản ngân hàng" : "ví điện tử"\}/);
-  assert.match(source, /Boolean\(selectedAccount\) && amountIsValid && otpIsValid/);
+  assert.match(
+    source,
+    /Thêm\s*\{" "\}\s*\{selectedMethod === "bank"\s*\?\s*"tài khoản ngân hàng"\s*:\s*"ví điện tử"\}/,
+  );
+  assert.match(
+    source,
+    /Boolean\(selectedAccount\)\s*&&\s*amountIsValid\s*&&\s*otpIsValid/,
+  );
   assert.match(source, /disabled=\{!canSubmit\}/);
 });
 

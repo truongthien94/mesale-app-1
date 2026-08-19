@@ -20,6 +20,7 @@ function loadTypeScriptModule(filePath) {
 }
 
 const configPath = path.resolve(__dirname, "../app.config.ts");
+const appJsonPath = path.resolve(__dirname, "../app.json");
 const appConfigModule = loadTypeScriptModule(configPath);
 const applyConfig = appConfigModule.default ?? appConfigModule;
 
@@ -110,4 +111,12 @@ test("a valid scheme adds the native Google Sign-In plugin", () => {
   );
   assert.ok(googlePlugin, "expected the Google Sign-In plugin to be appended");
   assert.equal(googlePlugin[1].iosUrlScheme, VALID_SCHEME);
+});
+
+test("the iOS privacy manifest declares each collected data type once", () => {
+  const appJson = JSON.parse(fs.readFileSync(appJsonPath, "utf8"));
+  const collectedTypes = appJson.expo.ios.privacyManifests.NSPrivacyCollectedDataTypes;
+  const typeNames = collectedTypes.map((item) => item.NSPrivacyCollectedDataType);
+
+  assert.equal(typeNames.length, new Set(typeNames).size);
 });

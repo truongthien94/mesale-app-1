@@ -45,6 +45,30 @@ class AppleOAuthConfigurationTest extends TestCase
         $this->assertContains('vn.mesale.app', $configuration->audiences());
     }
 
+    public function test_non_p256_ec_private_key_is_rejected(): void
+    {
+        $key = openssl_pkey_new([
+            'private_key_type' => OPENSSL_KEYTYPE_EC,
+            'curve_name' => 'secp384r1',
+        ]);
+        $this->assertNotFalse($key);
+        $privateKey = '';
+        $this->assertTrue(openssl_pkey_export($key, $privateKey));
+
+        config()->set('services.apple.bundle_id', 'vn.mesale.app');
+        config()->set('services.apple.team_id', 'TEAMID1234');
+        config()->set('services.apple.key_id', 'KEYID12345');
+        config()->set('services.apple.private_key', $privateKey);
+
+        $configuration = app(AppleOAuthConfiguration::class);
+
+        $this->assertFalse($configuration->isReady());
+        $this->assertContains(
+            'Khóa Apple phải là private key EC P-256 hợp lệ từ file AuthKey_*.p8.',
+            $configuration->issues()
+        );
+    }
+
     public function test_native_exchange_omits_the_web_redirect_uri(): void
     {
         $this->configureValidAppleOAuth();

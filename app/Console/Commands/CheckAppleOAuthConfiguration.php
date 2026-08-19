@@ -27,7 +27,7 @@ class CheckAppleOAuthConfiguration extends Command
             $configuration->audiences() !== [] ? '<fg=green>configured</>' : '<fg=red>missing</>'
         );
         $this->components->twoColumnDetail(
-            'Team ID / Key ID / EC private key',
+            'Team ID / Key ID / EC P-256 private key',
             $issues === [] ? '<fg=green>valid</>' : '<fg=red>invalid or incomplete</>'
         );
         $this->components->twoColumnDetail(
