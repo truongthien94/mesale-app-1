@@ -3,11 +3,10 @@
     "name": "Mê Sale",
     "slug": "mesale-mobile",
     "icon": "./assets/mesale-logo.png",
-    "version": "0.1.1",
+    "version": "0.1.3",
     "orientation": "portrait",
     "scheme": "mesale",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "plugins": [
       "expo-router",
       [
@@ -38,10 +37,12 @@
         "applinks:mesale.vn"
       ],
       "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": false,
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {}
-        }
+        },
+        "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
@@ -121,29 +122,57 @@
             ]
           }
         ]
-      }
+      },
+      "appleTeamId": "D84X7X685Y"
     },
     "android": {
       "package": "vn.mesale.app",
-      "versionCode": 2,
+      "versionCode": 3,
       "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "scheme": "https", "host": "mesale.vn", "pathPrefix": "/home" }]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mesale.vn",
+              "pathPrefix": "/home"
+            }
+          ]
         },
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "scheme": "https", "host": "mesale.vn", "pathPrefix": "/wallet/orders" }]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mesale.vn",
+              "pathPrefix": "/wallet/orders"
+            }
+          ]
         },
         {
           "action": "VIEW",
           "autoVerify": true,
-          "category": ["BROWSABLE", "DEFAULT"],
-          "data": [{ "scheme": "https", "host": "mesale.vn", "pathPrefix": "/account-deletion" }]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ],
+          "data": [
+            {
+              "scheme": "https",
+              "host": "mesale.vn",
+              "pathPrefix": "/account-deletion"
+            }
+          ]
         }
       ],
       "blockedPermissions": [
@@ -166,7 +195,12 @@
         "terms": "https://mesale.vn/terms",
         "support": "https://mesale.vn/support",
         "accountDeletion": "https://mesale.vn/account-deletion"
+      },
+      "router": {},
+      "eas": {
+        "projectId": "91060bf1-70c0-4824-b6f0-805851391117"
       }
-    }
+    },
+    "owner": "tonytruongdev"
   }
 }

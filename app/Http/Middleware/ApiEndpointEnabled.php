@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Setting;
+use App\Services\AppleOAuthConfiguration;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,6 +21,10 @@ class ApiEndpointEnabled
         'auth_oauth_google',
         'auth_oauth_apple',
     ];
+
+    public function __construct(
+        private readonly AppleOAuthConfiguration $appleOAuthConfiguration
+    ) {}
 
     public function handle(Request $request, Closure $next, ?string $group = null): Response
     {
@@ -42,6 +47,14 @@ class ApiEndpointEnabled
                     'message' => __('Chức năng API này hiện đang bị vô hiệu hóa bởi quản trị viên.'),
                 ], 403);
             }
+        }
+
+        if ($group === 'auth_oauth_apple' && ! $this->appleOAuthConfiguration->isReady()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'OAUTH_PROVIDER_UNAVAILABLE',
+                'message' => __('Sign in with Apple chưa được cấu hình đầy đủ trên máy chủ.'),
+            ], 503);
         }
 
         return $next($request);

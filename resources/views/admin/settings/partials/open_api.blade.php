@@ -52,14 +52,19 @@
                 </button>
             </div>
 
-            <div x-data="{ enabled: {{ ($settings['openapi_auth_oauth_apple_status'] ?? '0') === '1' ? 'true' : 'false' }} }" class="flex items-center justify-between gap-3 bg-white dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl p-4">
+            @php($appleOAuthReady = app(\App\Services\AppleOAuthConfiguration::class)->isReady())
+            <div x-data="{ enabled: {{ ($settings['openapi_auth_oauth_apple_status'] ?? '0') === '1' && $appleOAuthReady ? 'true' : 'false' }} }" class="flex items-center justify-between gap-3 bg-white dark:bg-slate-800/40 border border-gray-200 dark:border-slate-800 rounded-xl p-4">
                 <div class="min-w-0">
                     <span class="block text-sm font-bold text-gray-800 dark:text-slate-200">{{ __('Sign in with Apple API') }}</span>
-                    <span class="text-[10px] text-gray-400">{{ __('Mặc định tắt. Chỉ bật sau khi Services ID, redirect URI và khóa ký server-side đã được kiểm thử trên staging.') }}</span>
+                    <span class="text-[10px] text-gray-400">{{ __('Native iOS cần Bundle ID, Team ID, Key ID và khóa AuthKey .p8. Services ID/redirect URI chỉ cần cho web flow.') }}</span>
+                    <span class="mt-1 block text-[10px] font-semibold {{ $appleOAuthReady ? 'text-emerald-600' : 'text-red-600' }}">
+                        {{ $appleOAuthReady ? __('Cấu hình server đã sẵn sàng.') : __('Cấu hình server chưa đầy đủ; chạy php artisan oauth:apple:check.') }}
+                    </span>
                 </div>
                 <input type="hidden" name="openapi_auth_oauth_apple_status" :value="enabled ? '1' : '0'">
                 <button type="button" @click="enabled = !enabled" :class="enabled ? 'bg-shopee' : 'bg-gray-300 dark:bg-slate-600'"
-                    class="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors" title="{{ __('Bật/Tắt Sign in with Apple API') }}">
+                    @disabled(! $appleOAuthReady)
+                    class="relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50" title="{{ __('Bật/Tắt Sign in with Apple API') }}">
                     <span :class="enabled ? 'translate-x-5.5' : 'translate-x-0.5'" class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform"></span>
                 </button>
             </div>

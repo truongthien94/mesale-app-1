@@ -122,7 +122,7 @@ test("Account summary rows open focused nested menus", () => {
   }
   assert.match(layout, /useTheme\(\)/);
   assert.match(layout, /header: \(props\) => <AccountStackHeader \{\.\.\.props\} \/>/);
-  assert.match(layout, /statusBarStyle: scheme === "dark" \? "light" : "dark"/);
+  assert.doesNotMatch(layout, /statusBarStyle/);
   assert.doesNotMatch(layout, /statusBarTranslucent|unstable_headerInsets/);
   assert.match(stackHeader, /useSafeAreaInsets\(\)/);
   assert.match(stackHeader, /paddingTop: insets\.top/);

@@ -14,6 +14,10 @@ class NativeOAuthTokenVerifier
 {
     private ?string $lastAppleRefreshToken = null;
 
+    public function __construct(
+        private readonly AppleOAuthConfiguration $appleConfiguration
+    ) {}
+
     public function verifyGoogle(string $idToken): array
     {
         $audience = trim((string) (Setting::getVal('google_client_id') ?: config('services.google.client_id')));
@@ -54,10 +58,11 @@ class NativeOAuthTokenVerifier
     {
         $this->lastAppleRefreshToken = null;
 
-        $audiences = $this->appleAudiences();
-        if ($audiences === []) {
+        if (! $this->appleConfiguration->isReady()) {
             throw new NativeOAuthVerificationException('OAUTH_PROVIDER_UNAVAILABLE', 503);
         }
+
+        $audiences = $this->appleConfiguration->audiences();
 
         $claims = $this->decode(
             $identityToken,
@@ -110,11 +115,11 @@ class NativeOAuthTokenVerifier
     public function revokeAppleRefreshToken(string $refreshToken, ?string $clientId = null): void
     {
         $refreshToken = trim($refreshToken);
-        $audiences = $this->appleAudiences();
+        $audiences = $this->appleConfiguration->audiences();
         $clientId = trim((string) ($clientId ?: ($audiences[0] ?? '')));
-        $teamId = trim((string) config('services.apple.team_id'));
-        $keyId = trim((string) config('services.apple.key_id'));
-        $privateKey = $this->applePrivateKey();
+        $teamId = $this->appleConfiguration->teamId();
+        $keyId = $this->appleConfiguration->keyId();
+        $privateKey = $this->appleConfiguration->privateKey();
         $revokeUrl = trim((string) config('services.apple.revoke_url', 'https://appleid.apple.com/auth/revoke'));
 
         if ($refreshToken === '' || $clientId === '' || $teamId === '' || $keyId === '' || $privateKey === '' || $revokeUrl === '') {
@@ -230,9 +235,9 @@ class NativeOAuthTokenVerifier
 
     private function exchangeAppleAuthorizationCode(string $authorizationCode, string $clientId): array
     {
-        $teamId = trim((string) config('services.apple.team_id'));
-        $keyId = trim((string) config('services.apple.key_id'));
-        $privateKey = $this->applePrivateKey();
+        $teamId = $this->appleConfiguration->teamId();
+        $keyId = $this->appleConfiguration->keyId();
+        $privateKey = $this->appleConfiguration->privateKey();
         $tokenUrl = trim((string) config('services.apple.token_url', 'https://appleid.apple.com/auth/token'));
         if ($teamId === '' || $keyId === '' || $privateKey === '' || $tokenUrl === '') {
             throw new NativeOAuthVerificationException('OAUTH_PROVIDER_UNAVAILABLE', 503);
@@ -258,7 +263,7 @@ class NativeOAuthTokenVerifier
                 'code' => $authorizationCode,
                 'grant_type' => 'authorization_code',
             ];
-            $redirectUri = trim((string) config('services.apple.redirect_uri'));
+            $redirectUri = $this->appleConfiguration->tokenExchangeRedirectUri($clientId);
             if ($redirectUri !== '') {
                 $payload['redirect_uri'] = $redirectUri;
             }
@@ -289,36 +294,6 @@ class NativeOAuthTokenVerifier
             'apple',
             (string) config('services.apple.jwks_url', 'https://appleid.apple.com/auth/keys')
         );
-    }
-
-    private function applePrivateKey(): string
-    {
-        $privateKey = trim((string) config('services.apple.private_key'));
-        if ($privateKey !== '') {
-            return str_replace('\\n', "\n", $privateKey);
-        }
-
-        $path = trim((string) config('services.apple.private_key_path'));
-        if ($path === '' || ! is_file($path) || ! is_readable($path)) {
-            return '';
-        }
-
-        $contents = file_get_contents($path);
-
-        return is_string($contents) ? trim($contents) : '';
-    }
-
-    private function appleAudiences(): array
-    {
-        $configured = config('services.apple.client_ids', []);
-        $audiences = is_array($configured) ? $configured : explode(',', (string) $configured);
-        $audiences[] = Setting::getVal('apple_services_id');
-        $audiences[] = Setting::getVal('apple_bundle_id');
-
-        return array_values(array_unique(array_filter(array_map(
-            static fn (mixed $value): string => trim((string) $value),
-            $audiences
-        ))));
     }
 
     private function audienceMatches(mixed $claim, string $expected): bool

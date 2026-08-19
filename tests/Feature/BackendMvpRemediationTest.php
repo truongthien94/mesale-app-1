@@ -12,6 +12,7 @@ use App\Models\Coupon;
 use App\Models\Post;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AppleOAuthConfiguration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -152,6 +153,9 @@ class BackendMvpRemediationTest extends TestCase
 
         Setting::setVal('openapi_auth_oauth_google_status', '1');
         Setting::setVal('openapi_auth_oauth_apple_status', '1');
+        $this->mock(AppleOAuthConfiguration::class)
+            ->shouldReceive('isReady')
+            ->andReturnTrue();
         $enabledFeatures = (new ConfigController)->show(Request::create('/api/v1/openapi/config'))
             ->getData(true)['data']['features'];
         $this->assertTrue($enabledFeatures['api_auth_oauth_google']);
