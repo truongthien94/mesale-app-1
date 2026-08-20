@@ -8,7 +8,7 @@ const ANDROID_RELEASE_SIGNING_PLUGIN = "./plugins/withAndroidReleaseSigning";
 export default ({ config }: ConfigContext): ExpoConfig => {
   const baseConfig = config as ExpoConfig;
   const iosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME?.trim();
-  const isProductionBuild = process.env.EAS_BUILD_PROFILE === "production";
+  const isProductionBuild = ["production", "testflight"].includes(process.env.EAS_BUILD_PROFILE ?? "");
   // EAS_BUILD_PLATFORM is "ios" | "android" during an EAS Build; it is absent
   // when Expo evaluates the config locally (e.g. prebuild, expo start, tests).
   const buildPlatform = process.env.EAS_BUILD_PLATFORM;

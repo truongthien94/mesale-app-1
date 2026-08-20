@@ -12,6 +12,7 @@ key.json
 *.p12
 
 # Dependencies and generated output
+/dist/
 node_modules/
 vendor/
 storage/framework/
@@ -54,6 +55,8 @@ mobile/key_store/
 mobile/credentials.json
 
 # Editors and OS files
+!/scripts/
+!/scripts/build-cpanel-release.sh
 .idea/
 .vscode/
 *.swp
@@ -70,3 +73,4 @@ hosts.txt
 *.jks
 mobile/README.md
 mobile/Makefile
+scripts/

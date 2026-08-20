@@ -15,6 +15,7 @@ export class ApiError extends Error {
   readonly code?: string;
   readonly requestId?: string;
   readonly errors?: ApiFieldErrors;
+  readonly retryAfterSeconds?: number;
   readonly isNetworkError: boolean;
   readonly isTimeout: boolean;
 
@@ -25,6 +26,7 @@ export class ApiError extends Error {
       code?: string;
       requestId?: string;
       errors?: ApiFieldErrors;
+      retryAfterSeconds?: number;
       isNetworkError?: boolean;
       isTimeout?: boolean;
       cause?: unknown;
@@ -36,6 +38,7 @@ export class ApiError extends Error {
     this.code = options.code;
     this.requestId = options.requestId;
     this.errors = options.errors;
+    this.retryAfterSeconds = options.retryAfterSeconds;
     this.isNetworkError = options.isNetworkError ?? false;
     this.isTimeout = options.isTimeout ?? false;
   }
@@ -58,6 +61,17 @@ async function readJson(response: Response): Promise<unknown> {
 
 function isAbortError(reason: unknown): boolean {
   return reason instanceof Error && reason.name === "AbortError";
+}
+
+function parseRetryAfter(value: string | null): number | undefined {
+  if (!value) return undefined;
+
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds);
+
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return undefined;
+  return Math.max(0, Math.ceil((timestamp - Date.now()) / 1000));
 }
 
 export async function requestEnvelope<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
@@ -122,7 +136,8 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
       throw new ApiError(failure.message, failureStatus, {
         code: failure.code,
         requestId: failure.requestId,
-        errors: failure.errors
+        errors: failure.errors,
+        retryAfterSeconds: parseRetryAfter(response.headers.get("Retry-After"))
       });
     }
 

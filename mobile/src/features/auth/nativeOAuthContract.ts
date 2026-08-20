@@ -38,6 +38,7 @@ export type OAuthUiStateKind =
   | "endpoint-disabled"
   | "api-disabled"
   | "service-unavailable"
+  | "rate-limited"
   | "cancelled"
   | "client-not-configured"
   | "apple-not-available"
@@ -54,6 +55,7 @@ export type OAuthUiState = {
   message: string;
   disablesProvider: boolean;
   isCancellation: boolean;
+  retryAfterSeconds?: number;
 };
 
 function requireCredential(value: string, field: string): string {
@@ -94,10 +96,15 @@ export function mapOAuthError(
   code: string | undefined,
   status: number,
   provider: NativeOAuthProvider,
-  locale: AppLocale
+  locale: AppLocale,
+  retryAfterSeconds?: number
 ): OAuthUiState {
-  const normalizedCode = code?.trim().toUpperCase() || (status === 503 ? "SERVICE_UNAVAILABLE" : "UNKNOWN");
+  const normalizedCode = code?.trim().toUpperCase()
+    || (status === 429 ? "RATE_LIMITED" : status === 503 ? "SERVICE_UNAVAILABLE" : "UNKNOWN");
   const providerName = provider === "apple" ? "Apple" : "Google";
+  const retryMessage = retryAfterSeconds !== undefined && retryAfterSeconds > 0
+    ? translated(locale, ` Vui lòng thử lại sau khoảng ${retryAfterSeconds} giây.`, ` Please try again in about ${retryAfterSeconds} seconds.`)
+    : translated(locale, " Vui lòng thử lại sau một lát.", " Please try again shortly.");
 
   const states: Record<string, Omit<OAuthUiState, "code">> = {
     ACCOUNT_LINK_REQUIRED: {
@@ -159,6 +166,27 @@ export function mapOAuthError(
       message: translated(locale, `Dịch vụ đăng nhập ${providerName} đang tạm gián đoạn.`, `${providerName} sign-in is temporarily unavailable.`),
       disablesProvider: false,
       isCancellation: false
+    },
+    RATE_LIMITED: {
+      kind: "rate-limited",
+      message: translated(locale, `Bạn đã thử đăng nhập ${providerName} quá nhiều lần trong thời gian ngắn.${retryMessage}`, `${providerName} sign-in was attempted too many times in a short period.${retryMessage}`),
+      disablesProvider: false,
+      isCancellation: false,
+      retryAfterSeconds
+    },
+    TOO_MANY_REQUESTS: {
+      kind: "rate-limited",
+      message: translated(locale, `Bạn đã thử đăng nhập ${providerName} quá nhiều lần trong thời gian ngắn.${retryMessage}`, `${providerName} sign-in was attempted too many times in a short period.${retryMessage}`),
+      disablesProvider: false,
+      isCancellation: false,
+      retryAfterSeconds
+    },
+    TOO_MANY_ATTEMPTS: {
+      kind: "rate-limited",
+      message: translated(locale, `Bạn đã thử đăng nhập ${providerName} quá nhiều lần trong thời gian ngắn.${retryMessage}`, `${providerName} sign-in was attempted too many times in a short period.${retryMessage}`),
+      disablesProvider: false,
+      isCancellation: false,
+      retryAfterSeconds
     },
     NATIVE_AUTH_CANCELLED: {
       kind: "cancelled",
@@ -228,6 +256,7 @@ export function mapOAuthError(
       disablesProvider: false,
       isCancellation: false
     }),
-    code: normalizedCode
+    code: normalizedCode,
+    retryAfterSeconds
   };
 }

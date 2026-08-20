@@ -65,7 +65,7 @@ Route::prefix('v1/openapi')
                 Route::post('oauth/google', GoogleNativeOAuthController::class)
                     ->middleware(['api.enabled:auth_oauth_google', 'throttle:10,1']);
                 Route::post('oauth/apple', [NativeOAuthController::class, 'apple'])
-                    ->middleware(['api.enabled:auth_oauth_apple', 'throttle:10,1']);
+                    ->middleware(['api.enabled:auth_oauth_apple', 'throttle:30,1']);
                 // Bước 2 cho tài khoản bật bảo mật 2 lớp (2FA)
                 Route::post('login/2fa', [AuthController::class, 'loginTwoFactor'])->middleware('throttle:10,1');
                 Route::post('login/2fa/resend', [AuthController::class, 'resendTwoFactorOtp'])->middleware('throttle:5,1');

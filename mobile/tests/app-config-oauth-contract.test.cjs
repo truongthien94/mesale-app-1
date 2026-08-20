@@ -80,6 +80,13 @@ test("iOS production build still requires the iOS URL scheme", () => {
   );
 });
 
+test("iOS TestFlight build still requires the iOS URL scheme", () => {
+  assert.throws(
+    () => evaluate({ EAS_BUILD_PROFILE: "testflight", EAS_BUILD_PLATFORM: "ios" }),
+    /EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME is required for iOS production builds\./
+  );
+});
+
 test("production build with unknown platform still requires the iOS URL scheme", () => {
   assert.throws(
     () => evaluate({ EAS_BUILD_PROFILE: "production" }),
