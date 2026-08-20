@@ -103,6 +103,15 @@ test("keeps API-disabled, bare 503, cancellation, and client configuration state
   assert.match(appleAuthorizationError.message, /Apple/);
 });
 
+test("maps a 429 Apple response to a retryable rate-limit state", () => {
+  const state = mapOAuthError(undefined, 429, "apple", "vi", 17);
+
+  assert.equal(state.kind, "rate-limited");
+  assert.equal(state.code, "RATE_LIMITED");
+  assert.equal(state.retryAfterSeconds, 17);
+  assert.match(state.message, /17 giây/);
+});
+
 test("wires native provider actions into login and Apple reauthentication into deletion", () => {
   const loginSource = fs.readFileSync(loginScreenPath, "utf8");
   const deletionSource = fs.readFileSync(deletionScreenPath, "utf8");

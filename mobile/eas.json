@@ -13,6 +13,11 @@
       "distribution": "internal",
       "environment": "preview"
     },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": false,
+      "environment": "production"
+    },
     "production": {
       "autoIncrement": true,
       "node": "22.13.0",

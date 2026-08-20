@@ -108,8 +108,22 @@ export async function requestAppleNativeCredential(): Promise<AppleNativeCredent
   }
 }
 
+let appleSignInInFlight: Promise<LoginResult> | null = null;
+
 export async function signInWithAppleNative(): Promise<LoginResult> {
-  return loginWithAppleCredential(await requestAppleNativeCredential());
+  if (appleSignInInFlight) return appleSignInInFlight;
+
+  const request = (async () => loginWithAppleCredential(await requestAppleNativeCredential()))();
+  appleSignInInFlight = request;
+  void request.then(
+    () => {
+      if (appleSignInInFlight === request) appleSignInInFlight = null;
+    },
+    () => {
+      if (appleSignInInFlight === request) appleSignInInFlight = null;
+    }
+  );
+  return request;
 }
 
 export async function signInWithGoogleNative(): Promise<LoginResult> {
@@ -165,7 +179,7 @@ export function oauthUiStateFromReason(
   locale: AppLocale
 ): OAuthUiState {
   if (reason instanceof ApiError) {
-    return mapOAuthError(reason.code, reason.status, provider, locale);
+    return mapOAuthError(reason.code, reason.status, provider, locale, reason.retryAfterSeconds);
   }
   if (reason instanceof NativeOAuthFlowError) {
     return mapOAuthError(reason.code, 0, provider, locale);
