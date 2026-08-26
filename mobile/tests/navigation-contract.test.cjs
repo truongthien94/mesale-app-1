@@ -45,7 +45,7 @@ test("Round B keeps canonical wallet screens behind direct tab aliases", () => {
 
 test("Account is a server-authoritative native hub with approved destinations", () => {
   const account = read("../app/(tabs)/account/index.tsx");
-  for (const hook of ["useAccount", "usePaymentAccounts", "useInfiniteQuery", "referralsQueryOptions"]) {
+  for (const hook of ["useAccount", "useInfiniteQuery", "referralsQueryOptions", "useIosPayoutFeaturesEnabled"]) {
     assert.match(account, new RegExp(`${hook}\\(`));
   }
   for (const route of ["account/information", "account/finance", "account/settings", "account/delete", "wallet/payment-accounts/create", "withdraw", "earn/referrals", "earn/checkin", "inbox"]) {
@@ -54,11 +54,12 @@ test("Account is a server-authoritative native hub with approved destinations", 
   for (const label of ["Số dư khả dụng", "Tổng đã nhận", "Từ giới thiệu", "Chưa liên kết ngân hàng", "Giới thiệu bạn bè", "Thông tin tài khoản", "Tài chính", "Thông báo", "Cài đặt", "KHÁM PHÁ", "HỖ TRỢ & PHÁP LÝ", "Đăng xuất", "Xóa tài khoản"]) {
     assert.match(account, new RegExp(label));
   }
-  assert.match(account, /paymentAccountsQuery\.isSuccess && paymentAccountCount === 0/);
-  assert.match(account, /paymentAccountsQuery\.data\?\.total/);
+  assert.match(account, /function AccountPayoutSection/);
+  assert.match(account, /const paymentAccountsQuery = usePaymentAccounts\(\)/);
+  assert.match(account, /payoutFeaturesEnabled \? <AccountPayoutSection/);
   assert.doesNotMatch(account, /useWithdrawals\(|withdrawalsQuery/);
   assert.match(account, /referralsQuery\.data\?\.pages\[0\]\?\.rates\.f1_rate/);
-  assert.match(account, /useInfiniteQuery\(referralsQueryOptions\(\)\)/);
+  assert.match(account, /useInfiniteQuery\(\{ \.\.\.referralsQueryOptions\(\), enabled: payoutFeaturesEnabled \}\)/);
   assert.doesNotMatch(account, /\["account", "referral-preview"\]/);
   assert.doesNotMatch(account, /Hoàn tiền Mê Sale|cashbackBadge|<Sparkles/);
   assert.match(account, /primaryMenuStack[\s\S]*title="Thông tin tài khoản"[\s\S]*title="Tài chính"[\s\S]*title="Thông báo"[\s\S]*title="Cài đặt"[\s\S]*KHÁM PHÁ/);

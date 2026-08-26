@@ -40,9 +40,9 @@ export default function OrderDetailScreen() {
           <SectionTitle title="Giá trị đơn hàng" />
           <View style={styles.rows}>
             <DetailRow label="Giá sản phẩm" value={formatVnd(order.original_price)} />
-            <DetailRow label="Hoa hồng từ sàn" value={formatVnd(order.commission_amount)} />
+            <DetailRow label="Giá trị đối soát từ sàn" value={formatVnd(order.commission_amount)} />
             <DetailRow label="Tỷ lệ hoàn tiền" value={`${order.cashback_rate}%`} />
-            <DetailRow emphasize label="Bạn nhận" value={formatVnd(order.cashback_amount)} />
+            <DetailRow emphasize label="Quyền lợi hoàn tiền" value={formatVnd(order.cashback_amount)} />
           </View>
         </Card>
 

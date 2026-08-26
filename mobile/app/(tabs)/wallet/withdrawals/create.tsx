@@ -21,6 +21,7 @@ import {
   WalletCards,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { useAuth } from "@/auth/AuthProvider";
 import { EmptyState } from "@/components/AsyncState";
 import { InlineError, PrimaryButton } from "@/features/wallet/components";
@@ -68,6 +69,10 @@ function accountMethodLabel(account: PaymentAccount): string {
 }
 
 export default function CreateWithdrawalScreen() {
+  return <IosPayoutRouteGuard><CreateWithdrawalContent /></IosPayoutRouteGuard>;
+}
+
+function CreateWithdrawalContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const tabBarHeight = useBottomTabBarHeight();

@@ -55,8 +55,6 @@ mobile/key_store/
 mobile/credentials.json
 
 # Editors and OS files
-!/scripts/
-!/scripts/build-cpanel-release.sh
 .idea/
 .vscode/
 *.swp
@@ -71,6 +69,7 @@ hosts.txt
 *.p8
 *.keystore
 *.jks
+
+# Maintained by the outer repository
 mobile/README.md
 mobile/Makefile
-scripts/

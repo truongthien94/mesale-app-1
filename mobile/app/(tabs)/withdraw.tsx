@@ -2,10 +2,15 @@ import { useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { useTheme } from "@/theme/ThemeProvider";
 import CreateWithdrawalScreen from "./wallet/withdrawals/create";
 
 export default function WithdrawTabScreen() {
+  return <IosPayoutRouteGuard><WithdrawContent /></IosPayoutRouteGuard>;
+}
+
+function WithdrawContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();

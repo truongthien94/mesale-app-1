@@ -4,12 +4,17 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { fetchGiftRedemptions } from "@/features/earn/api";
 import { ActionButton, Card, Field, FilterChip, ListFooterLoading, ScreenHeader, StatusBadge, earnStyles, formatDate, formatMoney } from "@/features/earn/ui";
 import { getDeviceLocale } from "@/i18n";
 import { colors, spacing } from "@/theme/tokens";
 
 export default function GiftHistoryScreen() {
+  return <IosPayoutRouteGuard><GiftHistoryContent /></IosPayoutRouteGuard>;
+}
+
+function GiftHistoryContent() {
   const insets = useSafeAreaInsets();
   const vi = getDeviceLocale() === "vi";
   const [searchDraft, setSearchDraft] = useState("");

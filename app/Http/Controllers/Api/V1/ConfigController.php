@@ -87,6 +87,7 @@ class ConfigController extends ApiController
                 'registration_enabled' => Setting::getVal('registration_enabled', '1') === '1',
                 'email_verification_required' => Setting::getVal('email_verification_enabled', '0') === '1',
                 'self_delete_enabled' => Setting::getVal('allow_self_delete_account', '0') === '1',
+                'ios_payout_features_enabled' => $this->iosPayoutFeaturesEnabled($request),
                 'checkin_enabled' => Setting::getVal('daily_checkin_enabled', '1') === '1',
                 'gift_code_enabled' => Setting::getVal('gift_code_enabled', '1') === '1',
                 'gift_redemption_enabled' => Setting::getVal('gift_redemption_enabled', '0') === '1',
@@ -133,5 +134,18 @@ class ConfigController extends ApiController
             ],
             'banners' => $banners,
         ]);
+    }
+
+    private function iosPayoutFeaturesEnabled(Request $request): bool
+    {
+        $platform = strtolower(trim((string) $request->header('X-Mesale-App-Platform', '')));
+        if ($platform !== 'ios') {
+            return true;
+        }
+
+        $disabledVersion = trim((string) Setting::getVal('ios_payout_disabled_version', ''));
+        $appVersion = trim((string) $request->header('X-Mesale-App-Version', ''));
+
+        return $disabledVersion === '' || $appVersion === '' || $appVersion !== $disabledVersion;
     }
 }

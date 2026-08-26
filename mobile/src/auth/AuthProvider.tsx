@@ -16,6 +16,7 @@ import {
 import { parseUser, type AuthenticatedAuthResult, type LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
 import { clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
 import { accountDetailQueryOptions } from "@/features/account/query";
 
@@ -43,6 +44,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
+  const payoutFeaturesEnabledRef = useRef(payoutFeaturesEnabled);
+  payoutFeaturesEnabledRef.current = payoutFeaturesEnabled;
   const [isLoading, setLoading] = useState(true);
   const [pendingAuth, setPendingAuth] = useState<AuthContinuation | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -56,7 +60,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async function restoreSession() {
       let hasStoredPreview = false;
       try {
-        const saved = await loadAuthState();
+        const saved = await loadAuthState(payoutFeaturesEnabledRef.current);
         if (!saved) return;
 
         if (!isActive || authRevision.current !== restoreRevision) return;
@@ -78,7 +82,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           }
           return;
         }
-        await saveAuthState(saved.session, restoredUser);
+        await saveAuthState(saved.session, restoredUser, payoutFeaturesEnabledRef.current);
         if (!isActive || authRevision.current !== restoreRevision) {
           await clearSessionIfTokenMatches(saved.session.accessToken);
           return;
@@ -109,10 +113,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setLoading(false);
   }), [queryClient]);
 
+  useEffect(() => {
+    if (payoutFeaturesEnabled || !session || !user) return;
+    void saveAuthState(session, user, false);
+  }, [payoutFeaturesEnabled, session, user]);
+
   const acceptAuthenticated = useCallback(async (result: AuthenticatedAuthResult, revision: number) => {
     if (authRevision.current !== revision) return;
     clearAppQueryCache(queryClient);
-    await saveAuthState(result.session, result.user);
+    await saveAuthState(result.session, result.user, payoutFeaturesEnabledRef.current);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(result.session.accessToken);
       return;
@@ -207,7 +216,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
       return;
     }
-    await saveAuthState(activeSession, refreshedUser);
+    await saveAuthState(activeSession, refreshedUser, payoutFeaturesEnabledRef.current);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(activeSession.accessToken);
       return;
@@ -223,7 +232,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     try {
       if (settledUser && session) {
-        await saveAuthState(session, settledUser);
+        await saveAuthState(session, settledUser, payoutFeaturesEnabledRef.current);
         if (authRevision.current !== revision) return;
       }
       await refreshUser();

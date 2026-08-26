@@ -25,10 +25,10 @@ test("Account opens the full native usage guide and hides the primary tab bar", 
 test("Usage guide mirrors the approved native card flow without stale product claims", () => {
   const source = read("../app/(tabs)/account/guide.tsx");
   const requiredCopy = [
-    "Dán link → Mua ngay → nhận hàng → tiền về ví",
+    "Dán link → Mua ngay → nhận hàng → chờ xác nhận",
     "Bắt đầu",
     "Để đơn được ghi nhận hoàn tiền",
-    "Tiền của bạn được tính thế nào?",
+    "Quyền lợi hoàn tiền được tính thế nào?",
     "Theo dõi đơn hàng",
     "Săn mã giảm giá",
     "Điểm danh mỗi ngày",
@@ -43,6 +43,9 @@ test("Usage guide mirrors the approved native card flow without stale product cl
   assert.match(source, /useAppConfig\(\)/);
   assert.match(source, /config\.min_amount/);
   assert.match(source, /config\.fee_value/);
+  assert.match(source, /useIosPayoutFeaturesEnabled\(\)/);
+  assert.match(source, /guideChapters = payoutFeaturesEnabled/);
+  assert.match(source, /payoutOnly/);
   assert.match(source, /router\.push\("\/\(tabs\)\/home\/tips"\)/);
   assert.doesNotMatch(source, /Matumi|Bạn nhận 80%|Bạn nhận 85%|30\.000đ|7 ngày đầu|App Store|Google Play/);
 });

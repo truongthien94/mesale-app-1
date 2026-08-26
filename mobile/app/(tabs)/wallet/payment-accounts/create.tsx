@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Check, Search } from "lucide-react-native";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState, LoadingState } from "@/components/AsyncState";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import {
   Card,
   ChoiceRow,
@@ -26,6 +27,10 @@ function paymentAccountFingerprint(payload: PaymentAccountPayload) {
 }
 
 export default function CreatePaymentAccountScreen() {
+  return <IosPayoutRouteGuard><CreatePaymentAccountContent /></IosPayoutRouteGuard>;
+}
+
+function CreatePaymentAccountContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const configQuery = useAppConfig();

@@ -38,6 +38,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useAccount } from "@/features/account/api";
 import { referralsQueryOptions } from "@/features/earn/api";
 import { formatAccountMoney } from "@/features/home/format";
@@ -165,9 +166,9 @@ export default function AccountRoute() {
   const insets = useSafeAreaInsets();
   const { logout, refreshUser, user } = useAuth();
   const { colors, scheme } = useTheme();
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const accountQuery = useAccount();
-  const paymentAccountsQuery = usePaymentAccounts();
-  const referralsQuery = useInfiniteQuery(referralsQueryOptions());
+  const referralsQuery = useInfiniteQuery({ ...referralsQueryOptions(), enabled: payoutFeaturesEnabled });
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInFlight = useRef(false);
   const [referralEntryCode, setReferralEntryCode] = useState("");
@@ -211,8 +212,6 @@ export default function AccountRoute() {
   const displayName = account.name.trim() || "Thành viên Mê Sale";
   const initial = displayName.slice(0, 1).toUpperCase();
   const avatarUri = secureAvatarUri(account.avatar);
-  const paymentAccountCount = paymentAccountsQuery.data?.total ?? 0;
-  const hasConfirmedNoPaymentAccount = paymentAccountsQuery.isSuccess && paymentAccountCount === 0;
   const referralRate = referralsQuery.data?.pages[0]?.rates.f1_rate;
   const normalizedReferralEntryCode = referralEntryCode.trim();
   const referralCodeEligible = typeof account.referral_code_eligible === "boolean"
@@ -301,10 +300,9 @@ export default function AccountRoute() {
           colors={[colors.primary]}
           onRefresh={() => void Promise.all([
             accountQuery.refetch(),
-            paymentAccountsQuery.refetch(),
-            referralsQuery.refetch()
+            ...(payoutFeaturesEnabled ? [referralsQuery.refetch()] : [])
           ])}
-          refreshing={accountQuery.isRefetching || paymentAccountsQuery.isRefetching || referralsQuery.isRefetching}
+          refreshing={accountQuery.isRefetching || (payoutFeaturesEnabled && referralsQuery.isRefetching)}
           tintColor={colors.primary}
         />
       )}
@@ -349,53 +347,9 @@ export default function AccountRoute() {
         </Pressable>
       </View>
 
-      <CompactBlueHero
-        icon={CreditCard}
-        subtitle="Số dư khả dụng"
-        title={formatKnownMoney(account.wallet?.balance)}
-      >
-        <View style={styles.walletStats}>
-          <View style={styles.walletStat}>
-            <Text style={styles.walletStatLabel}>Tổng đã nhận</Text>
-            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(account.wallet?.total_cashback)}</Text>
-          </View>
-          <View style={styles.walletStatDivider} />
-          <View style={styles.walletStat}>
-            <Text style={styles.walletStatLabel}>Từ giới thiệu</Text>
-            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(account.wallet?.total_referral_earned)}</Text>
-          </View>
-        </View>
-        <Pressable
-          accessibilityLabel="Rút tiền về ngân hàng"
-          accessibilityRole="button"
-          onPress={() => navigateTo("/(tabs)/withdraw")}
-          style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}
-        >
-          <ArrowDownCircle color="#197ddd" size={22} />
-          <Text style={styles.withdrawButtonText}>Rút tiền về ngân hàng</Text>
-        </Pressable>
-      </CompactBlueHero>
+      {payoutFeaturesEnabled ? <AccountPayoutSection accountWallet={account.wallet ?? null} navigateTo={navigateTo} /> : null}
 
-      {hasConfirmedNoPaymentAccount ? (
-        <View style={[styles.bankWarning, { backgroundColor: scheme === "dark" ? "#33290f" : "#fffbea", borderColor: scheme === "dark" ? "#8a6c10" : "#f5d666" }]}>
-          <View style={[styles.warningIcon, { backgroundColor: scheme === "dark" ? "#5b4510" : "#fff2bd" }]}>
-            <Text style={styles.warningMark}>!</Text>
-          </View>
-          <View style={styles.warningCopy}>
-            <Text style={[styles.warningTitle, { color: scheme === "dark" ? "#fde68a" : "#92400e" }]}>Chưa liên kết ngân hàng</Text>
-            <Text style={[styles.warningSubtitle, { color: scheme === "dark" ? "#fcd34d" : "#b45309" }]}>Thêm tài khoản nhận tiền để gửi yêu cầu rút.</Text>
-          </View>
-          <Pressable
-            accessibilityLabel="Thêm tài khoản ngân hàng ngay"
-            accessibilityRole="button"
-            onPress={() => navigateTo("/(tabs)/wallet/payment-accounts/create")}
-            style={({ pressed }) => [styles.warningAction, pressed && styles.pressed]}
-          >
-            <Text style={styles.warningActionText}>Thêm ngay</Text>
-          </Pressable>
-        </View>
-      ) : null}
-
+      {payoutFeaturesEnabled ? <>
       <Pressable
         accessibilityLabel="Mở chương trình giới thiệu bạn bè"
         accessibilityRole="button"
@@ -472,9 +426,12 @@ export default function AccountRoute() {
           ) : null}
         </View>
       ) : null}
+      </> : null}
 
       <View style={styles.primaryMenuStack}>
-        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+        <View
+          style={[styles.menuCard, { backgroundColor: colors.surface }]}
+        >
           <AccountMenuRow
             icon={UserRound}
             iconBackground={softBlue}
@@ -486,7 +443,10 @@ export default function AccountRoute() {
           />
         </View>
 
-        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+        {payoutFeaturesEnabled ? (
+          <View
+            style={[styles.menuCard, { backgroundColor: colors.surface }]}
+          >
           <AccountMenuRow
             icon={CreditCard}
             iconBackground={softOrange}
@@ -496,7 +456,8 @@ export default function AccountRoute() {
             subtitle="Tài khoản ngân hàng và lịch sử rút tiền"
             title="Tài chính"
           />
-        </View>
+          </View>
+        ) : null}
 
         <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
           <AccountMenuRow
@@ -533,14 +494,14 @@ export default function AccountRoute() {
           subtitle="Mã hot cập nhật mỗi ngày"
           title="Săn mã giảm giá"
         />
-        <AccountMenuRow
+        {payoutFeaturesEnabled ? <AccountMenuRow
           icon={CalendarCheck}
           iconBackground={softOrange}
           iconColor="#f59e0b"
           onPress={() => navigateTo("/(tabs)/earn/checkin")}
           subtitle="Điểm danh và nhận thưởng mỗi ngày"
           title="Điểm danh nhận xu"
-        />
+        /> : null}
         <AccountMenuRow
           icon={Lightbulb}
           iconBackground={softOrange}
@@ -608,6 +569,67 @@ export default function AccountRoute() {
 
       <Text style={[styles.disclosure, { color: colors.mutedText }]}>Mê Sale là ứng dụng hoàn tiền độc lập, không phải sản phẩm chính thức của Shopee, TikTok Shop hoặc Lazada.</Text>
     </ScrollView>
+  );
+}
+
+function AccountPayoutSection({ accountWallet, navigateTo }: { accountWallet: AccountPreview["wallet"]; navigateTo: (href: Href) => void }) {
+  const { colors, scheme } = useTheme();
+  const paymentAccountsQuery = usePaymentAccounts();
+  const hasConfirmedNoPaymentAccount = paymentAccountsQuery.isSuccess && paymentAccountsQuery.data?.total === 0;
+
+  return (
+    <>
+      <CompactBlueHero
+        icon={CreditCard}
+        subtitle="Số dư khả dụng"
+        title={formatKnownMoney(accountWallet?.balance)}
+      >
+        <View style={styles.walletStats}>
+          <View style={styles.walletStat}>
+            <Text style={styles.walletStatLabel}>Tổng đã nhận</Text>
+            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(accountWallet?.total_cashback)}</Text>
+          </View>
+          <View style={styles.walletStatDivider} />
+          <View style={styles.walletStat}>
+            <Text style={styles.walletStatLabel}>Từ giới thiệu</Text>
+            <Text numberOfLines={1} style={styles.walletStatValue}>{formatKnownMoney(accountWallet?.total_referral_earned)}</Text>
+          </View>
+        </View>
+        <Pressable
+          accessibilityLabel="Rút tiền về ngân hàng"
+          accessibilityRole="button"
+          onPress={() => navigateTo("/(tabs)/withdraw")}
+          style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}
+        >
+          <ArrowDownCircle color="#197ddd" size={22} />
+          <Text style={styles.withdrawButtonText}>Rút tiền về ngân hàng</Text>
+        </Pressable>
+      </CompactBlueHero>
+
+      {hasConfirmedNoPaymentAccount ? (
+        <View
+          style={[styles.bankWarning, { backgroundColor: scheme === "dark" ? "#33290f" : "#fffbea", borderColor: scheme === "dark" ? "#8a6c10" : "#f5d666" }]}
+        >
+          <View
+            style={[styles.warningIcon, { backgroundColor: scheme === "dark" ? "#5b4510" : "#fff2bd" }]}
+          >
+            <Text style={styles.warningMark}>!</Text>
+          </View>
+          <View style={styles.warningCopy}>
+            <Text style={[styles.warningTitle, { color: scheme === "dark" ? "#fde68a" : "#92400e" }]}>Chưa liên kết ngân hàng</Text>
+            <Text style={[styles.warningSubtitle, { color: scheme === "dark" ? "#fcd34d" : "#b45309" }]}>Thêm tài khoản nhận tiền để gửi yêu cầu rút.</Text>
+          </View>
+          <Pressable
+            accessibilityLabel="Thêm tài khoản ngân hàng ngay"
+            accessibilityRole="button"
+            onPress={() => navigateTo("/(tabs)/wallet/payment-accounts/create")}
+            style={({ pressed }) => [styles.warningAction, pressed && styles.pressed]}
+          >
+            <Text style={styles.warningActionText}>Thêm ngay</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </>
   );
 }
 

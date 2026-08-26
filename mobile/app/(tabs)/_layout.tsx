@@ -4,6 +4,7 @@ import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
 import { LoadingState } from "@/components/AsyncState";
 import { AuthenticatedPrefetch } from "@/api/AuthenticatedPrefetch";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -12,6 +13,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const isVietnamese = resolveLocale(user?.preferences?.locale ?? getDeviceLocale()) === "vi";
   const hideTabBar = pathname === "/home/tips" || pathname === "/account/guide";
 
@@ -45,6 +47,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="referrals"
           options={{
+            href: payoutFeaturesEnabled ? undefined : null,
             title: isVietnamese ? "Giới thiệu" : "Referral",
             tabBarIcon: ({ color, size }) => <UsersRound color={color} size={size} />
           }}
@@ -59,6 +62,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="tasks"
           options={{
+            href: payoutFeaturesEnabled ? undefined : null,
             title: isVietnamese ? "Nhiệm vụ" : "Tasks",
             tabBarIcon: ({ color, size }) => <ListChecks color={color} size={size} />
           }}

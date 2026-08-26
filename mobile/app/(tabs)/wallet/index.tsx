@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthProvider";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { useAccountSummary, useOrders } from "@/features/wallet/api";
 import { formatDate, formatVnd } from "@/features/wallet/format";
 import { isRecordedOrder, orderListKey } from "@/features/wallet/orders";
@@ -34,6 +35,10 @@ const statusCopy: Record<OrderStatus, string> = {
 };
 
 export default function WalletRoute() {
+  return <IosPayoutRouteGuard><WalletContent /></IosPayoutRouteGuard>;
+}
+
+function WalletContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, spacing, radius } = useTheme();

@@ -21,6 +21,18 @@
             <span class="text-[9px] text-gray-400 mt-1 block">{{ __('Tạm thời khóa hoặc mở tính năng tạo lệnh rút tiền cho tất cả thành viên trên hệ thống.') }}</span>
         </div>
 
+        <div>
+            <label for="ios_payout_disabled_version" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">{{ __('Phiên bản iOS tắt tính năng nhận thưởng') }}</label>
+            <input type="text"
+                name="ios_payout_disabled_version"
+                id="ios_payout_disabled_version"
+                value="{{ $settings['ios_payout_disabled_version'] ?? '' }}"
+                placeholder="Ví dụ: 1.0.1"
+                pattern="[0-9]+(\.[0-9]+){1,2}"
+                class="block w-full px-4 py-2.5 border border-gray-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-shopee/20 focus:border-shopee bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-300">
+            <span class="text-[9px] text-gray-400 mt-1 block">{{ __('Chỉ phiên bản khớp chính xác giá trị này nhận false. Để trống hoặc các phiên bản khác đều nhận true. Android và Web không bị ảnh hưởng.') }}</span>
+        </div>
+
         <!-- Cấu hình số tiền rút tối thiểu và xác minh OTP rút tiền -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>

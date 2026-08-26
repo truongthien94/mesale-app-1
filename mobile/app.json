@@ -10,6 +10,17 @@
     "plugins": [
       "expo-router",
       [
+        "expo-dev-client",
+        {
+          "ios": {
+            "toolsButton": false
+          },
+          "android": {
+            "toolsButton": false
+          }
+        }
+      ],
+      [
         "expo-secure-store",
         {
           "faceIDPermission": false
@@ -32,7 +43,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "vn.mesale.app",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:mesale.vn"
@@ -128,7 +139,7 @@
     },
     "android": {
       "package": "vn.mesale.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "intentFilters": [
         {
           "action": "VIEW",

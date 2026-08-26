@@ -121,10 +121,10 @@ export default function OrdersScreen() {
               title="Đơn hiện ở màn này"
             />
             <GuideStep
-              caption="Sau khi giao thành công, sàn duyệt đơn trong 7–14 ngày. Duyệt xong, tiền tự cộng vào ví Mê Sale."
+              caption="Sau khi giao thành công, sàn thường đối soát trong 7–14 ngày trước khi xác nhận quyền lợi hoàn tiền."
               colors={colors}
               icon={<WalletCards color="#16a34a" size={17} />}
-              title="Nhận hàng → tiền về ví"
+              title="Nhận hàng → chờ xác nhận"
             />
             <Text style={[styles.guideReassurance, { color: scheme === "dark" ? "#bfdbfe" : "#1d4ed8" }]}>Đôi khi sàn gửi dữ liệu chậm hơn một chút — đơn không mất đâu.</Text>
           </View>
@@ -136,7 +136,7 @@ export default function OrdersScreen() {
           amount={accountQuery.data ? formatAccountMoney(pendingAmount, "vi") : null}
           colors={colors}
           count={pendingCount}
-          description="Về ví 7–14 ngày sau khi giao"
+          description="Thường xác nhận 7–14 ngày sau khi giao"
           icon={<Clock3 color="#d97706" size={19} />}
           label="Chờ xác nhận"
           loading={accountQuery.isPending}
@@ -147,7 +147,7 @@ export default function OrdersScreen() {
           amount={accountQuery.data ? formatAccountMoney(approvedAmount, "vi") : null}
           colors={colors}
           count={approvedCount}
-          description="Đã cộng vào ví của bạn"
+          description="Quyền lợi đơn đã được xác nhận"
           icon={<CircleCheck color="#16a34a" size={19} />}
           label="Đã xác nhận"
           loading={accountQuery.isPending}

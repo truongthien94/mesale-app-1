@@ -5,12 +5,17 @@ import { Alert, FlatList, Pressable, StyleSheet, Text, View, type ListRenderItem
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState, LoadingState } from "@/components/AsyncState";
 import { CompactBlueHero } from "@/components/CompactBlueHero";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { InlineError, PageFrame, PrimaryButton, QueryFailure } from "@/features/wallet/components";
 import { useDeletePaymentAccount, usePaymentAccounts, useSetDefaultPaymentAccount } from "@/features/wallet/api";
 import type { PaymentAccount } from "@/features/wallet/types";
 import { colors, spacing, theme } from "@/theme/tokens";
 
 export default function PaymentAccountsScreen() {
+  return <IosPayoutRouteGuard><PaymentAccountsContent /></IosPayoutRouteGuard>;
+}
+
+function PaymentAccountsContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const query = usePaymentAccounts();

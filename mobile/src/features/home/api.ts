@@ -1,4 +1,5 @@
 import { request } from "@/api/client";
+import { appConfigRequestOptions } from "@/features/config/query";
 import type {
   AccountSummary,
   CashbackProduct,
@@ -193,7 +194,7 @@ export function normalizeHomeConfig(source: unknown): HomeConfig {
 }
 
 export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig> {
-  return normalizeHomeConfig(await request<unknown>("config", { authenticated: false, signal }));
+  return normalizeHomeConfig(await request<unknown>("config", appConfigRequestOptions(signal)));
 }
 
 function parseCoupon(value: unknown): Coupon | null {

@@ -50,7 +50,8 @@ test("account money formatting renders rolling-deploy nulls as zero", () => {
 
 test("home normalizes product URLs and only accepts HTTPS affiliate handoff", () => {
   const { isSafeAffiliateUrl, normalizeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
-    "@/api/client": { request: async () => { throw new Error("not called"); } }
+    "@/api/client": { request: async () => { throw new Error("not called"); } },
+    "@/features/config/query": { appConfigRequestOptions: () => ({ authenticated: false }) }
   });
 
   assert.deepEqual(normalizeProductUrl("shopee.vn/product/42"), {
@@ -100,7 +101,8 @@ test("account summary preserves unknown aggregate cashback fields during rolling
     }
   };
   const { fetchAccountSummary } = loadTypeScriptModule("../src/features/home/api.ts", {
-    "@/api/client": { request: async () => accountPayload }
+    "@/api/client": { request: async () => accountPayload },
+    "@/features/config/query": { appConfigRequestOptions: () => ({ authenticated: false }) }
   });
 
   const legacySummary = await fetchAccountSummary();
@@ -392,10 +394,10 @@ test("orders tab follows the compact MeSale process and server-authoritative sum
     "Đơn lên app: TikTok ~1 giờ · Shopee ~1 ngày",
     "Đặt đơn qua Mê Sale",
     "Đơn hiện ở màn này",
-    "Nhận hàng → tiền về ví",
+    "Nhận hàng → chờ xác nhận",
     "Đôi khi sàn gửi dữ liệu chậm hơn một chút — đơn không mất đâu.",
-    "Về ví 7–14 ngày sau khi giao",
-    "Đã cộng vào ví của bạn",
+    "Thường xác nhận 7–14 ngày sau khi giao",
+    "Quyền lợi đơn đã được xác nhận",
     "Chờ xác nhận",
     "Đã xác nhận",
     "Tất cả",

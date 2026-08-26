@@ -137,6 +137,12 @@ class SettingController extends Controller
 
         $request->validate($rateRules, $rateMessages);
 
+        $request->validate([
+            'ios_payout_disabled_version' => ['sometimes', 'nullable', 'regex:/^\d+(?:\.\d+){1,2}$/'],
+        ], [
+            'ios_payout_disabled_version.regex' => __('Phiên bản iOS phải có dạng 1.0 hoặc 1.0.1.'),
+        ]);
+
         // 1. Xử lý tải các file ảnh lên trực tiếp (nếu có)
         $fileKeys = [
             'logo_file' => 'site_logo',
@@ -1030,4 +1036,3 @@ SYS;
     }
 
 }
-

@@ -1,10 +1,15 @@
 import { useRouter } from "expo-router";
 import { CreditCard, History } from "lucide-react-native";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { AccountSectionMenu } from "@/features/account/AccountSectionMenu";
 import { usePaymentAccounts, useWithdrawals } from "@/features/wallet/api";
 import { useTheme } from "@/theme/ThemeProvider";
 
 export default function AccountFinanceScreen() {
+  return <IosPayoutRouteGuard><AccountFinanceContent /></IosPayoutRouteGuard>;
+}
+
+function AccountFinanceContent() {
   const router = useRouter();
   const { scheme } = useTheme();
   const paymentAccountsQuery = usePaymentAccounts();

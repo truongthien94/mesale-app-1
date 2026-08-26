@@ -11,7 +11,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "node --test tests/auth-contract.test.cjs tests/auth-account-contract.test.cjs tests/native-oauth-contract.test.cjs tests/app-config-oauth-contract.test.cjs tests/android-signing-plugin-contract.test.cjs tests/home-wallet-contract.test.cjs tests/earn-inbox-contract.test.cjs tests/theme-contract.test.cjs tests/navigation-contract.test.cjs tests/avatar-contract.test.cjs tests/withdrawal-ui-contract.test.cjs tests/coupons-contract.test.cjs tests/tips-contract.test.cjs tests/usage-guide-contract.test.cjs tests/app-icon-contract.test.cjs tests/account-loading-contract.test.cjs tests/main-tab-loading-contract.test.cjs tests/authenticated-prefetch-contract.test.cjs",
+    "test": "node --test tests/auth-contract.test.cjs tests/auth-account-contract.test.cjs tests/native-oauth-contract.test.cjs tests/app-config-oauth-contract.test.cjs tests/ios-payout-flag-contract.test.cjs tests/android-signing-plugin-contract.test.cjs tests/home-wallet-contract.test.cjs tests/earn-inbox-contract.test.cjs tests/theme-contract.test.cjs tests/navigation-contract.test.cjs tests/avatar-contract.test.cjs tests/withdrawal-ui-contract.test.cjs tests/coupons-contract.test.cjs tests/tips-contract.test.cjs tests/usage-guide-contract.test.cjs tests/app-icon-contract.test.cjs tests/account-loading-contract.test.cjs tests/main-tab-loading-contract.test.cjs tests/authenticated-prefetch-contract.test.cjs",
     "test:auth-contract": "node --test tests/auth-contract.test.cjs",
     "typecheck": "tsc --noEmit"
   },

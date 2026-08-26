@@ -21,6 +21,7 @@ import { useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/auth/AuthProvider";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useAccount } from "@/features/account/api";
 import { fetchTasks } from "@/features/earn/api";
 import { fetchUnreadCount } from "@/features/notifications/api";
@@ -36,16 +37,16 @@ type MoreItem = {
   badge?: number;
 };
 
-const MORE_ROUTES: Array<{ labelVi: string; labelEn: string; href: Href; icon: LucideIcon; badge?: "notifications" | "tasks" }> = [
-  { labelVi: "Ví của tôi", labelEn: "My wallet", href: "/(tabs)/wallet", icon: Wallet },
+const MORE_ROUTES: Array<{ labelVi: string; labelEn: string; href: Href; icon: LucideIcon; badge?: "notifications" | "tasks"; payoutOnly?: boolean }> = [
+  { labelVi: "Ví của tôi", labelEn: "My wallet", href: "/(tabs)/wallet", icon: Wallet, payoutOnly: true },
   { labelVi: "Lịch sử hoàn tiền", labelEn: "Cashback history", href: "/(tabs)/wallet/orders", icon: Receipt },
-  { labelVi: "Điểm danh nhận xu", labelEn: "Daily check-in", href: "/(tabs)/earn/checkin", icon: CalendarCheck },
-  { labelVi: "Tiếp thị liên kết", labelEn: "Affiliate referrals", href: "/(tabs)/earn/referrals", icon: Share2 },
-  { labelVi: "Yêu cầu rút tiền", labelEn: "Withdrawal requests", href: "/(tabs)/wallet/withdrawals", icon: Banknote },
-  { labelVi: "Nhiệm vụ nhận thưởng", labelEn: "Reward tasks", href: "/(tabs)/earn/tasks", icon: ListChecks, badge: "tasks" },
+  { labelVi: "Điểm danh nhận xu", labelEn: "Daily check-in", href: "/(tabs)/earn/checkin", icon: CalendarCheck, payoutOnly: true },
+  { labelVi: "Tiếp thị liên kết", labelEn: "Affiliate referrals", href: "/(tabs)/earn/referrals", icon: Share2, payoutOnly: true },
+  { labelVi: "Yêu cầu rút tiền", labelEn: "Withdrawal requests", href: "/(tabs)/wallet/withdrawals", icon: Banknote, payoutOnly: true },
+  { labelVi: "Nhiệm vụ nhận thưởng", labelEn: "Reward tasks", href: "/(tabs)/earn/tasks", icon: ListChecks, badge: "tasks", payoutOnly: true },
   { labelVi: "Thiết lập tài khoản", labelEn: "Account settings", href: "/(tabs)/account/profile", icon: UserCog },
   { labelVi: "Thông báo", labelEn: "Notifications", href: "/(tabs)/inbox", icon: Bell, badge: "notifications" },
-  { labelVi: "Biến động số dư", labelEn: "Balance activity", href: "/(tabs)/wallet/balance-logs", icon: ArrowLeftRight }
+  { labelVi: "Biến động số dư", labelEn: "Balance activity", href: "/(tabs)/wallet/balance-logs", icon: ArrowLeftRight, payoutOnly: true }
 ];
 
 export function MoreSheet() {
@@ -53,6 +54,7 @@ export function MoreSheet() {
   const isOpen = useMoreSheetStore((state) => state.isOpen);
   const close = useMoreSheetStore((state) => state.close);
   const { logout, user } = useAuth();
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const { colors, preference, setPreference } = useTheme();
   const accountQuery = useAccount({ enabled: isOpen });
   const unreadQuery = useQuery({
@@ -63,7 +65,7 @@ export function MoreSheet() {
   const tasksQuery = useQuery({
     queryKey: ["earn", "tasks"],
     queryFn: ({ signal }) => fetchTasks(signal),
-    enabled: isOpen
+    enabled: isOpen && payoutFeaturesEnabled
   });
   const [loggingOut, setLoggingOut] = useState(false);
   const account = user && accountQuery.data?.id === user.id ? accountQuery.data : null;
@@ -73,7 +75,7 @@ export function MoreSheet() {
   const referralCode = account?.referral_code ?? user?.referral_code ?? null;
   const notificationCount = unreadQuery.data?.unread_total ?? 0;
   const taskCount = tasksQuery.data?.stats.completed ?? 0;
-  const items: MoreItem[] = MORE_ROUTES.map((item) => ({
+  const items: MoreItem[] = MORE_ROUTES.filter((item) => payoutFeaturesEnabled || !item.payoutOnly).map((item) => ({
     ...item,
     label: vi ? item.labelVi : item.labelEn,
     badge: item.badge === "notifications" ? notificationCount : item.badge === "tasks" ? taskCount : undefined

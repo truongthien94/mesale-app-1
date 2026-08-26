@@ -39,6 +39,7 @@ import {
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -63,7 +64,7 @@ const copy = {
     errorTitle: "Chưa thể tải trang chủ",
     refreshError: "Dữ liệu đang hiển thị có thể đã cũ vì lần làm mới gần nhất thất bại.",
     emptyTitle: "Không có dữ liệu tài khoản",
-    emptyMessage: "Máy chủ chưa trả về thông tin ví cho tài khoản này.",
+    emptyMessage: "Máy chủ chưa trả về thông tin tài khoản này.",
     retry: "Thử lại",
     greeting: "Chào",
     availableBalance: "Số dư ví",
@@ -93,7 +94,7 @@ const copy = {
     referralCtaAction: "Mời bạn",
     productReady: "Sản phẩm có thể nhận hoàn tiền",
     currentPrice: "Giá sản phẩm",
-    estimatedCashback: "Tổng hoa hồng đơn này",
+    estimatedCashback: "Ước tính hoàn tiền đơn này",
     estimatedRate: "Tỷ lệ hoàn ước tính",
     estimatedNote: "Mức hoàn thực tế được xác nhận sau khi sàn ghi nhận đơn hợp lệ.",
     affiliateLink: "Link mua hàng đã tạo",
@@ -149,7 +150,7 @@ const copy = {
     referralCtaAction: "Invite",
     productReady: "Product may be eligible for cashback",
     currentPrice: "Current price",
-    estimatedCashback: "Total commission for this order",
+    estimatedCashback: "Estimated cashback for this order",
     estimatedRate: "Estimated cashback rate",
     estimatedNote: "The final cashback is confirmed after the marketplace records an eligible order.",
     affiliateLink: "Generated purchase link",
@@ -295,6 +296,7 @@ function QuickAccessSection({ language, onTips, onSupport }: {
 }) {
   const { colors } = useTheme();
   const strings = copy[language];
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
 
   return (
     <View style={styles.quickAccessSection}>
@@ -305,11 +307,11 @@ function QuickAccessSection({ language, onTips, onSupport }: {
           label={strings.huntCoupons}
           onPress={() => router.push("/(tabs)/home/coupons")}
         />
-        <QuickAccessItem
+        {payoutFeaturesEnabled ? <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#eff6ff" }]}><CalendarDays color="#3b82f6" size={23} strokeWidth={2.1} /></View>}
           label={strings.dailyCheckin}
           onPress={() => router.push("/(tabs)/earn/checkin")}
-        />
+        /> : null}
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fff7ed" }]}><Lightbulb color="#f97316" size={23} strokeWidth={2.1} /></View>}
           label={strings.tips}
@@ -380,7 +382,7 @@ function ProductResult({ product, language, notice, strings }: {
   const commissionRate = product.price > 0 ? (product.commissionAmount / product.price) * 100 : 0;
   const commissionSummary = product.isEstimated
     ? `${product.cashbackRate}${strings.rateSuffix}`
-    : `${language === "vi" ? "Hoa hồng" : "Commission"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
+    : `${language === "vi" ? "Tỷ lệ hoàn" : "Cashback rate"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
   const totalLabel = product.isEstimated ? strings.estimatedRate : strings.estimatedCashback;
 
   async function openMarketplace() {
@@ -454,7 +456,7 @@ function ProductResult({ product, language, notice, strings }: {
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.reference}</Text><Text selectable style={[styles.detailValue, { color: colors.text }]}>{product.transId}</Text></View>
           {product.price > 0 ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.currentPrice}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.price, language)}</Text></View> : null}
           {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedCashback}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.commissionAmount, language)}</Text></View> : null}
-          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{language === "vi" ? "Tiền hoàn của bạn" : "Your cashback"}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.cashbackAmount, language)}</Text></View> : null}
+          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{language === "vi" ? "Ước tính hoàn tiền của bạn" : "Your estimated cashback"}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.cashbackAmount, language)}</Text></View> : null}
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedRate}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{product.cashbackRate}{strings.rateSuffix}</Text></View>
           {marketplaceNotice ? <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{marketplaceNotice}</Text> : null}
           <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{strings.estimatedNote}</Text>
@@ -488,6 +490,7 @@ export function HomeScreen() {
   // Keep Vietnamese as the default while honoring an explicit account choice.
   const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
   const strings = copy[language];
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const accountQuery = useAccountSummary();
   const configQuery = useHomeConfig();
   const cashbackMutation = useCreateCashbackLink();
@@ -627,6 +630,7 @@ export function HomeScreen() {
             </Pressable>
           </View>
 
+          {payoutFeaturesEnabled ? <>
           <LinearGradient
             colors={["#59a5fa", "#356dd3"]}
             end={{ x: 1, y: 1 }}
@@ -673,6 +677,7 @@ export function HomeScreen() {
               value={formatAccountMoney(account.wallet.totalWithdrawn, language)}
             />
           </View>
+          </> : null}
         </View>
 
         <View style={[styles.creatorCard, { backgroundColor: themeColors.surface, borderColor: scheme === "dark" ? themeColors.border : "#fed7c7" }]}>
@@ -750,7 +755,7 @@ export function HomeScreen() {
             </View>
           ) : null}
 
-          <Pressable
+          {payoutFeaturesEnabled ? <Pressable
             accessibilityHint={language === "vi" ? "Mở trang giới thiệu bạn bè" : "Open the referral page"}
             accessibilityLabel={strings.referralCtaTitle}
             accessibilityRole="button"
@@ -775,7 +780,7 @@ export function HomeScreen() {
                 <ChevronRight color="#c2410c" size={14} strokeWidth={2.5} />
               </View>
             </LinearGradient>
-          </Pressable>
+          </Pressable> : null}
 
           {mutationMessage ? (
             <InlineNotice

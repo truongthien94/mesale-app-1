@@ -56,13 +56,19 @@ function secureStoreOptions() {
   return { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 }
 
+function applyStoredFinancialPolicy(user: User | null, payoutFeaturesEnabled: boolean): User | null {
+  if (!user || payoutFeaturesEnabled) return user;
+  const { financialSnapshot: _financialSnapshot, wallet: _wallet, ...safeUser } = user;
+  return safeUser;
+}
+
 async function writeTombstone(): Promise<void> {
   const tombstone: AuthStorageRecord = { version: 2, auth: null };
   await SecureStore.setItemAsync(authStorageKey, JSON.stringify(tombstone), secureStoreOptions());
   await SecureStore.deleteItemAsync(legacySessionStorageKey).catch(() => undefined);
 }
 
-function parseAuthStorageRecord(raw: string): StoredAuthState | null {
+function parseAuthStorageRecord(raw: string, payoutFeaturesEnabled: boolean): StoredAuthState | null {
   const value: unknown = JSON.parse(raw);
   if (!value || typeof value !== "object") throw new Error("Invalid auth storage record.");
   const record = value as Record<string, unknown>;
@@ -76,16 +82,28 @@ function parseAuthStorageRecord(raw: string): StoredAuthState | null {
 
   return {
     session: auth.session,
-    userPreview: parseStoredUserPreview(auth.userPreview),
+    userPreview: applyStoredFinancialPolicy(parseStoredUserPreview(auth.userPreview), payoutFeaturesEnabled),
     requiresBootstrap: false
   };
 }
 
-async function loadStoredAuthState(): Promise<StoredAuthState | null> {
+async function loadStoredAuthState(payoutFeaturesEnabled: boolean): Promise<StoredAuthState | null> {
   const currentRaw = await SecureStore.getItemAsync(authStorageKey);
   if (currentRaw) {
     try {
-      return parseAuthStorageRecord(currentRaw);
+      const state = parseAuthStorageRecord(currentRaw, payoutFeaturesEnabled);
+      if (state && !payoutFeaturesEnabled && state.userPreview) {
+        const migratedRecord: AuthStorageRecord = {
+          version: 2,
+          auth: {
+            session: state.session,
+            previewForAccessToken: state.session.accessToken,
+            userPreview: createStoredUserPreview(state.userPreview)
+          }
+        };
+        await SecureStore.setItemAsync(authStorageKey, JSON.stringify(migratedRecord), secureStoreOptions());
+      }
+      return state;
     } catch {
       await writeTombstone();
       notifySessionInvalidated();
@@ -109,19 +127,19 @@ async function loadStoredAuthState(): Promise<StoredAuthState | null> {
   return null;
 }
 
-export async function loadAuthState(): Promise<StoredAuthState | null> {
+export async function loadAuthState(payoutFeaturesEnabled: boolean): Promise<StoredAuthState | null> {
   if (Platform.OS === "web") return null;
-  return enqueueStorageOperation(loadStoredAuthState);
+  return enqueueStorageOperation(() => loadStoredAuthState(payoutFeaturesEnabled));
 }
 
 export async function loadSession(): Promise<Session | null> {
-  return (await loadAuthState())?.session ?? null;
+  return (await loadAuthState(true))?.session ?? null;
 }
 
-export async function saveAuthState(session: Session, user: User): Promise<void> {
+export async function saveAuthState(session: Session, user: User, payoutFeaturesEnabled: boolean): Promise<void> {
   if (Platform.OS === "web") return;
   if (!isSession(session)) throw new Error("Cannot store an invalid or expired session.");
-  const userPreview = createStoredUserPreview(user);
+  const userPreview = createStoredUserPreview(applyStoredFinancialPolicy(user, payoutFeaturesEnabled) ?? user);
   parseStoredUserPreview(userPreview);
   const record: AuthStorageRecord = {
     version: 2,
@@ -146,7 +164,7 @@ export async function clearSession(): Promise<void> {
 export async function clearSessionIfTokenMatches(accessToken: string): Promise<boolean> {
   if (Platform.OS === "web") return false;
   return enqueueStorageOperation(async () => {
-    const state = await loadStoredAuthState();
+    const state = await loadStoredAuthState(true);
     if (!state || state.session.accessToken !== accessToken) return false;
     await writeTombstone();
     return true;

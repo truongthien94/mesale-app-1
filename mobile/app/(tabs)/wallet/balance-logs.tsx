@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { FlatList, StyleSheet, Text, View, type ListRenderItemInfo } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState, LoadingState } from "@/components/AsyncState";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { ListFooter, PageFrame, QueryFailure } from "@/features/wallet/components";
 import { balanceTypeLabel, formatDate, formatVnd } from "@/features/wallet/format";
 import { useBalanceLogs } from "@/features/wallet/api";
@@ -9,6 +10,10 @@ import type { BalanceLog } from "@/features/wallet/types";
 import { colors, spacing, theme } from "@/theme/tokens";
 
 export default function BalanceLogsScreen() {
+  return <IosPayoutRouteGuard><BalanceLogsContent /></IosPayoutRouteGuard>;
+}
+
+function BalanceLogsContent() {
   const insets = useSafeAreaInsets();
   const query = useBalanceLogs();
   const logs = query.data?.pages.flatMap((page) => page.items) ?? [];

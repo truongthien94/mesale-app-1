@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { FlatList, StyleSheet, Text, View, type ListRenderItemInfo } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LoadingState } from "@/components/AsyncState";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { ListFooter, PageFrame, PrimaryButton, QueryFailure, StatusBadge } from "@/features/wallet/components";
 import { formatDate, formatVnd } from "@/features/wallet/format";
 import { useAppConfig, useWithdrawals } from "@/features/wallet/api";
@@ -11,6 +12,10 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { spacing as spacingTokens } from "@/theme/tokens";
 
 export default function WithdrawalsScreen() {
+  return <IosPayoutRouteGuard><WithdrawalsContent /></IosPayoutRouteGuard>;
+}
+
+function WithdrawalsContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, spacing, radius } = useTheme();
