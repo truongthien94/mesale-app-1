@@ -1,3 +1,6 @@
-// Expo Router tabs only accept direct children of the tabs layout. This alias
-// keeps the existing wallet/orders screen as the canonical implementation.
-export { default } from "./wallet/orders";
+import OrdersRoute from "./wallet/orders";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
+
+export default function OrdersTabRoute() {
+  return <IosPayoutRouteGuard><OrdersRoute /></IosPayoutRouteGuard>;
+}

@@ -25,6 +25,7 @@ import {
   WalletCards
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { formatAccountMoney } from "@/features/home/format";
 import { useAccountSummary } from "@/features/home/hooks";
 import { useOrders } from "@/features/wallet/api";
@@ -43,6 +44,10 @@ const statusFilters: { label: string; value: StatusFilter }[] = [
 ];
 
 export default function OrdersScreen() {
+  return <IosPayoutRouteGuard><OrdersContent /></IosPayoutRouteGuard>;
+}
+
+function OrdersContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, radius, scheme, spacing } = useTheme();

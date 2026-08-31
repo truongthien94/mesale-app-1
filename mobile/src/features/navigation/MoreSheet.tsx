@@ -39,13 +39,13 @@ type MoreItem = {
 
 const MORE_ROUTES: Array<{ labelVi: string; labelEn: string; href: Href; icon: LucideIcon; badge?: "notifications" | "tasks"; payoutOnly?: boolean }> = [
   { labelVi: "Ví của tôi", labelEn: "My wallet", href: "/(tabs)/wallet", icon: Wallet, payoutOnly: true },
-  { labelVi: "Lịch sử hoàn tiền", labelEn: "Cashback history", href: "/(tabs)/wallet/orders", icon: Receipt },
+  { labelVi: "Lịch sử hoàn tiền", labelEn: "Cashback history", href: "/(tabs)/wallet/orders", icon: Receipt, payoutOnly: true },
   { labelVi: "Điểm danh nhận xu", labelEn: "Daily check-in", href: "/(tabs)/earn/checkin", icon: CalendarCheck, payoutOnly: true },
   { labelVi: "Tiếp thị liên kết", labelEn: "Affiliate referrals", href: "/(tabs)/earn/referrals", icon: Share2, payoutOnly: true },
   { labelVi: "Yêu cầu rút tiền", labelEn: "Withdrawal requests", href: "/(tabs)/wallet/withdrawals", icon: Banknote, payoutOnly: true },
   { labelVi: "Nhiệm vụ nhận thưởng", labelEn: "Reward tasks", href: "/(tabs)/earn/tasks", icon: ListChecks, badge: "tasks", payoutOnly: true },
   { labelVi: "Thiết lập tài khoản", labelEn: "Account settings", href: "/(tabs)/account/profile", icon: UserCog },
-  { labelVi: "Thông báo", labelEn: "Notifications", href: "/(tabs)/inbox", icon: Bell, badge: "notifications" },
+  { labelVi: "Thông báo", labelEn: "Notifications", href: "/(tabs)/inbox", icon: Bell, badge: "notifications", payoutOnly: true },
   { labelVi: "Biến động số dư", labelEn: "Balance activity", href: "/(tabs)/wallet/balance-logs", icon: ArrowLeftRight, payoutOnly: true }
 ];
 
@@ -56,11 +56,11 @@ export function MoreSheet() {
   const { logout, user } = useAuth();
   const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const { colors, preference, setPreference } = useTheme();
-  const accountQuery = useAccount({ enabled: isOpen });
+  const accountQuery = useAccount({ enabled: isOpen && payoutFeaturesEnabled });
   const unreadQuery = useQuery({
     queryKey: ["notifications", "unread-count"],
     queryFn: ({ signal }) => fetchUnreadCount(signal),
-    enabled: isOpen
+    enabled: isOpen && payoutFeaturesEnabled
   });
   const tasksQuery = useQuery({
     queryKey: ["earn", "tasks"],
@@ -118,7 +118,7 @@ export function MoreSheet() {
               <View style={styles.identityCopy}>
                 <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>{displayName}</Text>
                 <Text numberOfLines={1} style={[styles.secondary, { color: colors.mutedText }]}>{displayEmail}</Text>
-                {referralCode ? <Text style={[styles.referral, { color: colors.primary }]}>Mã giới thiệu: {referralCode}</Text> : null}
+                {payoutFeaturesEnabled && referralCode ? <Text style={[styles.referral, { color: colors.primary }]}>Mã giới thiệu: {referralCode}</Text> : null}
               </View>
             </View>
 

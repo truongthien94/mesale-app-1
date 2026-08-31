@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useAccount, useUpdatePreferences } from "@/features/account/api";
 import { AccountButton, AccountCard, AccountFormScreen, AccountHeader, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
 import { colors, spacing, theme } from "@/theme/tokens";
@@ -11,6 +12,7 @@ const locales = [{ value: "vi", label: "Tiếng Việt" }, { value: "en", label:
 const currencies = [{ value: "VND", label: "VND · Việt Nam Đồng" }, { value: "USD", label: "USD · Đô la Mỹ" }];
 
 export default function PreferencesScreen() {
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const query = useAccount();
   const mutation = useUpdatePreferences();
   const { refreshUser } = useAuth();
@@ -41,16 +43,23 @@ export default function PreferencesScreen() {
 
   return (
     <AccountFormScreen>
-      <AccountHeader title="Ngôn ngữ & tiền tệ" subtitle="Đây là tùy chọn hiển thị. Số dư và mọi giao dịch tài chính trên máy chủ vẫn được hạch toán bằng VND nguyên." />
+      <AccountHeader
+        title={payoutFeaturesEnabled ? "Ngôn ngữ & tiền tệ" : "Ngôn ngữ"}
+        subtitle={payoutFeaturesEnabled
+          ? "Đây là tùy chọn hiển thị. Số dư và mọi giao dịch tài chính trên máy chủ vẫn được hạch toán bằng VND nguyên."
+          : "Chọn ngôn ngữ dùng để hiển thị nội dung trong ứng dụng."}
+      />
       <AccountCard>
         <View style={accountStyles.section}>
           <Text style={accountStyles.strong}>Ngôn ngữ</Text>
           <View style={accountStyles.options}>{locales.map((item) => <Choice key={item.value} label={item.label} selected={locale === item.value} onPress={() => setLocale(item.value)} />)}</View>
         </View>
-        <View style={accountStyles.section}>
-          <Text style={accountStyles.strong}>Tiền tệ hiển thị</Text>
-          <View style={accountStyles.options}>{currencies.map((item) => <Choice key={item.value} label={item.label} selected={currency === item.value} onPress={() => setCurrency(item.value)} />)}</View>
-        </View>
+        {payoutFeaturesEnabled ? (
+          <View style={accountStyles.section}>
+            <Text style={accountStyles.strong}>Tiền tệ hiển thị</Text>
+            <View style={accountStyles.options}>{currencies.map((item) => <Choice key={item.value} label={item.label} selected={currency === item.value} onPress={() => setCurrency(item.value)} />)}</View>
+          </View>
+        ) : null}
         <AccountMutationError error={mutation.error} />
         {mutation.isSuccess ? <AccountNotice tone="success">{mutation.data.message ?? "Đã cập nhật tùy chọn hiển thị."}</AccountNotice> : null}
         <AccountButton label="Lưu tùy chọn" loading={mutation.isPending} onPress={() => void submit()} />

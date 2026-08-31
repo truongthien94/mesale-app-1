@@ -48,14 +48,28 @@ class AuthController extends ApiController
     /**
      * Chuẩn hóa dữ liệu thành viên trả về cho client (loại bỏ trường nhạy cảm).
      */
-    protected function userResource(User $user): array
+    protected function userResource(User $user, ?Request $request = null): array
     {
-        return [
+        $resource = [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
             'avatar' => $this->userAvatars->urlFor($user),
+            'status' => $user->status,
+            'email_verified' => ! is_null($user->email_verified_at),
+            'created_at' => optional($user->created_at)->toIso8601String(),
+        ];
+
+        if ($request && ! $this->iosPayoutFeaturesEnabled($request)) {
+            return [
+                ...$resource,
+                'referral_prompt_pending' => false,
+            ];
+        }
+
+        return [
+            ...$resource,
             // VND has no fractional unit. Existing clients still receive JSON numbers,
             // while mobile clients can rely on an integer-only money contract.
             'balance' => (int) MoneyHelper::round($user->balance),
@@ -64,16 +78,13 @@ class AuthController extends ApiController
             'total_withdrawn' => (int) MoneyHelper::round($user->total_withdrawn),
             'referral_code' => $user->referral_code,
             ...$this->referralOnboarding->apiFields($user),
-            'status' => $user->status,
-            'email_verified' => ! is_null($user->email_verified_at),
-            'created_at' => optional($user->created_at)->toIso8601String(),
         ];
     }
 
     /**
      * Build the mobile session-token contract without exposing a personal API key.
      */
-    protected function tokenResponseData(User $user, string $plainToken, ?string $expiresAt): array
+    protected function tokenResponseData(User $user, string $plainToken, ?string $expiresAt, ?Request $request = null): array
     {
         return [
             'access_token' => $plainToken,
@@ -81,7 +92,7 @@ class AuthController extends ApiController
             'token' => $plainToken,
             'token_type' => 'Bearer',
             'expires_at' => $expiresAt,
-            'user' => $this->userResource($user),
+            'user' => $this->userResource($user, $request),
         ];
     }
 
@@ -101,7 +112,8 @@ class AuthController extends ApiController
             $this->tokenResponseData(
                 $user,
                 $plainToken,
-                optional($apiToken->expires_at)->toIso8601String()
+                optional($apiToken->expires_at)->toIso8601String(),
+                $request
             ),
             $message,
             $status

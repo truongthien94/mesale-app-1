@@ -33,6 +33,10 @@ Route::get('/coupons', [\App\Http\Controllers\CouponController::class, 'index'])
 Route::get('/ranking', [RankingController::class, 'index'])->name('ranking.index');
 Route::get('/privacy', [StoreCompliancePageController::class, 'privacy'])->name('legal.privacy');
 Route::get('/terms', [StoreCompliancePageController::class, 'terms'])->name('legal.terms');
+Route::get('/ios/privacy', [StoreCompliancePageController::class, 'iosPrivacy'])->name('legal.ios.privacy');
+Route::get('/ios/terms', [StoreCompliancePageController::class, 'iosTerms'])->name('legal.ios.terms');
+Route::get('/ios/support', [StoreCompliancePageController::class, 'iosSupport'])->name('legal.ios.support');
+Route::get('/ios/account-deletion', [StoreCompliancePageController::class, 'iosAccountDeletion'])->name('legal.ios.account-deletion');
 Route::get('/support', [StoreCompliancePageController::class, 'support'])->name('support');
 Route::get('/account-deletion', [StoreCompliancePageController::class, 'accountDeletion'])->name('account-deletion');
 Route::get('/account/delete', [StoreCompliancePageController::class, 'accountDeletion'])->name('account-deletion.legacy');
@@ -325,5 +329,3 @@ Route::prefix('cron')->group(function () {
     // Sinh sitemap.xml phục vụ tối ưu tìm kiếm SEO
     Route::get('/generate-sitemap', [\App\Http\Controllers\CronController::class, 'generateSitemap'])->name('cron.generate_sitemap');
 });
-
-

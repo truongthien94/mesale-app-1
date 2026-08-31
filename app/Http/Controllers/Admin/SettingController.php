@@ -138,6 +138,7 @@ class SettingController extends Controller
         $request->validate($rateRules, $rateMessages);
 
         $request->validate([
+            'ios_payout_features_enabled' => ['sometimes', 'in:0,1'],
             'ios_payout_disabled_version' => ['sometimes', 'nullable', 'regex:/^\d+(?:\.\d+){1,2}$/'],
         ], [
             'ios_payout_disabled_version.regex' => __('Phiên bản iOS phải có dạng 1.0 hoặc 1.0.1.'),

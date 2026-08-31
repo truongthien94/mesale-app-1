@@ -22,10 +22,12 @@ export function AuthenticatedPrefetch() {
 
     const prefetches = [
       queryClient.prefetchQuery(accountDetailQueryOptions()),
-      queryClient.prefetchInfiniteQuery(ordersQueryOptions()),
       queryClient.prefetchQuery(appConfigRawQueryOptions())
     ];
-    if (payoutFeaturesEnabled) prefetches.push(queryClient.prefetchQuery(paymentAccountsQueryOptions()));
+    if (payoutFeaturesEnabled) {
+      prefetches.push(queryClient.prefetchInfiniteQuery(ordersQueryOptions()));
+      prefetches.push(queryClient.prefetchQuery(paymentAccountsQueryOptions()));
+    }
     void Promise.allSettled(prefetches);
 
     const task = InteractionManager.runAfterInteractions(() => {

@@ -163,10 +163,10 @@ test("home renders the auth preview while account remains authoritative in the b
   const source = read("../src/features/home/HomeScreen.tsx");
   const bootstrap = read("../src/features/home/bootstrap.ts");
 
-  assert.match(source, /const accountQuery = useAccountSummary\(\)/);
+  assert.match(source, /const accountQuery = useAccountSummary\(payoutFeaturesEnabled\)/);
   assert.match(source, /const authPreview = createHomeAuthPreview\(user\)/);
-  assert.match(source, /const account = accountQuery\.data \?\? authPreview/);
-  assert.match(source, /if \(accountQuery\.isPending && !account\)/);
+  assert.match(source, /const account = payoutFeaturesEnabled \? accountQuery\.data \?\? authPreview : shoppingAccount/);
+  assert.match(source, /if \(payoutFeaturesEnabled && accountQuery\.isPending && !account\)/);
   assert.match(source, /accountQuery\.data[\s\S]*formatAccountMoney\(accountQuery\.data\.wallet\.pendingCashback/);
   assert.match(source, /accessibilityRole="progressbar"/);
   assert.doesNotMatch(source, /initialData|placeholderData|setQueryData/);
@@ -298,9 +298,9 @@ test("home renders a compact cashback result without exposing the raw affiliate 
   assert.ok(referralIndex > resultIndex);
 });
 
-test("home ends at PhoneFlowDemo and does not mount the removed Round C blocks", () => {
+test("home only mounts the financial walkthrough when payout features are enabled", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
-  assert.match(source, /<View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View>\s*<\/ScrollView>/);
+  assert.match(source, /\{payoutFeaturesEnabled \? <View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View> : null\}/);
   assert.doesNotMatch(source, /RoundCHomeBlocks|RoundCCouponSection|RoundCTimelineSection|RoundCLeaderboardSection/);
   assert.doesNotMatch(source, /useCoupons|useRanking|RankingBoard|RankingEntry|couponDaysLeft|roundCStaticTimeline/);
 });

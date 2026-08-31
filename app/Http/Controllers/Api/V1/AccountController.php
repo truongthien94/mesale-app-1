@@ -44,6 +44,21 @@ class AccountController extends ApiController
     {
         $user = $this->apiUser($request);
 
+        if (! $this->iosPayoutFeaturesEnabled($request)) {
+            return $this->ok([
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'avatar' => $this->userAvatars->urlFor($user),
+                'referral_prompt_pending' => false,
+                'status' => $user->status,
+                'email_verified' => ! is_null($user->email_verified_at),
+                'preferences' => $this->preferencesFor($user),
+                'created_at' => optional($user->created_at)->toIso8601String(),
+            ]);
+        }
+
         // Thống kê nhanh số lượng đơn hoàn tiền theo trạng thái và số người giới thiệu
         $cashbackStats = CashbackHistory::where('user_id', $user->id)
             ->selectRaw('status, COUNT(*) as total, COALESCE(SUM(cashback_amount), 0) as cashback_total')

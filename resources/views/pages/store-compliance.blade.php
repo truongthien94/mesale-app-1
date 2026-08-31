@@ -71,13 +71,14 @@
     </style>
 </head>
 <body>
+    @php($iosMode = str_starts_with($slug, 'ios-'))
     <header class="shell topbar">
-        <a class="brand" href="{{ route('home') }}">Mê <span>Sale</span></a>
+        <a class="brand" href="{{ $iosMode ? route('legal.ios.privacy') : route('home') }}">Mê <span>Sale</span></a>
         <nav class="nav" aria-label="Trang pháp lý và hỗ trợ">
-            <a href="{{ route('legal.privacy') }}" @if($slug === 'privacy') aria-current="page" @endif>Chính sách bảo mật</a>
-            <a href="{{ route('legal.terms') }}" @if($slug === 'terms') aria-current="page" @endif>Điều khoản</a>
-            <a href="{{ route('support') }}" @if($slug === 'support') aria-current="page" @endif>Hỗ trợ</a>
-            <a href="{{ route('account-deletion') }}" @if($slug === 'account-deletion') aria-current="page" @endif>Xóa tài khoản</a>
+            <a href="{{ route($iosMode ? 'legal.ios.privacy' : 'legal.privacy') }}" @if($slug === ($iosMode ? 'ios-privacy' : 'privacy')) aria-current="page" @endif>Chính sách bảo mật</a>
+            <a href="{{ route($iosMode ? 'legal.ios.terms' : 'legal.terms') }}" @if($slug === ($iosMode ? 'ios-terms' : 'terms')) aria-current="page" @endif>Điều khoản</a>
+            <a href="{{ route($iosMode ? 'legal.ios.support' : 'support') }}" @if($slug === ($iosMode ? 'ios-support' : 'support')) aria-current="page" @endif>Hỗ trợ</a>
+            <a href="{{ route($iosMode ? 'legal.ios.account-deletion' : 'account-deletion') }}" @if($slug === ($iosMode ? 'ios-account-deletion' : 'account-deletion')) aria-current="page" @endif>Xóa tài khoản</a>
         </nav>
     </header>
 

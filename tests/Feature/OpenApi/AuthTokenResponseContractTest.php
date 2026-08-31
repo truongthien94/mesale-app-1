@@ -83,6 +83,48 @@ class AuthTokenResponseContractTest extends TestCase
         $this->assertStringNotContainsString('correct-password', (string) $apiLog->request_data);
     }
 
+    public function test_disabled_ios_login_and_account_responses_omit_financial_and_referral_fields(): void
+    {
+        Setting::setVal('ios_payout_features_enabled', '0');
+        $user = $this->createUser([
+            'balance' => '100000.00',
+            'total_cashback' => '25000.00',
+            'total_referral_earned' => '5000.00',
+            'total_withdrawn' => '10000.00',
+        ]);
+        $headers = [
+            'X-Mesale-App-Platform' => 'ios',
+            'X-Mesale-App-Version' => '1.0.0',
+        ];
+
+        $login = $this->withHeaders($headers)->postJson('/api/v1/openapi/auth/login', [
+            'email' => $user->email,
+            'password' => 'correct-password',
+            'device_name' => 'Restricted iOS Test',
+        ]);
+
+        $login->assertOk()
+            ->assertJsonPath('data.user.referral_prompt_pending', false)
+            ->assertJsonMissingPath('data.user.balance')
+            ->assertJsonMissingPath('data.user.total_cashback')
+            ->assertJsonMissingPath('data.user.total_referral_earned')
+            ->assertJsonMissingPath('data.user.total_withdrawn')
+            ->assertJsonMissingPath('data.user.referral_code')
+            ->assertJsonMissingPath('data.user.referral_code_eligible')
+            ->assertJsonMissingPath('data.user.referral_code_expires_at');
+
+        $this->withHeaders($headers)
+            ->withToken($login->json('data.access_token'))
+            ->getJson('/api/v1/openapi/account')
+            ->assertOk()
+            ->assertJsonPath('data.referral_prompt_pending', false)
+            ->assertJsonMissingPath('data.wallet')
+            ->assertJsonMissingPath('data.stats')
+            ->assertJsonMissingPath('data.referral_code')
+            ->assertJsonMissingPath('data.referral_code_eligible')
+            ->assertJsonMissingPath('data.referral_code_expires_at');
+    }
+
     public function test_api_logging_recursively_redacts_sensitive_fields_and_key_variants(): void
     {
         $secrets = [

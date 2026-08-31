@@ -56,10 +56,17 @@ function secureStoreOptions() {
   return { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 }
 
-function applyStoredFinancialPolicy(user: User | null, payoutFeaturesEnabled: boolean): User | null {
+export function applyPayoutFeaturePolicy(user: User | null, payoutFeaturesEnabled: boolean): User | null {
   if (!user || payoutFeaturesEnabled) return user;
-  const { financialSnapshot: _financialSnapshot, wallet: _wallet, ...safeUser } = user;
-  return safeUser;
+  const {
+    financialSnapshot: _financialSnapshot,
+    referral_code: _referralCode,
+    referralCodeEligible: _referralCodeEligible,
+    referralCodeExpiresAt: _referralCodeExpiresAt,
+    wallet: _wallet,
+    ...safeUser
+  } = user;
+  return { ...safeUser, referralPromptPending: false };
 }
 
 async function writeTombstone(): Promise<void> {
@@ -82,7 +89,7 @@ function parseAuthStorageRecord(raw: string, payoutFeaturesEnabled: boolean): St
 
   return {
     session: auth.session,
-    userPreview: applyStoredFinancialPolicy(parseStoredUserPreview(auth.userPreview), payoutFeaturesEnabled),
+    userPreview: applyPayoutFeaturePolicy(parseStoredUserPreview(auth.userPreview), payoutFeaturesEnabled),
     requiresBootstrap: false
   };
 }
@@ -139,7 +146,7 @@ export async function loadSession(): Promise<Session | null> {
 export async function saveAuthState(session: Session, user: User, payoutFeaturesEnabled: boolean): Promise<void> {
   if (Platform.OS === "web") return;
   if (!isSession(session)) throw new Error("Cannot store an invalid or expired session.");
-  const userPreview = createStoredUserPreview(applyStoredFinancialPolicy(user, payoutFeaturesEnabled) ?? user);
+  const userPreview = createStoredUserPreview(applyPayoutFeaturePolicy(user, payoutFeaturesEnabled) ?? user);
   parseStoredUserPreview(userPreview);
   const record: AuthStorageRecord = {
     version: 2,

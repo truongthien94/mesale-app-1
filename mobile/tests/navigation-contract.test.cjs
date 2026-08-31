@@ -35,7 +35,9 @@ test("the Referral tab reuses the canonical referral screen", () => {
 });
 
 test("Round B keeps canonical wallet screens behind direct tab aliases", () => {
-  assert.match(read("../app/(tabs)/orders.tsx"), /export \{ default \} from "\.\/wallet\/orders"/);
+  const ordersTab = read("../app/(tabs)/orders.tsx");
+  assert.match(ordersTab, /import OrdersRoute from "\.\/wallet\/orders"/);
+  assert.match(ordersTab, /<IosPayoutRouteGuard><OrdersRoute \/><\/IosPayoutRouteGuard>/);
   const withdrawTab = read("../app/(tabs)/withdraw.tsx");
   assert.match(withdrawTab, /import CreateWithdrawalScreen from "\.\/wallet\/withdrawals\/create"/);
   assert.match(withdrawTab, /<CreateWithdrawalScreen \/>/);
@@ -62,7 +64,7 @@ test("Account is a server-authoritative native hub with approved destinations", 
   assert.match(account, /useInfiniteQuery\(\{ \.\.\.referralsQueryOptions\(\), enabled: payoutFeaturesEnabled \}\)/);
   assert.doesNotMatch(account, /\["account", "referral-preview"\]/);
   assert.doesNotMatch(account, /Hoàn tiền Mê Sale|cashbackBadge|<Sparkles/);
-  assert.match(account, /primaryMenuStack[\s\S]*title="Thông tin tài khoản"[\s\S]*title="Tài chính"[\s\S]*title="Thông báo"[\s\S]*title="Cài đặt"[\s\S]*KHÁM PHÁ/);
+  assert.match(account, /primaryMenuStack[\s\S]*title="Thông tin tài khoản"[\s\S]*payoutFeaturesEnabled[\s\S]*title="Tài chính"[\s\S]*title="Thông báo"[\s\S]*title="Cài đặt"[\s\S]*KHÁM PHÁ/);
   for (const removedLabel of ["TÀI KHOẢN", "TÀI CHÍNH", "THÔNG BÁO", "CÀI ĐẶT"]) {
     assert.doesNotMatch(account, new RegExp(`>${removedLabel}<`));
   }
@@ -92,9 +94,10 @@ test("Account is a server-authoritative native hub with approved destinations", 
   assert.match(account, /primaryMenuStack: \{ gap: 10 \}/);
   assert.match(account, /referralEntryPanel: \{[^}]*borderBottomWidth: StyleSheet\.hairlineWidth/);
   assert.match(account, /warningAction: \{[^}]*minHeight: 44/);
-  assert.match(account, /https:\/\/mesale\.vn\/privacy/);
-  assert.match(account, /https:\/\/mesale\.vn\/terms/);
-  assert.match(account, /https:\/\/mesale\.vn\/support/);
+  assert.match(account, /legalUrlsForPayoutFeatures\(payoutFeaturesEnabled\)/);
+  assert.match(account, /openExternal\(legalUrls\.privacy/);
+  assert.match(account, /openExternal\(legalUrls\.terms/);
+  assert.match(account, /openExternal\(legalUrls\.support/);
   assert.doesNotMatch(account, /title="Đổi quà tặng"|\/\(tabs\)\/earn\/gifts/);
   assert.doesNotMatch(account, /title="Nhiệm vụ nhận thưởng"|navigateTo\("\/\(tabs\)\/earn\/tasks"\)/);
   assert.doesNotMatch(account, /80%|WebView|sk_live_/);

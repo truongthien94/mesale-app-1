@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,5 +50,26 @@ abstract class ApiController extends Controller
     protected function apiUser(Request $request): User
     {
         return $request->user();
+    }
+
+    protected function iosPayoutFeaturesEnabled(Request $request): bool
+    {
+        $platform = strtolower(trim((string) $request->header('X-Mesale-App-Platform', '')));
+        if ($platform !== 'ios') {
+            return true;
+        }
+
+        if (Setting::getVal('ios_payout_features_enabled', '0') !== '1') {
+            return false;
+        }
+
+        $disabledVersion = trim((string) Setting::getVal('ios_payout_disabled_version', ''));
+        $appVersion = trim((string) $request->header('X-Mesale-App-Version', ''));
+
+        if ($appVersion === '') {
+            return false;
+        }
+
+        return $disabledVersion === '' || $appVersion !== $disabledVersion;
     }
 }

@@ -42,14 +42,9 @@ import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useAccount } from "@/features/account/api";
 import { referralsQueryOptions } from "@/features/earn/api";
 import { formatAccountMoney } from "@/features/home/format";
+import { legalUrlsForPayoutFeatures } from "@/features/legal/urls";
 import { usePaymentAccounts } from "@/features/wallet/api";
 import { useTheme } from "@/theme/ThemeProvider";
-
-const EXTERNAL_LINKS = {
-  privacy: "https://mesale.vn/privacy",
-  support: "https://mesale.vn/support",
-  terms: "https://mesale.vn/terms"
-} as const;
 
 type MenuIcon = ComponentType<{ color?: string; size?: number }>;
 
@@ -167,7 +162,8 @@ export default function AccountRoute() {
   const { logout, refreshUser, user } = useAuth();
   const { colors, scheme } = useTheme();
   const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const accountQuery = useAccount();
+  const legalUrls = legalUrlsForPayoutFeatures(payoutFeaturesEnabled);
+  const accountQuery = useAccount({ enabled: payoutFeaturesEnabled });
   const referralsQuery = useInfiniteQuery({ ...referralsQueryOptions(), enabled: payoutFeaturesEnabled });
   const [loggingOut, setLoggingOut] = useState(false);
   const logoutInFlight = useRef(false);
@@ -192,7 +188,7 @@ export default function AccountRoute() {
       total_withdrawn: user.financialSnapshot.totalWithdrawn
     } : null
   } : null;
-  const serverAccount = user && accountQuery.data?.id === user.id ? accountQuery.data : null;
+  const serverAccount = payoutFeaturesEnabled && user && accountQuery.data?.id === user.id ? accountQuery.data : null;
   const account = serverAccount ?? accountPreview;
 
   if (accountQuery.isPending && !account) return <LoadingState label="Đang tải tài khoản..." />;
@@ -298,18 +294,17 @@ export default function AccountRoute() {
       refreshControl={(
         <RefreshControl
           colors={[colors.primary]}
-          onRefresh={() => void Promise.all([
-            accountQuery.refetch(),
-            ...(payoutFeaturesEnabled ? [referralsQuery.refetch()] : [])
-          ])}
-          refreshing={accountQuery.isRefetching || (payoutFeaturesEnabled && referralsQuery.isRefetching)}
+          onRefresh={() => void (payoutFeaturesEnabled
+            ? Promise.all([accountQuery.refetch(), referralsQuery.refetch()])
+            : refreshUser())}
+          refreshing={payoutFeaturesEnabled && (accountQuery.isRefetching || referralsQuery.isRefetching)}
           tintColor={colors.primary}
         />
       )}
       showsVerticalScrollIndicator={false}
       style={{ backgroundColor: screenBackground }}
     >
-      {accountQuery.isError ? (
+      {payoutFeaturesEnabled && accountQuery.isError ? (
         <View style={[styles.accountSyncWarning, { backgroundColor: softOrange, borderColor: scheme === "dark" ? "#8a6c10" : "#f5d666" }]}>
           <View style={styles.accountSyncCopy}>
             <Text style={[styles.accountSyncTitle, { color: scheme === "dark" ? "#fde68a" : "#92400e" }]}>Dữ liệu tài khoản có thể chưa mới nhất</Text>
@@ -459,7 +454,7 @@ export default function AccountRoute() {
           </View>
         ) : null}
 
-        <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
+        {payoutFeaturesEnabled ? <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
           <AccountMenuRow
             icon={Bell}
             iconBackground={softBlue}
@@ -469,7 +464,7 @@ export default function AccountRoute() {
             subtitle="Thông báo và biến động tài khoản"
             title="Thông báo"
           />
-        </View>
+        </View> : null}
 
         <View style={[styles.menuCard, { backgroundColor: colors.surface }]}>
           <AccountMenuRow
@@ -507,7 +502,7 @@ export default function AccountRoute() {
           iconBackground={softOrange}
           iconColor="#f59e0b"
           onPress={() => navigateTo("/(tabs)/home/tips")}
-          subtitle="Mẹo tăng khả năng đơn được ghi nhận"
+          subtitle={payoutFeaturesEnabled ? "Mẹo tăng khả năng đơn được ghi nhận" : "Mẹo mua sắm an toàn và sử dụng mã giảm giá"}
           title="Tips & Trick"
         />
         <AccountMenuRow
@@ -526,7 +521,7 @@ export default function AccountRoute() {
           icon={CircleHelp}
           iconBackground={softGreen}
           iconColor="#16a34a"
-          onPress={() => void openExternal(EXTERNAL_LINKS.support, "Hỗ trợ Mê Sale")}
+          onPress={() => void openExternal(legalUrls.support, "Hỗ trợ Mê Sale")}
           subtitle="Liên hệ bộ phận hỗ trợ Mê Sale"
           title="Hỗ trợ Mê Sale"
         />
@@ -534,14 +529,14 @@ export default function AccountRoute() {
           icon={ShieldCheck}
           iconBackground={softBlue}
           iconColor="#2f9af5"
-          onPress={() => void openExternal(EXTERNAL_LINKS.privacy, "Chính sách bảo mật")}
+          onPress={() => void openExternal(legalUrls.privacy, "Chính sách bảo mật")}
           title="Chính sách bảo mật"
         />
         <AccountMenuRow
           icon={FileText}
           iconBackground={softBlue}
           iconColor="#2f9af5"
-          onPress={() => void openExternal(EXTERNAL_LINKS.terms, "Điều khoản sử dụng")}
+          onPress={() => void openExternal(legalUrls.terms, "Điều khoản sử dụng")}
           showDivider={false}
           title="Điều khoản sử dụng"
         />
@@ -567,7 +562,9 @@ export default function AccountRoute() {
         />
       </View>
 
-      <Text style={[styles.disclosure, { color: colors.mutedText }]}>Mê Sale là ứng dụng hoàn tiền độc lập, không phải sản phẩm chính thức của Shopee, TikTok Shop hoặc Lazada.</Text>
+      <Text style={[styles.disclosure, { color: colors.mutedText }]}>{payoutFeaturesEnabled
+        ? "Mê Sale là ứng dụng hoàn tiền độc lập, không phải sản phẩm chính thức của Shopee, TikTok Shop hoặc Lazada."
+        : "Mê Sale hỗ trợ khám phá sản phẩm và ưu đãi, không phải ứng dụng chính thức của Shopee, TikTok Shop hoặc Lazada."}</Text>
     </ScrollView>
   );
 }

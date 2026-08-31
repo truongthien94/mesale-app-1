@@ -1,14 +1,11 @@
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
+import { legalUrlsForPayoutFeatures } from "@/features/legal/urls";
 import { colors, spacing } from "@/theme/tokens";
 
-const LEGAL_URLS = {
-  privacy: "https://mesale.vn/privacy",
-  terms: "https://mesale.vn/terms",
-  support: "https://mesale.vn/support",
-  deletion: "https://mesale.vn/account-deletion"
-} as const;
-
 export function LegalLinks({ compact = false }: { compact?: boolean }) {
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
+  const legalUrls = legalUrlsForPayoutFeatures(payoutFeaturesEnabled);
   async function open(url: string) {
     if (await Linking.canOpenURL(url)) await Linking.openURL(url);
   }
@@ -17,16 +14,16 @@ export function LegalLinks({ compact = false }: { compact?: boolean }) {
     <View style={[styles.container, compact && styles.compact]}>
       <Text style={styles.label}>Mesale</Text>
       <View style={styles.links}>
-        <Pressable accessibilityRole="link" onPress={() => void open(LEGAL_URLS.privacy)}>
+        <Pressable accessibilityRole="link" onPress={() => void open(legalUrls.privacy)}>
           <Text style={styles.link}>Chính sách bảo mật</Text>
         </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => void open(LEGAL_URLS.terms)}>
+        <Pressable accessibilityRole="link" onPress={() => void open(legalUrls.terms)}>
           <Text style={styles.link}>Điều khoản</Text>
         </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => void open(LEGAL_URLS.support)}>
+        <Pressable accessibilityRole="link" onPress={() => void open(legalUrls.support)}>
           <Text style={styles.link}>Hỗ trợ</Text>
         </Pressable>
-        <Pressable accessibilityRole="link" onPress={() => void open(LEGAL_URLS.deletion)}>
+        <Pressable accessibilityRole="link" onPress={() => void open(legalUrls.deletion)}>
           <Text style={styles.link}>Xóa tài khoản</Text>
         </Pressable>
       </View>

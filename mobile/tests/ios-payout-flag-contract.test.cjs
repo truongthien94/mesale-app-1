@@ -119,12 +119,15 @@ test("root provider wraps authentication and defaults safely while config loads"
   assert.match(rootLayout, /<IosPayoutFeaturesProvider>[\s\S]*<AuthProvider>/);
 });
 
-test("route guard redirects to Home and Orders remains unguarded", () => {
+test("route guard redirects to Home and Orders is protected", () => {
   const guard = read("../src/components/IosPayoutRouteGuard.tsx");
   const orders = read("../app/(tabs)/orders.tsx");
+  const walletLayout = read("../app/(tabs)/wallet/_layout.tsx");
   assert.match(guard, /Redirect href="\/\(tabs\)\/home"/);
   assert.match(guard, /useIosPayoutFeaturesEnabled\(\)/);
-  assert.doesNotMatch(orders, /IosPayoutRouteGuard|wallet\/index/);
+  assert.match(orders, /IosPayoutRouteGuard/);
+  assert.match(orders, /<OrdersRoute \/>/);
+  assert.match(walletLayout, /if \(!payoutFeaturesEnabled\) return <Redirect href="\/\(tabs\)\/home" \/>/);
 });
 
 test("all approved direct payout routes guard before their content hooks", () => {
@@ -155,8 +158,7 @@ test("disabled iOS suppresses payout prefetch and Account payment-account mount"
   const prefetch = read("../src/api/AuthenticatedPrefetch.tsx");
   const quickAccess = read("../src/features/home/QuickAccessPrefetch.tsx");
   const account = read("../app/(tabs)/account/index.tsx");
-  assert.match(prefetch, /if \(payoutFeaturesEnabled\) prefetches\.push\(queryClient\.prefetchQuery\(paymentAccountsQueryOptions\(\)\)\)/);
-  assert.match(prefetch, /if \(payoutFeaturesEnabled\) \{/);
+  assert.match(prefetch, /if \(payoutFeaturesEnabled\) \{[\s\S]*prefetchInfiniteQuery\(ordersQueryOptions\(\)\)[\s\S]*prefetchQuery\(paymentAccountsQueryOptions\(\)\)/);
   assert.match(quickAccess, /if \(payoutFeaturesEnabled\) \{/);
   assert.match(account, /payoutFeaturesEnabled \? <AccountPayoutSection/);
   assert.match(account, /function AccountPayoutSection[\s\S]*usePaymentAccounts\(\)/);
@@ -164,8 +166,10 @@ test("disabled iOS suppresses payout prefetch and Account payment-account mount"
 
 test("disabled iOS does not render stored financial preview fields", () => {
   const session = read("../src/auth/session.ts");
-  assert.match(session, /applyStoredFinancialPolicy/);
+  assert.match(session, /applyPayoutFeaturePolicy/);
   assert.match(session, /financialSnapshot: _financialSnapshot/);
+  assert.match(session, /referral_code: _referralCode/);
+  assert.match(session, /referralPromptPending: false/);
   assert.match(session, /wallet: _wallet/);
   assert.match(session, /migratedRecord/);
 });
@@ -181,4 +185,28 @@ test("the build-time payout flag is removed from Expo and EAS configuration", ()
   for (const profile of Object.values(eas.build)) {
     assert.equal(profile.env?.IOS_PAYOUT_FEATURES_ENABLED, undefined);
   }
+});
+
+test("restricted iOS account screens use shopping-safe copy and hide currency controls", () => {
+  const settings = read("../app/(tabs)/account/settings.tsx");
+  const preferences = read("../app/(tabs)/account/preferences.tsx");
+  const deletion = read("../app/(tabs)/account/delete.tsx");
+  const accountLayout = read("../app/(tabs)/account/_layout.tsx");
+
+  for (const source of [settings, preferences, deletion]) {
+    assert.match(source, /useIosPayoutFeaturesEnabled\(\)/);
+  }
+  assert.match(settings, /payoutFeaturesEnabled \? "Ngôn ngữ & tiền tệ" : "Ngôn ngữ"/);
+  assert.match(preferences, /payoutFeaturesEnabled \? \(/);
+  assert.match(preferences, /Chọn ngôn ngữ dùng để hiển thị nội dung trong ứng dụng/);
+  assert.match(deletion, /Hồ sơ, tùy chọn, sản phẩm đã lưu, thông báo và các phiên đăng nhập/);
+  assert.match(accountLayout, /payoutFeaturesEnabled \? "Ngôn ngữ & tiền tệ" : "Ngôn ngữ"/);
+});
+
+test("restricted iOS legal links stay inside the dedicated policy set", () => {
+  const urls = read("../src/features/legal/urls.ts");
+  assert.match(urls, /https:\/\/mesale\.vn\/ios\/privacy/);
+  assert.match(urls, /https:\/\/mesale\.vn\/ios\/terms/);
+  assert.match(urls, /https:\/\/mesale\.vn\/ios\/support/);
+  assert.match(urls, /https:\/\/mesale\.vn\/ios\/account-deletion/);
 });

@@ -23,25 +23,24 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
+import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import {
   isAppleNativeSignInAvailable,
   oauthUiStateFromReason
 } from "@/features/auth/nativeOAuth";
 import type { NativeOAuthProvider } from "@/features/auth/nativeOAuthContract";
+import { legalUrlsForPayoutFeatures } from "@/features/legal/urls";
 import { validateRegistration } from "@/features/auth/validation";
 import { getDeviceLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
-
-const LEGAL_URLS = {
-  privacy: "https://mesale.vn/privacy",
-  terms: "https://mesale.vn/terms"
-} as const;
 
 const BRAND_BLUE = "#1684e8";
 const BRAND_BLUE_DARK = "#075fc4";
 
 export default function RegisterScreen() {
   const locale = getDeviceLocale();
+  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
+  const legalUrls = legalUrlsForPayoutFeatures(payoutFeaturesEnabled);
   const { colors, radius, scheme, spacing } = useTheme();
   const insets = useSafeAreaInsets();
   const {
@@ -166,7 +165,9 @@ export default function RegisterScreen() {
               style={styles.logo}
             />
           </View>
-          <Text style={styles.heroTagline}>Hệ thống mua sắm hoàn tiền Shopee - Tiktok</Text>
+          <Text style={styles.heroTagline}>{payoutFeaturesEnabled
+            ? "Hệ thống mua sắm hoàn tiền Shopee - TikTok"
+            : "Khám phá sản phẩm và ưu đãi Shopee - TikTok Shop"}</Text>
         </LinearGradient>
 
         <View
@@ -269,9 +270,9 @@ export default function RegisterScreen() {
 
           <Text style={[styles.termsCopy, { color: colors.mutedText }]}>
             Bằng việc tạo tài khoản, bạn đồng ý với{" "}
-            <Text accessibilityRole="link" onPress={() => void openLegal(LEGAL_URLS.terms)} style={styles.legalLink}>Điều khoản sử dụng</Text>
+            <Text accessibilityRole="link" onPress={() => void openLegal(legalUrls.terms)} style={styles.legalLink}>Điều khoản sử dụng</Text>
             {" "}và xác nhận đã đọc{" "}
-            <Text accessibilityRole="link" onPress={() => void openLegal(LEGAL_URLS.privacy)} style={styles.legalLink}>Chính sách bảo mật</Text>.
+            <Text accessibilityRole="link" onPress={() => void openLegal(legalUrls.privacy)} style={styles.legalLink}>Chính sách bảo mật</Text>.
           </Text>
 
           <FormErrorSummary errors={requestError?.errors} message={requestError?.message} />

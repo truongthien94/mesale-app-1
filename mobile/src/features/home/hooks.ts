@@ -23,8 +23,8 @@ export function accountSummaryQueryOptions() {
   };
 }
 
-export function useAccountSummary() {
-  return useQuery(accountSummaryQueryOptions());
+export function useAccountSummary(enabled = true) {
+  return useQuery({ ...accountSummaryQueryOptions(), enabled });
 }
 
 export function useHomeConfig() {

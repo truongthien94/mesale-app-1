@@ -410,13 +410,47 @@ function GuideIntro() {
   );
 }
 
+function ShoppingGuideIntro() {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.introStack}>
+      <LinearGradient colors={["#37a7f6", "#1976df"]} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={styles.hero}>
+        <Rocket color="#ffffff" fill="#ffffff" size={43} />
+        <Text style={styles.heroTitle}>Dán liên kết → xem sản phẩm → kiểm tra ưu đãi</Text>
+        <Text style={styles.heroSubtitle}>Giá, mã giảm giá và điều kiện mua hàng được xác nhận trực tiếp trên từng sàn.</Text>
+      </LinearGradient>
+      <GuideCard>
+        <CardTitle icon={<Rocket color="#2f9af5" size={22} />} title="Bắt đầu" />
+        <View style={styles.cardList}>
+          <NumberedStep number={1}>Sao chép liên kết sản phẩm từ Shopee hoặc TikTok Shop.</NumberedStep>
+          <NumberedStep number={2}>Dán liên kết tại <Text style={styles.strong}>Trang chủ</Text> để Mê Sale nhận diện sản phẩm.</NumberedStep>
+          <NumberedStep number={3}>Chạm <Text style={styles.strong}>Mua ngay</Text> để mở sản phẩm trên sàn.</NumberedStep>
+          <NumberedStep number={4}>Kiểm tra phân loại, giá, mã giảm giá và điều kiện giao hàng trước khi đặt.</NumberedStep>
+        </View>
+        <Text style={[styles.italic, { color: colors.mutedText }]}>Thông tin cuối cùng luôn được hiển thị và xác nhận trên ứng dụng hoặc website của sàn.</Text>
+      </GuideCard>
+    </View>
+  );
+}
+
+function ShoppingSafetyCard() {
+  return (
+    <GuideCard>
+      <CardTitle icon={<Info color="#2f9af5" size={22} />} title="Lưu ý mua sắm" />
+      <View style={styles.cardList}>
+        <CheckRow>Không chia sẻ mật khẩu, mã OTP hoặc thông tin đăng nhập với người khác.</CheckRow>
+        <CheckRow>Đọc kỹ điều kiện mã giảm giá, phí vận chuyển và chính sách đổi trả.</CheckRow>
+        <CheckRow info>Mê Sale không phải ứng dụng chính thức của Shopee, TikTok Shop hoặc Lazada.</CheckRow>
+      </View>
+    </GuideCard>
+  );
+}
+
 export default function UsageGuideScreen() {
   const insets = useSafeAreaInsets();
   const { colors, scheme } = useTheme();
   const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const guideChapters = payoutFeaturesEnabled
-    ? GUIDE_CHAPTERS
-    : GUIDE_CHAPTERS.filter((chapter) => !["checkin", "referrals", "withdraw"].includes(chapter));
+  const guideChapters = payoutFeaturesEnabled ? GUIDE_CHAPTERS : (["coupons"] as GuideChapter[]);
 
   return (
     <View style={[styles.screen, { backgroundColor: scheme === "dark" ? "#08111f" : "#eef6ff" }]}>
@@ -432,8 +466,8 @@ export default function UsageGuideScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 28, paddingHorizontal: 14, paddingTop: 14 }}
         data={guideChapters}
         keyExtractor={(item) => item}
-        ListFooterComponent={<FaqCard payoutFeaturesEnabled={payoutFeaturesEnabled} />}
-        ListHeaderComponent={<GuideIntro />}
+        ListFooterComponent={payoutFeaturesEnabled ? <FaqCard payoutFeaturesEnabled /> : <ShoppingSafetyCard />}
+        ListHeaderComponent={payoutFeaturesEnabled ? <GuideIntro /> : <ShoppingGuideIntro />}
         renderItem={({ item }) => <Chapter chapter={item} />}
         showsVerticalScrollIndicator={false}
       />

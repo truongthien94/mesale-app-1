@@ -173,6 +173,41 @@ const copy = {
 
 type Strings = { [Key in keyof typeof copy.vi]: string };
 
+const shoppingCopy: Record<"vi" | "en", Partial<Strings>> = {
+  vi: {
+    offlineMessage: "Không thể tải dữ liệu ứng dụng. Hãy kiểm tra mạng rồi thử lại.",
+    emptyTitle: "Chưa có dữ liệu",
+    emptyMessage: "Máy chủ chưa trả về thông tin tài khoản này.",
+    creatorPromo: "Khám phá sản phẩm và ưu đãi từ Shopee - TikTok Shop",
+    configError: "Chưa thể tải cấu hình sàn. Tính năng phân tích liên kết tạm khóa để bảo đảm an toàn.",
+    featureDisabled: "Tính năng phân tích liên kết mua sắm đang tạm bảo trì.",
+    productReady: "Đã nhận diện sản phẩm",
+    notice: "Thông tin sản phẩm",
+    handoffMessage: "Bạn sẽ mở ứng dụng hoặc website của sàn để xem chi tiết sản phẩm và ưu đãi hiện hành.",
+    mutationError: "Không thể phân tích liên kết sản phẩm lúc này.",
+    reference: "Mã liên kết",
+    rateSuffix: ""
+  },
+  en: {
+    offlineMessage: "We could not load app data. Check your connection and retry.",
+    emptyTitle: "No data available",
+    emptyMessage: "The server did not return account information.",
+    creatorPromo: "Discover products and offers from Shopee and TikTok Shop",
+    configError: "Marketplace configuration is unavailable. Link analysis is temporarily locked for safety.",
+    featureDisabled: "Shopping-link analysis is under maintenance.",
+    productReady: "Product identified",
+    notice: "Product information",
+    handoffMessage: "This opens the marketplace app or website to view current product details and offers.",
+    mutationError: "The product link could not be analyzed.",
+    reference: "Link reference",
+    rateSuffix: ""
+  }
+};
+
+function getHomeStrings(language: "vi" | "en", payoutFeaturesEnabled: boolean): Strings {
+  return payoutFeaturesEnabled ? copy[language] : { ...copy[language], ...shoppingCopy[language] };
+}
+
 const platformPresentation: Record<Marketplace, { label: string; color: string }> = {
   shopee: { label: "Shopee", color: "#ee4d2d" },
   tiktok: { label: "TikTok Shop", color: "#111827" },
@@ -295,8 +330,8 @@ function QuickAccessSection({ language, onTips, onSupport }: {
   onSupport: () => void;
 }) {
   const { colors } = useTheme();
-  const strings = copy[language];
   const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
+  const strings = getHomeStrings(language, payoutFeaturesEnabled);
 
   return (
     <View style={styles.quickAccessSection}>
@@ -369,10 +404,11 @@ function ProductImage({ uri, name }: { uri: string | null; name: string }) {
   );
 }
 
-function ProductResult({ product, language, notice, strings }: {
+function ProductResult({ product, language, notice, showPayoutDetails, strings }: {
   product: CashbackProduct;
   language: "vi" | "en";
   notice?: string | null;
+  showPayoutDetails: boolean;
   strings: Strings;
 }) {
   const [handoffError, setHandoffError] = useState<string | null>(null);
@@ -428,20 +464,20 @@ function ProductResult({ product, language, notice, strings }: {
         <View style={styles.productBody}>
           <Text numberOfLines={3} style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
           {product.price > 0 ? <Text style={[styles.productPrice, { color: RESULT_BLUE }]}>{formatVnd(product.price, language)}</Text> : null}
-          <Text numberOfLines={1} style={[styles.productRate, { color: colors.mutedText }]}>{commissionSummary}</Text>
+          {showPayoutDetails ? <Text numberOfLines={1} style={[styles.productRate, { color: colors.mutedText }]}>{commissionSummary}</Text> : null}
         </View>
       </View>
 
-      <LinearGradient colors={["#36a4ff", "#176fe5"]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.cashbackTotal}>
+      {showPayoutDetails ? <LinearGradient colors={["#36a4ff", "#176fe5"]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.cashbackTotal}>
         <View style={styles.cashbackTotalCopy}>
           <Text style={styles.cashbackTotalLabel}>{totalLabel}</Text>
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.cashbackTotalValue}>
             {product.isEstimated ? `~${product.cashbackRate}%` : formatVnd(product.commissionAmount, language)}
           </Text>
         </View>
-      </LinearGradient>
+      </LinearGradient> : null}
 
-      <Pressable
+      {showPayoutDetails ? <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: detailsOpen }}
         onPress={() => setDetailsOpen((open) => !open)}
@@ -449,9 +485,9 @@ function ProductResult({ product, language, notice, strings }: {
       >
         <ChevronDown color={RESULT_BLUE} size={17} strokeWidth={2.4} style={detailsOpen ? styles.detailsChevronOpen : undefined} />
         <Text style={[styles.detailsToggleText, { color: RESULT_BLUE }]}>{strings.notice}</Text>
-      </Pressable>
+      </Pressable> : null}
 
-      {detailsOpen ? (
+      {showPayoutDetails && detailsOpen ? (
         <View style={[styles.detailsPanel, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.reference}</Text><Text selectable style={[styles.detailValue, { color: colors.text }]}>{product.transId}</Text></View>
           {product.price > 0 ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.currentPrice}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.price, language)}</Text></View> : null}
@@ -489,19 +525,27 @@ export function HomeScreen() {
   const { colors: themeColors, scheme } = useTheme();
   // Keep Vietnamese as the default while honoring an explicit account choice.
   const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
-  const strings = copy[language];
   const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const accountQuery = useAccountSummary();
+  const strings = getHomeStrings(language, payoutFeaturesEnabled);
+  const accountQuery = useAccountSummary(payoutFeaturesEnabled);
   const configQuery = useHomeConfig();
   const cashbackMutation = useCreateCashbackLink();
   const [productUrl, setProductUrl] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
   const [lastSubmittedUrl, setLastSubmittedUrl] = useState<string | null>(null);
   const authPreview = createHomeAuthPreview(user);
-  const account = accountQuery.data ?? authPreview;
+  const shoppingAccount = user ? {
+    id: user.id,
+    name: user.name ?? null,
+    email: user.email ?? null,
+    avatar: user.avatar ?? null,
+    referralCode: null,
+    wallet: { balance: 0, totalCashback: 0, totalReferralEarned: 0, totalWithdrawn: 0 }
+  } : null;
+  const account = payoutFeaturesEnabled ? accountQuery.data ?? authPreview : shoppingAccount;
 
-  if (accountQuery.isPending && !account) return <LoadingState label={strings.loading} />;
-  if (accountQuery.isError && !account) {
+  if (payoutFeaturesEnabled && accountQuery.isPending && !account) return <LoadingState label={strings.loading} />;
+  if (payoutFeaturesEnabled && accountQuery.isError && !account) {
     const State = isOfflineError(accountQuery.error) ? OfflineState : ErrorState;
     return (
       <State
@@ -518,7 +562,7 @@ export function HomeScreen() {
     return <EmptyState message={strings.emptyMessage} title={strings.emptyTitle} />;
   }
 
-  const pendingCashbackValue = accountQuery.data
+  const pendingCashbackValue = payoutFeaturesEnabled && accountQuery.data
     ? formatAccountMoney(accountQuery.data.wallet.pendingCashback, language)
     : null;
   const config = configQuery.data;
@@ -529,7 +573,7 @@ export function HomeScreen() {
     || configQuery.isError
     || !config?.cashbackLinkEnabled
     || enabledMarketplaces.length === 0;
-  const refreshing = accountQuery.isRefetching || configQuery.isRefetching;
+  const refreshing = (payoutFeaturesEnabled && accountQuery.isRefetching) || configQuery.isRefetching;
 
   function submitProductUrl(value: string = productUrl) {
     const validation = normalizeProductUrl(value);
@@ -585,7 +629,7 @@ export function HomeScreen() {
         refreshControl={(
           <RefreshControl
             onRefresh={() => {
-              void accountQuery.refetch();
+              if (payoutFeaturesEnabled) void accountQuery.refetch();
               void configQuery.refetch();
             }}
             refreshing={refreshing}
@@ -593,7 +637,7 @@ export function HomeScreen() {
           />
         )}
       >
-        {accountQuery.isError ? (
+        {payoutFeaturesEnabled && accountQuery.isError ? (
           <InlineNotice
             message={strings.refreshError}
             onRetry={() => void accountQuery.refetch()}
@@ -615,7 +659,7 @@ export function HomeScreen() {
                 {strings.greeting} {displayName} 👋
               </Text>
             </View>
-            <Pressable
+            {payoutFeaturesEnabled ? <Pressable
               accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
               accessibilityRole="button"
               hitSlop={6}
@@ -627,7 +671,7 @@ export function HomeScreen() {
               ]}
             >
               <Bell color={themeColors.text} size={19} strokeWidth={2} />
-            </Pressable>
+            </Pressable> : null}
           </View>
 
           {payoutFeaturesEnabled ? <>
@@ -742,6 +786,7 @@ export function HomeScreen() {
               language={language}
               notice={config?.marketplaces[cashbackMutation.data.platform].notice}
               product={cashbackMutation.data}
+              showPayoutDetails={payoutFeaturesEnabled}
               strings={strings}
             />
           ) : cashbackMutation.isPending ? (
@@ -798,9 +843,9 @@ export function HomeScreen() {
           onTips={() => router.push("/(tabs)/home/tips")}
         />
 
-        <View style={styles.demoSection}>
+        {payoutFeaturesEnabled ? <View style={styles.demoSection}>
           <PhoneFlowDemo />
-        </View>
+        </View> : null}
       </ScrollView>
     </KeyboardAvoidingView>
   );

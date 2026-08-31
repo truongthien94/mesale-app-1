@@ -42,7 +42,12 @@ class PushNotificationService
         }
 
         $userId = $user instanceof User ? $user->id : (int) $user;
-        $tokens = DeviceToken::where('user_id', $userId)->pluck('token', 'id');
+        $tokens = DeviceToken::where('user_id', $userId)
+            ->when(
+                Setting::getVal('ios_payout_features_enabled', '0') !== '1',
+                static fn ($query) => $query->where('platform', '!=', 'ios')
+            )
+            ->pluck('token', 'id');
         if ($tokens->isEmpty()) {
             return;
         }

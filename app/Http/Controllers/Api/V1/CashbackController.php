@@ -41,6 +41,7 @@ class CashbackController extends ApiController
     public function create(Request $request): JsonResponse
     {
         $user = $this->apiUser($request);
+        $payoutFeaturesEnabled = $this->iosPayoutFeaturesEnabled($request);
 
         // Giới hạn tần suất tạo link theo cấu hình (chống spam/cào dữ liệu)
         $rateLimit = (int) Setting::getVal('rate_limit_create_link_5m', 10);
@@ -50,7 +51,10 @@ class CashbackController extends ApiController
                 $minutesLeft = ceil(RateLimiter::availableIn($limiterKey) / 60);
 
                 return $this->fail(
-                    __('Bạn đã đạt giới hạn tạo link hoàn tiền (:limit link/5 phút). Vui lòng thử lại sau :minutes phút.', [
+                    $payoutFeaturesEnabled ? __('Bạn đã đạt giới hạn tạo link hoàn tiền (:limit link/5 phút). Vui lòng thử lại sau :minutes phút.', [
+                        'limit' => $rateLimit,
+                        'minutes' => $minutesLeft,
+                    ]) : __('Bạn đã đạt giới hạn xử lý liên kết (:limit link/5 phút). Vui lòng thử lại sau :minutes phút.', [
                         'limit' => $rateLimit,
                         'minutes' => $minutesLeft,
                     ]),
@@ -119,20 +123,32 @@ class CashbackController extends ApiController
             $platform = 'lazada';
         }
         if (! $platform) {
-            return $this->fail(__('Hệ thống hiện tại chỉ hỗ trợ hoàn tiền cho các sản phẩm từ các sàn thương mại điện tử liên kết.'), 422, 'PLATFORM_NOT_SUPPORTED');
+            return $this->fail(
+                $payoutFeaturesEnabled
+                    ? __('Hệ thống hiện tại chỉ hỗ trợ hoàn tiền cho các sản phẩm từ các sàn thương mại điện tử liên kết.')
+                    : __('Ứng dụng hiện chỉ hỗ trợ liên kết sản phẩm từ các sàn thương mại điện tử được liệt kê.'),
+                422,
+                'PLATFORM_NOT_SUPPORTED'
+            );
         }
 
         // Kiểm tra trạng thái hoạt động của sàn tương ứng
         if ($platform === 'shopee' && Setting::getVal('shopee_status', '1') === '0') {
-            return $this->fail(__('Tính năng hoàn tiền Shopee hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.'), 422, 'PLATFORM_MAINTENANCE');
+            return $this->fail($payoutFeaturesEnabled
+                ? __('Tính năng hoàn tiền Shopee hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.')
+                : __('Liên kết sản phẩm Shopee hiện đang tạm bảo trì.'), 422, 'PLATFORM_MAINTENANCE');
         }
         if ($platform === 'tiktok' && Setting::getVal('tiktok_status', '1') === '0') {
-            return $this->fail(__('Tính năng hoàn tiền TikTok Shop hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.'), 422, 'PLATFORM_MAINTENANCE');
+            return $this->fail($payoutFeaturesEnabled
+                ? __('Tính năng hoàn tiền TikTok Shop hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.')
+                : __('Liên kết sản phẩm TikTok Shop hiện đang tạm bảo trì.'), 422, 'PLATFORM_MAINTENANCE');
         }
         // Lazada mặc định TẮT ('0') khác với Shopee/TikTok — sàn này cần Admin cấu hình App Key
         // của Lazada Open Platform rồi mới bật được, nên không thể mặc định coi là đang hoạt động.
         if ($platform === 'lazada' && Setting::getVal('lazada_status', '0') === '0') {
-            return $this->fail(__('Tính năng hoàn tiền Lazada hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.'), 422, 'PLATFORM_MAINTENANCE');
+            return $this->fail($payoutFeaturesEnabled
+                ? __('Tính năng hoàn tiền Lazada hiện đang tạm bảo trì hoặc tạm ngưng hoạt động.')
+                : __('Liên kết sản phẩm Lazada hiện đang tạm bảo trì.'), 422, 'PLATFORM_MAINTENANCE');
         }
 
         // Sinh mã đối soát và gọi service phân giải sản phẩm tương ứng với sàn
@@ -145,7 +161,9 @@ class CashbackController extends ApiController
 
         if (($response['status'] ?? '') !== 'success') {
             return $this->fail(
-                $response['message'] ?? __('Không thể phân tích thông tin sản phẩm từ sàn thương mại. Vui lòng kiểm tra lại đường dẫn.'),
+                $payoutFeaturesEnabled
+                    ? ($response['message'] ?? __('Không thể phân tích thông tin sản phẩm từ sàn thương mại. Vui lòng kiểm tra lại đường dẫn.'))
+                    : __('Không thể lấy thông tin sản phẩm. Vui lòng kiểm tra lại đường dẫn.'),
                 400,
                 'RESOLVE_FAILED'
             );
@@ -169,6 +187,17 @@ class CashbackController extends ApiController
             'commission_amount' => $productData['commission_amount'],
             'affiliate_url' => $productData['affiliate_url'],
         ]);
+
+        if (! $payoutFeaturesEnabled) {
+            return $this->ok([
+                'trans_id' => $transId,
+                'platform' => $platform,
+                'name' => $productData['name'],
+                'image' => $productData['image'] ?? null,
+                'price' => (int) MoneyHelper::round($productData['price']),
+                'affiliate_url' => $productData['affiliate_url'],
+            ], __('Lấy liên kết sản phẩm thành công!'));
+        }
 
         return $this->ok([
             'trans_id' => $transId,

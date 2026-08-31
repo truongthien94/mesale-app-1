@@ -15,7 +15,7 @@ import {
 } from "@/api/auth";
 import { parseUser, type AuthenticatedAuthResult, type LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
-import { clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
+import { applyPayoutFeaturePolicy, clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
 import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
 import { accountDetailQueryOptions } from "@/features/account/query";
@@ -71,7 +71,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setLoading(false);
         }
 
-        const restoredUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
+        const restoredUser = applyPayoutFeaturePolicy(
+          parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 })),
+          payoutFeaturesEnabledRef.current
+        );
+        if (!restoredUser) return;
         if (!isActive || authRevision.current !== restoreRevision) return;
         if (saved.userPreview && restoredUser.id !== saved.userPreview.id) {
           const cleared = await clearSessionIfTokenMatches(saved.session.accessToken);
@@ -120,15 +124,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const acceptAuthenticated = useCallback(async (result: AuthenticatedAuthResult, revision: number) => {
     if (authRevision.current !== revision) return;
+    const acceptedUser = applyPayoutFeaturePolicy(result.user, payoutFeaturesEnabledRef.current);
+    if (!acceptedUser) return;
     clearAppQueryCache(queryClient);
-    await saveAuthState(result.session, result.user, payoutFeaturesEnabledRef.current);
+    await saveAuthState(result.session, acceptedUser, payoutFeaturesEnabledRef.current);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(result.session.accessToken);
       return;
     }
     setPendingAuth(null);
     setSession(result.session);
-    setUser(result.user);
+    setUser(acceptedUser);
     setLoading(false);
   }, [queryClient]);
 
@@ -204,7 +210,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const activeSession = session;
     const activeUserId = user?.id;
     if (!activeSession) return;
-    const refreshedUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
+    const refreshedUser = applyPayoutFeaturePolicy(
+      parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 })),
+      payoutFeaturesEnabledRef.current
+    );
+    if (!refreshedUser) return;
     if (authRevision.current !== revision) return;
     if (activeUserId !== undefined && refreshedUser.id !== activeUserId) {
       if (await clearSessionIfTokenMatches(activeSession.accessToken)) {

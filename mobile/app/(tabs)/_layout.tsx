@@ -55,6 +55,7 @@ export default function TabsLayout() {
         <Tabs.Screen
           name="orders"
           options={{
+            href: payoutFeaturesEnabled ? undefined : null,
             title: isVietnamese ? "Đơn hàng" : "Orders",
             tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} />
           }}

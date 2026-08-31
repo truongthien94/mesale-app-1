@@ -149,11 +149,13 @@ test("login redesign follows the active theme and exposes password visibility", 
   assert.match(loginSource, /secureTextEntry=\{!passwordVisible\}/);
   assert.match(loginSource, /passwordVisible \? "Ẩn mật khẩu" : "Hiện mật khẩu"/);
   assert.match(loginSource, /Chào mừng trở lại/);
-  assert.match(loginSource, /Hệ thống mua sắm hoàn tiền Shopee - Tiktok/);
+  assert.match(loginSource, /useIosPayoutFeaturesEnabled\(\)/);
+  assert.match(loginSource, /Hệ thống mua sắm hoàn tiền Shopee - TikTok/);
+  assert.match(loginSource, /Khám phá sản phẩm và ưu đãi Shopee - TikTok Shop/);
   assert.doesNotMatch(loginSource, /Đăng nhập để quản lý cashback và rút tiền/);
   assert.doesNotMatch(loginSource, /Đăng nhập an toàn qua máy chủ Mê Sale/);
   assert.doesNotMatch(loginSource, /<LegalLink label="Hỗ trợ"/);
   assert.doesNotMatch(loginSource, /<LegalLink label="Xóa tài khoản"/);
-  assert.match(loginSource, /footer: \{[^\n]*marginTop: "auto"/);
+  assert.match(loginSource, /footer: \{[\s\S]*?marginTop: "auto"/);
   assert.doesNotMatch(loginSource, /import \{ colors, spacing \} from "@\/theme\/tokens"/);
 });
