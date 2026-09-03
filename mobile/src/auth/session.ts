@@ -56,26 +56,13 @@ function secureStoreOptions() {
   return { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
 }
 
-export function applyPayoutFeaturePolicy(user: User | null, payoutFeaturesEnabled: boolean): User | null {
-  if (!user || payoutFeaturesEnabled) return user;
-  const {
-    financialSnapshot: _financialSnapshot,
-    referral_code: _referralCode,
-    referralCodeEligible: _referralCodeEligible,
-    referralCodeExpiresAt: _referralCodeExpiresAt,
-    wallet: _wallet,
-    ...safeUser
-  } = user;
-  return { ...safeUser, referralPromptPending: false };
-}
-
 async function writeTombstone(): Promise<void> {
   const tombstone: AuthStorageRecord = { version: 2, auth: null };
   await SecureStore.setItemAsync(authStorageKey, JSON.stringify(tombstone), secureStoreOptions());
   await SecureStore.deleteItemAsync(legacySessionStorageKey).catch(() => undefined);
 }
 
-function parseAuthStorageRecord(raw: string, payoutFeaturesEnabled: boolean): StoredAuthState | null {
+function parseAuthStorageRecord(raw: string): StoredAuthState | null {
   const value: unknown = JSON.parse(raw);
   if (!value || typeof value !== "object") throw new Error("Invalid auth storage record.");
   const record = value as Record<string, unknown>;
@@ -89,28 +76,16 @@ function parseAuthStorageRecord(raw: string, payoutFeaturesEnabled: boolean): St
 
   return {
     session: auth.session,
-    userPreview: applyPayoutFeaturePolicy(parseStoredUserPreview(auth.userPreview), payoutFeaturesEnabled),
+    userPreview: parseStoredUserPreview(auth.userPreview),
     requiresBootstrap: false
   };
 }
 
-async function loadStoredAuthState(payoutFeaturesEnabled: boolean): Promise<StoredAuthState | null> {
+async function loadStoredAuthState(): Promise<StoredAuthState | null> {
   const currentRaw = await SecureStore.getItemAsync(authStorageKey);
   if (currentRaw) {
     try {
-      const state = parseAuthStorageRecord(currentRaw, payoutFeaturesEnabled);
-      if (state && !payoutFeaturesEnabled && state.userPreview) {
-        const migratedRecord: AuthStorageRecord = {
-          version: 2,
-          auth: {
-            session: state.session,
-            previewForAccessToken: state.session.accessToken,
-            userPreview: createStoredUserPreview(state.userPreview)
-          }
-        };
-        await SecureStore.setItemAsync(authStorageKey, JSON.stringify(migratedRecord), secureStoreOptions());
-      }
-      return state;
+      return parseAuthStorageRecord(currentRaw);
     } catch {
       await writeTombstone();
       notifySessionInvalidated();
@@ -134,19 +109,19 @@ async function loadStoredAuthState(payoutFeaturesEnabled: boolean): Promise<Stor
   return null;
 }
 
-export async function loadAuthState(payoutFeaturesEnabled: boolean): Promise<StoredAuthState | null> {
+export async function loadAuthState(): Promise<StoredAuthState | null> {
   if (Platform.OS === "web") return null;
-  return enqueueStorageOperation(() => loadStoredAuthState(payoutFeaturesEnabled));
+  return enqueueStorageOperation(loadStoredAuthState);
 }
 
 export async function loadSession(): Promise<Session | null> {
-  return (await loadAuthState(true))?.session ?? null;
+  return (await loadAuthState())?.session ?? null;
 }
 
-export async function saveAuthState(session: Session, user: User, payoutFeaturesEnabled: boolean): Promise<void> {
+export async function saveAuthState(session: Session, user: User): Promise<void> {
   if (Platform.OS === "web") return;
   if (!isSession(session)) throw new Error("Cannot store an invalid or expired session.");
-  const userPreview = createStoredUserPreview(applyPayoutFeaturePolicy(user, payoutFeaturesEnabled) ?? user);
+  const userPreview = createStoredUserPreview(user);
   parseStoredUserPreview(userPreview);
   const record: AuthStorageRecord = {
     version: 2,
@@ -171,7 +146,7 @@ export async function clearSession(): Promise<void> {
 export async function clearSessionIfTokenMatches(accessToken: string): Promise<boolean> {
   if (Platform.OS === "web") return false;
   return enqueueStorageOperation(async () => {
-    const state = await loadStoredAuthState(true);
+    const state = await loadStoredAuthState();
     if (!state || state.session.accessToken !== accessToken) return false;
     await writeTombstone();
     return true;

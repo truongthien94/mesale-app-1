@@ -50,8 +50,7 @@ test("account money formatting renders rolling-deploy nulls as zero", () => {
 
 test("home normalizes product URLs and only accepts HTTPS affiliate handoff", () => {
   const { isSafeAffiliateUrl, normalizeAffiliateUrl, normalizeProductUrl, normalizeBannerLink } = loadTypeScriptModule("../src/features/home/api.ts", {
-    "@/api/client": { request: async () => { throw new Error("not called"); } },
-    "@/features/config/query": { appConfigRequestOptions: () => ({ authenticated: false }) }
+    "@/api/client": { request: async () => { throw new Error("not called"); } }
   });
 
   assert.deepEqual(normalizeProductUrl("shopee.vn/product/42"), {
@@ -101,8 +100,7 @@ test("account summary preserves unknown aggregate cashback fields during rolling
     }
   };
   const { fetchAccountSummary } = loadTypeScriptModule("../src/features/home/api.ts", {
-    "@/api/client": { request: async () => accountPayload },
-    "@/features/config/query": { appConfigRequestOptions: () => ({ authenticated: false }) }
+    "@/api/client": { request: async () => accountPayload }
   });
 
   const legacySummary = await fetchAccountSummary();
@@ -163,10 +161,10 @@ test("home renders the auth preview while account remains authoritative in the b
   const source = read("../src/features/home/HomeScreen.tsx");
   const bootstrap = read("../src/features/home/bootstrap.ts");
 
-  assert.match(source, /const accountQuery = useAccountSummary\(payoutFeaturesEnabled\)/);
+  assert.match(source, /const accountQuery = useAccountSummary\(\)/);
   assert.match(source, /const authPreview = createHomeAuthPreview\(user\)/);
-  assert.match(source, /const account = payoutFeaturesEnabled \? accountQuery\.data \?\? authPreview : shoppingAccount/);
-  assert.match(source, /if \(payoutFeaturesEnabled && accountQuery\.isPending && !account\)/);
+  assert.match(source, /const account = accountQuery\.data \?\? authPreview/);
+  assert.match(source, /if \(accountQuery\.isPending && !account\)/);
   assert.match(source, /accountQuery\.data[\s\S]*formatAccountMoney\(accountQuery\.data\.wallet\.pendingCashback/);
   assert.match(source, /accessibilityRole="progressbar"/);
   assert.doesNotMatch(source, /initialData|placeholderData|setQueryData/);
@@ -223,6 +221,8 @@ test("home replaces the promotional hero with a live three-card account summary"
   assert.match(source, /accountNotificationButton:\s*\{[^}]*height: 44,[^}]*width: 44/);
   assert.match(source, /accountWithdrawButton:\s*\{[^}]*minHeight: 44/);
   assert.match(source, /paddingTop: insets\.top \+ spacing\.sm/);
+  assert.match(source, /contentInsetAdjustmentBehavior="never"/);
+  assert.doesNotMatch(source, /contentInsetAdjustmentBehavior="automatic"/);
   assert.doesNotMatch(source, /accountSummary:\s*\{[^}]*paddingTop/);
   assert.equal(accountStats.length, 3);
   assert.equal(bellIcons.length, 1);
@@ -298,9 +298,9 @@ test("home renders a compact cashback result without exposing the raw affiliate 
   assert.ok(referralIndex > resultIndex);
 });
 
-test("home only mounts the financial walkthrough when payout features are enabled", () => {
+test("home ends at PhoneFlowDemo and does not mount the removed Round C blocks", () => {
   const source = read("../src/features/home/HomeScreen.tsx");
-  assert.match(source, /\{payoutFeaturesEnabled \? <View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View> : null\}/);
+  assert.match(source, /<View style=\{styles\.demoSection\}>\s*<PhoneFlowDemo \/>\s*<\/View>\s*<\/ScrollView>/);
   assert.doesNotMatch(source, /RoundCHomeBlocks|RoundCCouponSection|RoundCTimelineSection|RoundCLeaderboardSection/);
   assert.doesNotMatch(source, /useCoupons|useRanking|RankingBoard|RankingEntry|couponDaysLeft|roundCStaticTimeline/);
 });
@@ -394,10 +394,10 @@ test("orders tab follows the compact MeSale process and server-authoritative sum
     "Đơn lên app: TikTok ~1 giờ · Shopee ~1 ngày",
     "Đặt đơn qua Mê Sale",
     "Đơn hiện ở màn này",
-    "Nhận hàng → chờ xác nhận",
+    "Nhận hàng → tiền về ví",
     "Đôi khi sàn gửi dữ liệu chậm hơn một chút — đơn không mất đâu.",
-    "Thường xác nhận 7–14 ngày sau khi giao",
-    "Quyền lợi đơn đã được xác nhận",
+    "Về ví 7–14 ngày sau khi giao",
+    "Đã cộng vào ví của bạn",
     "Chờ xác nhận",
     "Đã xác nhận",
     "Tất cả",

@@ -1,7 +1,6 @@
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { Languages, SunMoon } from "lucide-react-native";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { AccountSectionMenu } from "@/features/account/AccountSectionMenu";
 import { useAccount } from "@/features/account/api";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -9,7 +8,6 @@ import type { ThemePreference } from "@/theme/themePreference";
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const accountQuery = useAccount();
   const { preference, scheme, setPreference } = useTheme();
   const accountLocale = accountQuery.data?.preferences?.locale?.trim() || "vi";
@@ -38,17 +36,13 @@ export default function AccountSettingsScreen() {
     <AccountSectionMenu
       items={[
         {
-          actionLabel: payoutFeaturesEnabled
-            ? `${accountLocale.toUpperCase()} · ${accountCurrency}`
-            : accountLocale.toUpperCase(),
+          actionLabel: `${accountLocale.toUpperCase()} · ${accountCurrency}`,
           icon: Languages,
           iconBackground: softBlue,
           iconColor: "#2f9af5",
           onPress: () => router.push("/(tabs)/account/preferences"),
-          subtitle: payoutFeaturesEnabled
-            ? "Tùy chọn hiển thị dùng chung với tài khoản"
-            : "Chọn ngôn ngữ hiển thị cho ứng dụng",
-          title: payoutFeaturesEnabled ? "Ngôn ngữ & tiền tệ" : "Ngôn ngữ"
+          subtitle: "Tùy chọn hiển thị dùng chung với tài khoản",
+          title: "Ngôn ngữ & tiền tệ"
         },
         {
           actionLabel: currentThemeLabel,

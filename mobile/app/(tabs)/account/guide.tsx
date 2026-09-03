@@ -25,7 +25,6 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useAppConfig } from "@/features/wallet/api";
 import { formatAccountMoney } from "@/features/home/format";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -42,7 +41,6 @@ type GuideChapter =
 
 type Faq = {
   answer: string;
-  payoutOnly?: boolean;
   question: string;
 };
 
@@ -88,13 +86,11 @@ const FAQS: Faq[] = [
   },
   {
     question: "Tiền hoàn có rút được ngay không?",
-    answer: "Chỉ số dư đã được sàn duyệt mới có thể rút. Tiền ở trạng thái Chờ duyệt chưa phải số dư khả dụng.",
-    payoutOnly: true
+    answer: "Chỉ số dư đã được sàn duyệt mới có thể rút. Tiền ở trạng thái Chờ duyệt chưa phải số dư khả dụng."
   },
   {
     question: "Đăng ký rồi mà chưa thấy chỗ nhập mã giới thiệu?",
-    answer: "Tài khoản mới đủ điều kiện sẽ thấy ô nhập mã tại tab Tài khoản trong 3 ngày đầu. Thời hạn được máy chủ Mê Sale xác nhận.",
-    payoutOnly: true
+    answer: "Tài khoản mới đủ điều kiện sẽ thấy ô nhập mã tại tab Tài khoản trong 3 ngày đầu. Thời hạn được máy chủ Mê Sale xác nhận."
   }
 ];
 
@@ -202,13 +198,13 @@ function CashbackCard() {
   const { colors, scheme } = useTheme();
   return (
     <GuideCard>
-      <CardTitle icon={<Banknote color="#16a34a" size={22} />} title="Quyền lợi hoàn tiền được tính thế nào?" />
-      <BodyText>Khi mua qua link Mê Sale, quyền lợi hoàn tiền được máy chủ tính từ dữ liệu sàn, sau khi áp dụng tỷ lệ thành viên, phí và thuế theo cấu hình hiện hành.</BodyText>
+      <CardTitle icon={<Banknote color="#16a34a" size={22} />} title="Tiền của bạn được tính thế nào?" />
+      <BodyText>Khi mua qua link Mê Sale, số tiền hoàn được máy chủ tính từ hoa hồng sàn trả, sau khi áp dụng tỷ lệ thành viên, phí và thuế theo cấu hình hiện hành.</BodyText>
       <SectionLabel>CHI TIẾT TÍNH TOÁN</SectionLabel>
       <View style={[styles.calculationBox, { backgroundColor: scheme === "dark" ? "#10243b" : "#edf6ff", borderColor: colors.border }]}>
         <View style={styles.calculationRow}><Text style={[styles.calculationLabel, { color: colors.text }]}>Hoa hồng sàn</Text><Text style={[styles.calculationValue, { color: colors.text }]}>Theo dữ liệu sàn</Text></View>
         <View style={styles.calculationRow}><Text style={[styles.calculationLabel, { color: colors.text }]}>Phí và thuế</Text><Text style={[styles.calculationValue, { color: colors.mutedText }]}>Nếu có</Text></View>
-        <View style={[styles.calculationRow, styles.calculationTotal, { borderTopColor: colors.border }]}><Text style={[styles.calculationLabel, styles.strong, { color: colors.text }]}>Quyền lợi hoàn tiền</Text><Text style={styles.cashbackValue}>Hiển thị trong app</Text></View>
+        <View style={[styles.calculationRow, styles.calculationTotal, { borderTopColor: colors.border }]}><Text style={[styles.calculationLabel, styles.strong, { color: colors.text }]}>Tiền hoàn của bạn</Text><Text style={styles.cashbackValue}>Hiển thị trong app</Text></View>
       </View>
       <BodyText muted>Số lúc dán link là ước tính. Số thực tế được chốt khi sàn duyệt đơn và có thể thay đổi do voucher, giá giảm hoặc điều kiện sản phẩm.</BodyText>
     </GuideCard>
@@ -219,13 +215,13 @@ function OrdersCard() {
   return (
     <GuideCard>
       <CardTitle icon={<Box color="#a16207" size={22} />} title="Theo dõi đơn hàng" />
-      <BodyText>Mở tab <Text style={styles.strong}>Đơn hàng</Text> để xem trạng thái và quyền lợi hoàn tiền của từng đơn.</BodyText>
+      <BodyText>Mở tab <Text style={styles.strong}>Đơn hàng</Text> để xem đơn và tiền hoàn của từng đơn.</BodyText>
       <SectionLabel>KHI NÀO ĐƠN HIỆN TRÊN APP?</SectionLabel>
       <BodyText><Text style={styles.strong}>TikTok sau khoảng 1 giờ · Shopee sau khoảng 1 ngày</Text> kể từ lúc đặt. Dữ liệu sàn có thể đến chậm hơn.</BodyText>
       <SectionLabel>TRẠNG THÁI ĐƠN</SectionLabel>
       <View style={styles.cardList}>
         <StatusRow color="#f59e0b" label="Chờ duyệt" text="Sàn đối soát sau khi giao thành công." />
-        <StatusRow color="#16a34a" label="Đã duyệt" text="Quyền lợi hoàn tiền của đơn đã được xác nhận." />
+        <StatusRow color="#16a34a" label="Đã duyệt" text="Tiền vào số dư khả dụng và có thể rút." />
         <StatusRow color="#ef4444" label="Từ chối" text="Đơn hủy, đổi/trả hoặc không đủ điều kiện." />
       </View>
     </GuideCard>
@@ -342,10 +338,9 @@ function Chapter({ chapter }: { chapter: GuideChapter }) {
   }
 }
 
-function FaqCard({ payoutFeaturesEnabled }: { payoutFeaturesEnabled: boolean }) {
+function FaqCard() {
   const { colors } = useTheme();
   const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
-  const faqs = FAQS.filter((faq) => payoutFeaturesEnabled || !faq.payoutOnly);
 
   function toggle(index: number) {
     setExpanded((current) => {
@@ -360,7 +355,7 @@ function FaqCard({ payoutFeaturesEnabled }: { payoutFeaturesEnabled: boolean }) 
     <GuideCard>
       <CardTitle icon={<CircleHelp color="#dc2626" size={23} />} title="Câu hỏi thường gặp" />
       <View style={styles.faqList}>
-        {faqs.map((faq, index) => {
+        {FAQS.map((faq, index) => {
           const open = expanded.has(index);
           return (
             <View key={faq.question} style={[styles.faqItem, index > 0 && { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth }]}>
@@ -388,7 +383,7 @@ function GuideIntro() {
     <View style={styles.introStack}>
       <LinearGradient colors={["#37a7f6", "#1976df"]} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={styles.hero}>
         <Rocket color="#ffffff" fill="#ffffff" size={43} />
-        <Text style={styles.heroTitle}>Dán link → Mua ngay → nhận hàng → chờ xác nhận</Text>
+        <Text style={styles.heroTitle}>Dán link → Mua ngay → nhận hàng → tiền về ví</Text>
         <Text style={styles.heroSubtitle}>Mức hoàn phụ thuộc hoa hồng và điều kiện của từng sàn, sản phẩm.</Text>
       </LinearGradient>
       <GuideCard>
@@ -397,7 +392,7 @@ function GuideIntro() {
           <NumberedStep number={1}>Vào <Text style={styles.strong}>Trang chủ</Text>, dán link sản phẩm Shopee hoặc TikTok Shop.</NumberedStep>
           <NumberedStep number={2}>Chờ Mê Sale tải thông tin, sau đó bấm <Text style={styles.strong}>Mua ngay</Text>.</NumberedStep>
           <NumberedStep number={3}>Đặt đơn như bình thường trong app sàn: chọn phân loại, áp mã và thanh toán.</NumberedStep>
-          <NumberedStep number={4}>Nhận hàng thành công, chờ sàn đối soát để xem trạng thái hoàn tiền của đơn.</NumberedStep>
+          <NumberedStep number={4}>Nhận hàng thành công, chờ sàn đối soát rồi tiền sẽ vào số dư khả dụng.</NumberedStep>
         </View>
         <SectionLabel>LẤY LINK SẢN PHẨM Ở ĐÂU?</SectionLabel>
         <View style={styles.cardList}>
@@ -410,47 +405,9 @@ function GuideIntro() {
   );
 }
 
-function ShoppingGuideIntro() {
-  const { colors } = useTheme();
-  return (
-    <View style={styles.introStack}>
-      <LinearGradient colors={["#37a7f6", "#1976df"]} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={styles.hero}>
-        <Rocket color="#ffffff" fill="#ffffff" size={43} />
-        <Text style={styles.heroTitle}>Dán liên kết → xem sản phẩm → kiểm tra ưu đãi</Text>
-        <Text style={styles.heroSubtitle}>Giá, mã giảm giá và điều kiện mua hàng được xác nhận trực tiếp trên từng sàn.</Text>
-      </LinearGradient>
-      <GuideCard>
-        <CardTitle icon={<Rocket color="#2f9af5" size={22} />} title="Bắt đầu" />
-        <View style={styles.cardList}>
-          <NumberedStep number={1}>Sao chép liên kết sản phẩm từ Shopee hoặc TikTok Shop.</NumberedStep>
-          <NumberedStep number={2}>Dán liên kết tại <Text style={styles.strong}>Trang chủ</Text> để Mê Sale nhận diện sản phẩm.</NumberedStep>
-          <NumberedStep number={3}>Chạm <Text style={styles.strong}>Mua ngay</Text> để mở sản phẩm trên sàn.</NumberedStep>
-          <NumberedStep number={4}>Kiểm tra phân loại, giá, mã giảm giá và điều kiện giao hàng trước khi đặt.</NumberedStep>
-        </View>
-        <Text style={[styles.italic, { color: colors.mutedText }]}>Thông tin cuối cùng luôn được hiển thị và xác nhận trên ứng dụng hoặc website của sàn.</Text>
-      </GuideCard>
-    </View>
-  );
-}
-
-function ShoppingSafetyCard() {
-  return (
-    <GuideCard>
-      <CardTitle icon={<Info color="#2f9af5" size={22} />} title="Lưu ý mua sắm" />
-      <View style={styles.cardList}>
-        <CheckRow>Không chia sẻ mật khẩu, mã OTP hoặc thông tin đăng nhập với người khác.</CheckRow>
-        <CheckRow>Đọc kỹ điều kiện mã giảm giá, phí vận chuyển và chính sách đổi trả.</CheckRow>
-        <CheckRow info>Mê Sale không phải ứng dụng chính thức của Shopee, TikTok Shop hoặc Lazada.</CheckRow>
-      </View>
-    </GuideCard>
-  );
-}
-
 export default function UsageGuideScreen() {
   const insets = useSafeAreaInsets();
   const { colors, scheme } = useTheme();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const guideChapters = payoutFeaturesEnabled ? GUIDE_CHAPTERS : (["coupons"] as GuideChapter[]);
 
   return (
     <View style={[styles.screen, { backgroundColor: scheme === "dark" ? "#08111f" : "#eef6ff" }]}>
@@ -464,10 +421,10 @@ export default function UsageGuideScreen() {
       </View>
       <FlatList
         contentContainerStyle={{ paddingBottom: insets.bottom + 28, paddingHorizontal: 14, paddingTop: 14 }}
-        data={guideChapters}
+        data={GUIDE_CHAPTERS}
         keyExtractor={(item) => item}
-        ListFooterComponent={payoutFeaturesEnabled ? <FaqCard payoutFeaturesEnabled /> : <ShoppingSafetyCard />}
-        ListHeaderComponent={payoutFeaturesEnabled ? <GuideIntro /> : <ShoppingGuideIntro />}
+        ListFooterComponent={<FaqCard />}
+        ListHeaderComponent={<GuideIntro />}
         renderItem={({ item }) => <Chapter chapter={item} />}
         showsVerticalScrollIndicator={false}
       />

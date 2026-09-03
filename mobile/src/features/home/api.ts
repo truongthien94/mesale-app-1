@@ -1,5 +1,4 @@
 import { request } from "@/api/client";
-import { appConfigRequestOptions } from "@/features/config/query";
 import type {
   AccountSummary,
   CashbackProduct,
@@ -174,7 +173,7 @@ export function normalizeHomeConfig(source: unknown): HomeConfig {
   const value = requireRecord(source, "config");
   const site = requireRecord(value.site, "site config");
   const theme = requireRecord(value.theme, "theme config");
-  const marketplaces = requireRecord(value.cashback ?? value.marketplaces, "marketplace config");
+  const cashback = requireRecord(value.cashback, "cashback config");
   const features = requireRecord(value.features, "feature config");
   const banners = Array.isArray(value.banners)
     ? value.banners.map(parseBanner).filter((banner): banner is HomeBanner => banner !== null)
@@ -183,18 +182,18 @@ export function normalizeHomeConfig(source: unknown): HomeConfig {
   return {
     siteName: optionalString(site.name) ?? "Mesale",
     themeColor: optionalString(theme.color) ?? "#ee4d2d",
-    cashbackLinkEnabled: optionalBoolean(features.api_cashback_link, optionalBoolean(features.api_product_link)),
+    cashbackLinkEnabled: optionalBoolean(features.api_cashback_link),
     marketplaces: {
-      shopee: parseMarketplaceConfig(marketplaces, "shopee"),
-      tiktok: parseMarketplaceConfig(marketplaces, "tiktok"),
-      lazada: parseMarketplaceConfig(marketplaces, "lazada")
+      shopee: parseMarketplaceConfig(cashback, "shopee"),
+      tiktok: parseMarketplaceConfig(cashback, "tiktok"),
+      lazada: parseMarketplaceConfig(cashback, "lazada")
     },
     banners
   };
 }
 
 export async function fetchHomeConfig(signal?: AbortSignal): Promise<HomeConfig> {
-  return normalizeHomeConfig(await request<unknown>("config", appConfigRequestOptions(signal)));
+  return normalizeHomeConfig(await request<unknown>("config", { authenticated: false, signal }));
 }
 
 function parseCoupon(value: unknown): Coupon | null {
@@ -270,8 +269,8 @@ export async function createCashbackLink(productUrl: string): Promise<CashbackPr
     name: requireString(value.name, "product name"),
     image: optionalString(value.image),
     price: requireInteger(value.price, "product price"),
-    commissionAmount: value.commission_amount === undefined ? 0 : requireInteger(value.commission_amount, "commission amount"),
-    cashbackAmount: value.cashback_amount === undefined ? 0 : requireInteger(value.cashback_amount, "cashback amount"),
+    commissionAmount: requireInteger(value.commission_amount, "commission amount"),
+    cashbackAmount: requireInteger(value.cashback_amount, "cashback amount"),
     cashbackRate: optionalNumber(value.cashback_rate),
     isEstimated: optionalBoolean(value.is_estimated),
     affiliateUrl: requireString(value.affiliate_url, "affiliate URL")

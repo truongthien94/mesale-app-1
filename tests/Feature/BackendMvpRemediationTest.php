@@ -148,55 +148,8 @@ class BackendMvpRemediationTest extends TestCase
         $this->assertSame('Lazada cashback notice', $cashback['lazada_notice']);
 
         $features = $response->getData(true)['data']['features'];
-        $this->assertTrue($features['ios_payout_features_enabled']);
         $this->assertFalse($features['api_auth_oauth_google']);
         $this->assertFalse($features['api_auth_oauth_apple']);
-
-        $defaultIosRequest = Request::create('/api/v1/openapi/config');
-        $defaultIosRequest->headers->set('X-Mesale-App-Platform', 'ios');
-        $defaultIosRequest->headers->set('X-Mesale-App-Version', '1.0.0');
-        $defaultIosConfig = (new ConfigController)->show($defaultIosRequest)->getData(true)['data'];
-        $this->assertFalse($defaultIosConfig['features']['ios_payout_features_enabled']);
-        $this->assertTrue($defaultIosConfig['features']['api_product_link']);
-        $this->assertArrayNotHasKey('api_cashback_link', $defaultIosConfig['features']);
-        $this->assertArrayHasKey('marketplaces', $defaultIosConfig);
-        $this->assertArrayNotHasKey('cashback', $defaultIosConfig);
-        $this->assertArrayNotHasKey('withdraw', $defaultIosConfig);
-        $this->assertArrayNotHasKey('referral', $defaultIosConfig);
-
-        Setting::setVal('ios_payout_features_enabled', '1');
-        Setting::setVal('ios_payout_disabled_version', '1.0.1');
-
-        $disabledIosRequest = Request::create('/api/v1/openapi/config');
-        $disabledIosRequest->headers->set('X-Mesale-App-Platform', 'ios');
-        $disabledIosRequest->headers->set('X-Mesale-App-Version', '1.0.1');
-        $this->assertFalse(
-            (new ConfigController)->show($disabledIosRequest)
-                ->getData(true)['data']['features']['ios_payout_features_enabled']
-        );
-
-        $otherIosRequest = Request::create('/api/v1/openapi/config');
-        $otherIosRequest->headers->set('X-Mesale-App-Platform', 'ios');
-        $otherIosRequest->headers->set('X-Mesale-App-Version', '1.0.2');
-        $this->assertTrue(
-            (new ConfigController)->show($otherIosRequest)
-                ->getData(true)['data']['features']['ios_payout_features_enabled']
-        );
-
-        $missingVersionRequest = Request::create('/api/v1/openapi/config');
-        $missingVersionRequest->headers->set('X-Mesale-App-Platform', 'ios');
-        $this->assertFalse(
-            (new ConfigController)->show($missingVersionRequest)
-                ->getData(true)['data']['features']['ios_payout_features_enabled']
-        );
-
-        $androidRequest = Request::create('/api/v1/openapi/config');
-        $androidRequest->headers->set('X-Mesale-App-Platform', 'android');
-        $androidRequest->headers->set('X-Mesale-App-Version', '1.0.1');
-        $this->assertTrue(
-            (new ConfigController)->show($androidRequest)
-                ->getData(true)['data']['features']['ios_payout_features_enabled']
-        );
 
         Setting::setVal('openapi_auth_oauth_google_status', '1');
         Setting::setVal('openapi_auth_oauth_apple_status', '1');
@@ -205,7 +158,6 @@ class BackendMvpRemediationTest extends TestCase
             ->andReturnTrue();
         $enabledFeatures = (new ConfigController)->show(Request::create('/api/v1/openapi/config'))
             ->getData(true)['data']['features'];
-        $this->assertTrue($enabledFeatures['ios_payout_features_enabled']);
         $this->assertTrue($enabledFeatures['api_auth_oauth_google']);
         $this->assertTrue($enabledFeatures['api_auth_oauth_apple']);
     }

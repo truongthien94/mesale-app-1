@@ -4,7 +4,6 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { redeemGiftCode } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
 import { useStableEarnSubmission } from "@/features/earn/submission";
@@ -17,10 +16,6 @@ function giftCodeFingerprint(payload: { code: string }) {
 }
 
 export default function GiftCodeScreen() {
-  return <IosPayoutRouteGuard><GiftCodeContent /></IosPayoutRouteGuard>;
-}
-
-function GiftCodeContent() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const vi = getDeviceLocale() === "vi";

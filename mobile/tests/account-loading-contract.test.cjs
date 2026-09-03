@@ -10,11 +10,13 @@ function read(relativePath) {
 test("account main tab renders the current auth user while account detail refreshes", () => {
   const source = read("../app/(tabs)/account/index.tsx");
 
-  assert.match(source, /const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled\(\)/);
-  assert.match(source, /const accountQuery = useAccount\(\{ enabled: payoutFeaturesEnabled \}\)/);
+  assert.match(source, /const accountQuery = useAccount\(\)/);
+  assert.match(source, /paddingTop: insets\.top \+ 18/);
+  assert.match(source, /contentInsetAdjustmentBehavior="never"/);
+  assert.doesNotMatch(source, /contentInsetAdjustmentBehavior="automatic"/);
   assert.match(source, /const accountPreview: AccountPreview \| null = user \? \{/);
   assert.match(source, /wallet: user\.financialSnapshot \? \{/);
-  assert.match(source, /const serverAccount = payoutFeaturesEnabled && user && accountQuery\.data\?\.id === user\.id \? accountQuery\.data : null/);
+  assert.match(source, /const serverAccount = user && accountQuery\.data\?\.id === user\.id \? accountQuery\.data : null/);
   assert.match(source, /const account = serverAccount \?\? accountPreview/);
   assert.match(source, /if \(accountQuery\.isPending && !account\)/);
   assert.match(source, /if \(accountQuery\.isError && !account\)/);
@@ -37,7 +39,7 @@ test("More sheet fetches account detail only while open and rejects another user
   const source = read("../src/features/navigation/MoreSheet.tsx");
   const api = read("../src/features/account/api.ts");
 
-  assert.match(source, /useAccount\(\{ enabled: isOpen && payoutFeaturesEnabled \}\)/);
+  assert.match(source, /useAccount\(\{ enabled: isOpen \}\)/);
   assert.match(source, /const account = user && accountQuery\.data\?\.id === user\.id \? accountQuery\.data : null/);
   assert.match(source, /account\?\.name \|\| user\?\.name/);
   assert.match(api, /export function useAccount\(options: \{ enabled\?: boolean \} = \{\}\)/);

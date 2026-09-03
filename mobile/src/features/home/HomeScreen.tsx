@@ -39,7 +39,6 @@ import {
 } from "lucide-react-native";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { getDeviceLocale, resolveLocale } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -64,7 +63,7 @@ const copy = {
     errorTitle: "Chưa thể tải trang chủ",
     refreshError: "Dữ liệu đang hiển thị có thể đã cũ vì lần làm mới gần nhất thất bại.",
     emptyTitle: "Không có dữ liệu tài khoản",
-    emptyMessage: "Máy chủ chưa trả về thông tin tài khoản này.",
+    emptyMessage: "Máy chủ chưa trả về thông tin ví cho tài khoản này.",
     retry: "Thử lại",
     greeting: "Chào",
     availableBalance: "Số dư ví",
@@ -94,7 +93,7 @@ const copy = {
     referralCtaAction: "Mời bạn",
     productReady: "Sản phẩm có thể nhận hoàn tiền",
     currentPrice: "Giá sản phẩm",
-    estimatedCashback: "Ước tính hoàn tiền đơn này",
+    estimatedCashback: "Tổng hoa hồng đơn này",
     estimatedRate: "Tỷ lệ hoàn ước tính",
     estimatedNote: "Mức hoàn thực tế được xác nhận sau khi sàn ghi nhận đơn hợp lệ.",
     affiliateLink: "Link mua hàng đã tạo",
@@ -150,7 +149,7 @@ const copy = {
     referralCtaAction: "Invite",
     productReady: "Product may be eligible for cashback",
     currentPrice: "Current price",
-    estimatedCashback: "Estimated cashback for this order",
+    estimatedCashback: "Total commission for this order",
     estimatedRate: "Estimated cashback rate",
     estimatedNote: "The final cashback is confirmed after the marketplace records an eligible order.",
     affiliateLink: "Generated purchase link",
@@ -172,41 +171,6 @@ const copy = {
 } as const;
 
 type Strings = { [Key in keyof typeof copy.vi]: string };
-
-const shoppingCopy: Record<"vi" | "en", Partial<Strings>> = {
-  vi: {
-    offlineMessage: "Không thể tải dữ liệu ứng dụng. Hãy kiểm tra mạng rồi thử lại.",
-    emptyTitle: "Chưa có dữ liệu",
-    emptyMessage: "Máy chủ chưa trả về thông tin tài khoản này.",
-    creatorPromo: "Khám phá sản phẩm và ưu đãi từ Shopee - TikTok Shop",
-    configError: "Chưa thể tải cấu hình sàn. Tính năng phân tích liên kết tạm khóa để bảo đảm an toàn.",
-    featureDisabled: "Tính năng phân tích liên kết mua sắm đang tạm bảo trì.",
-    productReady: "Đã nhận diện sản phẩm",
-    notice: "Thông tin sản phẩm",
-    handoffMessage: "Bạn sẽ mở ứng dụng hoặc website của sàn để xem chi tiết sản phẩm và ưu đãi hiện hành.",
-    mutationError: "Không thể phân tích liên kết sản phẩm lúc này.",
-    reference: "Mã liên kết",
-    rateSuffix: ""
-  },
-  en: {
-    offlineMessage: "We could not load app data. Check your connection and retry.",
-    emptyTitle: "No data available",
-    emptyMessage: "The server did not return account information.",
-    creatorPromo: "Discover products and offers from Shopee and TikTok Shop",
-    configError: "Marketplace configuration is unavailable. Link analysis is temporarily locked for safety.",
-    featureDisabled: "Shopping-link analysis is under maintenance.",
-    productReady: "Product identified",
-    notice: "Product information",
-    handoffMessage: "This opens the marketplace app or website to view current product details and offers.",
-    mutationError: "The product link could not be analyzed.",
-    reference: "Link reference",
-    rateSuffix: ""
-  }
-};
-
-function getHomeStrings(language: "vi" | "en", payoutFeaturesEnabled: boolean): Strings {
-  return payoutFeaturesEnabled ? copy[language] : { ...copy[language], ...shoppingCopy[language] };
-}
 
 const platformPresentation: Record<Marketplace, { label: string; color: string }> = {
   shopee: { label: "Shopee", color: "#ee4d2d" },
@@ -330,8 +294,7 @@ function QuickAccessSection({ language, onTips, onSupport }: {
   onSupport: () => void;
 }) {
   const { colors } = useTheme();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const strings = getHomeStrings(language, payoutFeaturesEnabled);
+  const strings = copy[language];
 
   return (
     <View style={styles.quickAccessSection}>
@@ -342,11 +305,11 @@ function QuickAccessSection({ language, onTips, onSupport }: {
           label={strings.huntCoupons}
           onPress={() => router.push("/(tabs)/home/coupons")}
         />
-        {payoutFeaturesEnabled ? <QuickAccessItem
+        <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#eff6ff" }]}><CalendarDays color="#3b82f6" size={23} strokeWidth={2.1} /></View>}
           label={strings.dailyCheckin}
           onPress={() => router.push("/(tabs)/earn/checkin")}
-        /> : null}
+        />
         <QuickAccessItem
           icon={<View style={[styles.quickAccessIcon, { backgroundColor: "#fff7ed" }]}><Lightbulb color="#f97316" size={23} strokeWidth={2.1} /></View>}
           label={strings.tips}
@@ -404,11 +367,10 @@ function ProductImage({ uri, name }: { uri: string | null; name: string }) {
   );
 }
 
-function ProductResult({ product, language, notice, showPayoutDetails, strings }: {
+function ProductResult({ product, language, notice, strings }: {
   product: CashbackProduct;
   language: "vi" | "en";
   notice?: string | null;
-  showPayoutDetails: boolean;
   strings: Strings;
 }) {
   const [handoffError, setHandoffError] = useState<string | null>(null);
@@ -418,7 +380,7 @@ function ProductResult({ product, language, notice, showPayoutDetails, strings }
   const commissionRate = product.price > 0 ? (product.commissionAmount / product.price) * 100 : 0;
   const commissionSummary = product.isEstimated
     ? `${product.cashbackRate}${strings.rateSuffix}`
-    : `${language === "vi" ? "Tỷ lệ hoàn" : "Cashback rate"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
+    : `${language === "vi" ? "Hoa hồng" : "Commission"} ${commissionRate.toLocaleString(language === "vi" ? "vi-VN" : "en-US", { maximumFractionDigits: 1 })}%`;
   const totalLabel = product.isEstimated ? strings.estimatedRate : strings.estimatedCashback;
 
   async function openMarketplace() {
@@ -464,20 +426,20 @@ function ProductResult({ product, language, notice, showPayoutDetails, strings }
         <View style={styles.productBody}>
           <Text numberOfLines={3} style={[styles.productName, { color: colors.text }]}>{product.name}</Text>
           {product.price > 0 ? <Text style={[styles.productPrice, { color: RESULT_BLUE }]}>{formatVnd(product.price, language)}</Text> : null}
-          {showPayoutDetails ? <Text numberOfLines={1} style={[styles.productRate, { color: colors.mutedText }]}>{commissionSummary}</Text> : null}
+          <Text numberOfLines={1} style={[styles.productRate, { color: colors.mutedText }]}>{commissionSummary}</Text>
         </View>
       </View>
 
-      {showPayoutDetails ? <LinearGradient colors={["#36a4ff", "#176fe5"]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.cashbackTotal}>
+      <LinearGradient colors={["#36a4ff", "#176fe5"]} end={{ x: 1, y: 0 }} start={{ x: 0, y: 0 }} style={styles.cashbackTotal}>
         <View style={styles.cashbackTotalCopy}>
           <Text style={styles.cashbackTotalLabel}>{totalLabel}</Text>
           <Text adjustsFontSizeToFit numberOfLines={1} style={styles.cashbackTotalValue}>
             {product.isEstimated ? `~${product.cashbackRate}%` : formatVnd(product.commissionAmount, language)}
           </Text>
         </View>
-      </LinearGradient> : null}
+      </LinearGradient>
 
-      {showPayoutDetails ? <Pressable
+      <Pressable
         accessibilityRole="button"
         accessibilityState={{ expanded: detailsOpen }}
         onPress={() => setDetailsOpen((open) => !open)}
@@ -485,14 +447,14 @@ function ProductResult({ product, language, notice, showPayoutDetails, strings }
       >
         <ChevronDown color={RESULT_BLUE} size={17} strokeWidth={2.4} style={detailsOpen ? styles.detailsChevronOpen : undefined} />
         <Text style={[styles.detailsToggleText, { color: RESULT_BLUE }]}>{strings.notice}</Text>
-      </Pressable> : null}
+      </Pressable>
 
-      {showPayoutDetails && detailsOpen ? (
+      {detailsOpen ? (
         <View style={[styles.detailsPanel, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.reference}</Text><Text selectable style={[styles.detailValue, { color: colors.text }]}>{product.transId}</Text></View>
           {product.price > 0 ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.currentPrice}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.price, language)}</Text></View> : null}
           {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedCashback}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.commissionAmount, language)}</Text></View> : null}
-          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{language === "vi" ? "Ước tính hoàn tiền của bạn" : "Your estimated cashback"}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.cashbackAmount, language)}</Text></View> : null}
+          {!product.isEstimated ? <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{language === "vi" ? "Tiền hoàn của bạn" : "Your cashback"}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{formatVnd(product.cashbackAmount, language)}</Text></View> : null}
           <View style={styles.detailRow}><Text style={[styles.detailLabel, { color: colors.mutedText }]}>{strings.estimatedRate}</Text><Text style={[styles.detailValue, { color: colors.text }]}>{product.cashbackRate}{strings.rateSuffix}</Text></View>
           {marketplaceNotice ? <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{marketplaceNotice}</Text> : null}
           <Text style={[styles.detailNotice, { color: colors.mutedText }]}>{strings.estimatedNote}</Text>
@@ -525,27 +487,18 @@ export function HomeScreen() {
   const { colors: themeColors, scheme } = useTheme();
   // Keep Vietnamese as the default while honoring an explicit account choice.
   const language = resolveLocale(user?.preferences?.locale ?? getDeviceLocale());
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const strings = getHomeStrings(language, payoutFeaturesEnabled);
-  const accountQuery = useAccountSummary(payoutFeaturesEnabled);
+  const strings = copy[language];
+  const accountQuery = useAccountSummary();
   const configQuery = useHomeConfig();
   const cashbackMutation = useCreateCashbackLink();
   const [productUrl, setProductUrl] = useState("");
   const [inputError, setInputError] = useState<string | null>(null);
   const [lastSubmittedUrl, setLastSubmittedUrl] = useState<string | null>(null);
   const authPreview = createHomeAuthPreview(user);
-  const shoppingAccount = user ? {
-    id: user.id,
-    name: user.name ?? null,
-    email: user.email ?? null,
-    avatar: user.avatar ?? null,
-    referralCode: null,
-    wallet: { balance: 0, totalCashback: 0, totalReferralEarned: 0, totalWithdrawn: 0 }
-  } : null;
-  const account = payoutFeaturesEnabled ? accountQuery.data ?? authPreview : shoppingAccount;
+  const account = accountQuery.data ?? authPreview;
 
-  if (payoutFeaturesEnabled && accountQuery.isPending && !account) return <LoadingState label={strings.loading} />;
-  if (payoutFeaturesEnabled && accountQuery.isError && !account) {
+  if (accountQuery.isPending && !account) return <LoadingState label={strings.loading} />;
+  if (accountQuery.isError && !account) {
     const State = isOfflineError(accountQuery.error) ? OfflineState : ErrorState;
     return (
       <State
@@ -562,7 +515,7 @@ export function HomeScreen() {
     return <EmptyState message={strings.emptyMessage} title={strings.emptyTitle} />;
   }
 
-  const pendingCashbackValue = payoutFeaturesEnabled && accountQuery.data
+  const pendingCashbackValue = accountQuery.data
     ? formatAccountMoney(accountQuery.data.wallet.pendingCashback, language)
     : null;
   const config = configQuery.data;
@@ -573,7 +526,7 @@ export function HomeScreen() {
     || configQuery.isError
     || !config?.cashbackLinkEnabled
     || enabledMarketplaces.length === 0;
-  const refreshing = (payoutFeaturesEnabled && accountQuery.isRefetching) || configQuery.isRefetching;
+  const refreshing = accountQuery.isRefetching || configQuery.isRefetching;
 
   function submitProductUrl(value: string = productUrl) {
     const validation = normalizeProductUrl(value);
@@ -624,12 +577,12 @@ export function HomeScreen() {
             paddingRight: insets.right + spacing.md
           }
         ]}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         keyboardShouldPersistTaps="handled"
         refreshControl={(
           <RefreshControl
             onRefresh={() => {
-              if (payoutFeaturesEnabled) void accountQuery.refetch();
+              void accountQuery.refetch();
               void configQuery.refetch();
             }}
             refreshing={refreshing}
@@ -637,7 +590,7 @@ export function HomeScreen() {
           />
         )}
       >
-        {payoutFeaturesEnabled && accountQuery.isError ? (
+        {accountQuery.isError ? (
           <InlineNotice
             message={strings.refreshError}
             onRetry={() => void accountQuery.refetch()}
@@ -659,7 +612,7 @@ export function HomeScreen() {
                 {strings.greeting} {displayName} 👋
               </Text>
             </View>
-            {payoutFeaturesEnabled ? <Pressable
+            <Pressable
               accessibilityLabel={language === "vi" ? "Thông báo" : "Notifications"}
               accessibilityRole="button"
               hitSlop={6}
@@ -671,10 +624,9 @@ export function HomeScreen() {
               ]}
             >
               <Bell color={themeColors.text} size={19} strokeWidth={2} />
-            </Pressable> : null}
+            </Pressable>
           </View>
 
-          {payoutFeaturesEnabled ? <>
           <LinearGradient
             colors={["#59a5fa", "#356dd3"]}
             end={{ x: 1, y: 1 }}
@@ -721,7 +673,6 @@ export function HomeScreen() {
               value={formatAccountMoney(account.wallet.totalWithdrawn, language)}
             />
           </View>
-          </> : null}
         </View>
 
         <View style={[styles.creatorCard, { backgroundColor: themeColors.surface, borderColor: scheme === "dark" ? themeColors.border : "#fed7c7" }]}>
@@ -786,7 +737,6 @@ export function HomeScreen() {
               language={language}
               notice={config?.marketplaces[cashbackMutation.data.platform].notice}
               product={cashbackMutation.data}
-              showPayoutDetails={payoutFeaturesEnabled}
               strings={strings}
             />
           ) : cashbackMutation.isPending ? (
@@ -800,7 +750,7 @@ export function HomeScreen() {
             </View>
           ) : null}
 
-          {payoutFeaturesEnabled ? <Pressable
+          <Pressable
             accessibilityHint={language === "vi" ? "Mở trang giới thiệu bạn bè" : "Open the referral page"}
             accessibilityLabel={strings.referralCtaTitle}
             accessibilityRole="button"
@@ -825,7 +775,7 @@ export function HomeScreen() {
                 <ChevronRight color="#c2410c" size={14} strokeWidth={2.5} />
               </View>
             </LinearGradient>
-          </Pressable> : null}
+          </Pressable>
 
           {mutationMessage ? (
             <InlineNotice
@@ -843,9 +793,9 @@ export function HomeScreen() {
           onTips={() => router.push("/(tabs)/home/tips")}
         />
 
-        {payoutFeaturesEnabled ? <View style={styles.demoSection}>
+        <View style={styles.demoSection}>
           <PhoneFlowDemo />
-        </View> : null}
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

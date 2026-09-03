@@ -1,4 +1,4 @@
-import { Redirect, Stack, useRouter } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -6,7 +6,6 @@ import {
   resolveHeaderTitle,
   type HeaderTitleOptions,
 } from "@/navigation/header";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useTheme } from "@/theme/ThemeProvider";
 
 type StackHeaderProps = {
@@ -82,9 +81,6 @@ function WalletStackHeader({ navigation, options, route }: StackHeaderProps) {
 
 export default function WalletLayout() {
   const { colors } = useTheme();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-
-  if (!payoutFeaturesEnabled) return <Redirect href="/(tabs)/home" />;
 
   return (
     <Stack

@@ -6,7 +6,6 @@ import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { env } from "@/config/env";
 import { fetchGifts, redeemGift, type Gift, type GiftRedemptionInput } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
@@ -31,10 +30,6 @@ function giftRedemptionFingerprint(payload: GiftRedemptionInput) {
 }
 
 export default function GiftsScreen() {
-  return <IosPayoutRouteGuard><GiftsContent /></IosPayoutRouteGuard>;
-}
-
-function GiftsContent() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { user } = useAuth();

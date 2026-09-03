@@ -223,6 +223,9 @@ test("uses the shared compact blue hero across earn and notification headers", (
   for (const source of [taskSource, checkinSource, inboxSource]) {
     assert.match(source, /<CompactBlueHero/);
   }
+  assert.match(inboxSource, /paddingTop: insets\.top \+ spacing\.lg/);
+  assert.match(inboxSource, /contentInsetAdjustmentBehavior="never"/);
+  assert.doesNotMatch(inboxSource, /contentInsetAdjustmentBehavior="automatic"/);
   assert.doesNotMatch(inboxSource, /hero: \{ backgroundColor: "#f97316"/);
 });
 

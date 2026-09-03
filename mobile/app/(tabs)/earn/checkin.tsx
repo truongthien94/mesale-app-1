@@ -19,7 +19,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { checkinQueryOptions, performCheckin, type CheckinResult } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
 import {
@@ -122,10 +121,6 @@ function FullScreenState({
 }
 
 export default function CheckinScreen() {
-  return <IosPayoutRouteGuard><CheckinContent /></IosPayoutRouteGuard>;
-}
-
-function CheckinContent() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { colors, scheme } = useTheme();

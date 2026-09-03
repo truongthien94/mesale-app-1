@@ -108,7 +108,6 @@ export type WithdrawConfig = {
 export type AppConfig = {
   withdraw: WithdrawConfig;
   features: {
-    ios_payout_features_enabled: boolean;
     api_orders: boolean;
     api_withdraw: boolean;
     api_balance_logs: boolean;

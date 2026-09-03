@@ -118,34 +118,4 @@ class GoogleNativeOAuthControllerContractTest extends TestCase
         $this->assertNotNull($user->referral_code_eligible_until);
         $this->assertTrue($user->referral_code_eligible_until->between(now()->addHours(71), now()->addHours(73)));
     }
-
-    public function test_disabled_ios_google_login_omits_financial_and_referral_fields(): void
-    {
-        Setting::setVal('ios_payout_features_enabled', '0');
-        $verifier = Mockery::mock(GoogleNativeOAuthTokenVerifier::class);
-        $verifier->shouldReceive('verify')->once()->andReturn([
-            'sub' => 'google-subject-restricted-ios',
-            'email' => 'restricted-ios@example.test',
-            'email_verified' => true,
-            'name' => 'Restricted iOS Member',
-            'picture' => null,
-        ]);
-        $this->app->instance(GoogleNativeOAuthTokenVerifier::class, $verifier);
-
-        $this->withHeaders([
-            'X-Mesale-App-Platform' => 'ios',
-            'X-Mesale-App-Version' => '1.0.0',
-        ])->postJson('/api/v1/openapi/auth/oauth/google', [
-            'id_token' => 'signed-google-token',
-            'device_name' => 'Restricted iOS Test',
-        ])->assertOk()
-            ->assertJsonPath('data.user.referral_prompt_pending', false)
-            ->assertJsonMissingPath('data.user.balance')
-            ->assertJsonMissingPath('data.user.total_cashback')
-            ->assertJsonMissingPath('data.user.total_referral_earned')
-            ->assertJsonMissingPath('data.user.total_withdrawn')
-            ->assertJsonMissingPath('data.user.referral_code')
-            ->assertJsonMissingPath('data.user.referral_code_eligible')
-            ->assertJsonMissingPath('data.user.referral_code_expires_at');
-    }
 }

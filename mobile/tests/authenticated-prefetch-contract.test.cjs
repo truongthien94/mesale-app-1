@@ -52,7 +52,7 @@ test("session restore refreshes account immediately in the background and Home/W
 
   assert.match(provider, /fetchQuery\(\{ \.\.\.accountDetailQueryOptions\(\), staleTime: 0 \}\)/);
   assert.match(provider, /setUser\(saved\.userPreview\);[\s\S]*setLoading\(false\);[\s\S]*fetchQuery/);
-  assert.match(provider, /saveAuthState\(saved\.session, restoredUser, payoutFeaturesEnabledRef\.current\)/);
+  assert.match(provider, /saveAuthState\(saved\.session, restoredUser\)/);
   assert.match(homeHooks, /appConfigRawQueryOptions\(\)[\s\S]*select: normalizeHomeConfig/);
   assert.match(walletApi, /\.\.\.appConfigRawQueryOptions\(\)[\s\S]*select:/);
   assert.match(configQuery, /appConfigKey = \["config"\]/);

@@ -9,20 +9,20 @@ export type AccountData = {
   email: string;
   phone: string | null;
   avatar: string | null;
-  referral_code?: string | null;
+  referral_code: string | null;
   referral_code_eligible?: boolean;
   referral_code_expires_at?: string | null;
   status: string;
   email_verified: boolean;
   preferences: AccountPreferences;
-  wallet?: {
+  wallet: {
     balance: number;
     total_cashback: number;
     total_referral_earned: number;
     total_withdrawn: number;
     currency: string;
   };
-  stats?: {
+  stats: {
     orders_total: number;
     orders_pending: number;
     orders_approved: number;

@@ -252,7 +252,7 @@ function HeroContent({ stage }: { stage: Stage }) {
   return (
     <View style={styles.screen}>
       <Text style={styles.title}>
-        Tạo link mua sắm <Text style={{ color: "#1763e8" }}>MeSale.vn</Text>
+        Tạo link hoàn tiền <Text style={{ color: "#1763e8" }}>MeSale.vn</Text>
       </Text>
 
       <View style={styles.panel}>
@@ -288,7 +288,7 @@ function HeroContent({ stage }: { stage: Stage }) {
       <Animated.View style={[styles.successCard, successStyle]}>
         <View style={styles.successHead}>
           <View style={styles.check}><Text style={styles.checkMark}>✓</Text></View>
-          <Text style={styles.successHeadText}>Đã tạo link mua sắm</Text>
+          <Text style={styles.successHeadText}>Đã tạo link hoàn tiền</Text>
         </View>
         <Text numberOfLines={1} style={styles.shortLink}>{SHORT_LINK}</Text>
         <View style={styles.actionsRow}>
@@ -300,7 +300,7 @@ function HeroContent({ stage }: { stage: Stage }) {
       <Animated.View style={[styles.detailsCard, detailsStyle]}>
         <DemoRow label="Hoa hồng sản phẩm" value={COMMISSION} />
         <DemoRow label="Tỷ lệ hoàn" tone="rate" value="12%" />
-        <DemoRow label="Ước tính hoàn tiền" tone="total" value={CASHBACK} />
+        <DemoRow label="Tiền hoàn dự kiến" tone="total" value={CASHBACK} />
       </Animated.View>
 
       {guideVisible ? (
@@ -327,7 +327,7 @@ function ShopProductPage() {
           <Text style={styles.shopStats}>4.9 ★★★★★ · 8,5k đánh giá · Đã bán 40k+</Text>
           <Text style={styles.shopPrice}>₫{PRODUCT_PRICE.replace("đ", "")}</Text>
           <View style={styles.cashbackNote}>
-            <Text style={styles.cashbackNoteText}>Bạn đang mua qua link MeSale.vn. Đơn hợp lệ sẽ được ghi nhận quyền lợi hoàn tiền.</Text>
+            <Text style={styles.cashbackNoteText}>Bạn đang mua qua link MeSale.vn. Đơn hợp lệ sẽ được ghi nhận hoàn tiền.</Text>
           </View>
         </View>
         <View style={styles.shopCard}>
@@ -402,7 +402,7 @@ function CheckoutPage({ stage }: { stage: Stage }) {
           <DemoRow label="Phí vận chuyển" value="0đ" />
           <DemoRow label="Thành tiền" tone="total" value={GRAND_TOTAL} />
           <View style={styles.cashbackRow}>
-            <Text style={styles.cashbackRowLabel}>MeSale ước tính hoàn tiền</Text>
+            <Text style={styles.cashbackRowLabel}>MeSale hoàn tiền dự kiến</Text>
             <Text style={styles.cashbackRowValue}>{CASHBACK}</Text>
           </View>
         </View>
@@ -436,11 +436,11 @@ function SuccessPage() {
         </View>
         <Text style={styles.statusCode}>Mã đơn: {ORDER_CODE}</Text>
         <View style={styles.statusMoney}>
-          <Text style={styles.statusMoneyLabel}>Ước tính hoàn tiền</Text>
+          <Text style={styles.statusMoneyLabel}>Hoàn tiền dự kiến</Text>
           <Text style={styles.statusMoneyValue}>{CASHBACK}</Text>
         </View>
       </View>
-      <View style={styles.primaryAction}><Text style={styles.primaryActionText}>Xem trạng thái đơn hàng</Text></View>
+      <View style={styles.primaryAction}><Text style={styles.primaryActionText}>Xem trạng thái hoàn tiền</Text></View>
     </View>
   );
 }
@@ -449,7 +449,7 @@ const cashbackTimeline = [
   { label: "Đã tạo link MeSale", note: "Link hoàn tiền đã được sử dụng", done: true },
   { label: "Đã ghi nhận đơn Shopee", note: `Mã đơn ${ORDER_CODE}`, done: true },
   { label: "Đang đối soát", note: "Chờ Shopee xác nhận đơn hợp lệ", done: false },
-  { label: "Xác nhận quyền lợi", note: "Sau khi hoàn tất đối soát", done: false }
+  { label: "Cộng tiền vào ví", note: "Sau khi hoàn tất đối soát", done: false }
 ];
 
 function CashbackPage() {
@@ -463,9 +463,9 @@ function CashbackPage() {
       </View>
       <View style={styles.resultBody}>
         <Text style={styles.resultTitle}>Đơn hàng đã được ghi nhận</Text>
-        <Text style={styles.resultText}>MeSale.vn đã nhận tín hiệu mua hàng từ link mua sắm của bạn.</Text>
+        <Text style={styles.resultText}>MeSale.vn đã nhận tín hiệu mua hàng từ link hoàn tiền của bạn.</Text>
         <View style={styles.cashbackBig}>
-          <Text style={styles.cashbackBigLabel}>Ước tính hoàn tiền</Text>
+          <Text style={styles.cashbackBigLabel}>Tiền hoàn dự kiến</Text>
           <Text style={styles.cashbackBigValue}>{CASHBACK}</Text>
           <Text style={styles.cashbackBigNote}>Khoản tiền sẽ được xác nhận sau khi Shopee đối soát đơn hàng hợp lệ và hết thời gian đổi trả.</Text>
         </View>

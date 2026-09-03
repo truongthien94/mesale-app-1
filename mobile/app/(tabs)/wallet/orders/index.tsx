@@ -25,7 +25,6 @@ import {
   WalletCards
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { formatAccountMoney } from "@/features/home/format";
 import { useAccountSummary } from "@/features/home/hooks";
 import { useOrders } from "@/features/wallet/api";
@@ -44,10 +43,6 @@ const statusFilters: { label: string; value: StatusFilter }[] = [
 ];
 
 export default function OrdersScreen() {
-  return <IosPayoutRouteGuard><OrdersContent /></IosPayoutRouteGuard>;
-}
-
-function OrdersContent() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, radius, scheme, spacing } = useTheme();
@@ -126,10 +121,10 @@ function OrdersContent() {
               title="Đơn hiện ở màn này"
             />
             <GuideStep
-              caption="Sau khi giao thành công, sàn thường đối soát trong 7–14 ngày trước khi xác nhận quyền lợi hoàn tiền."
+              caption="Sau khi giao thành công, sàn duyệt đơn trong 7–14 ngày. Duyệt xong, tiền tự cộng vào ví Mê Sale."
               colors={colors}
               icon={<WalletCards color="#16a34a" size={17} />}
-              title="Nhận hàng → chờ xác nhận"
+              title="Nhận hàng → tiền về ví"
             />
             <Text style={[styles.guideReassurance, { color: scheme === "dark" ? "#bfdbfe" : "#1d4ed8" }]}>Đôi khi sàn gửi dữ liệu chậm hơn một chút — đơn không mất đâu.</Text>
           </View>
@@ -141,7 +136,7 @@ function OrdersContent() {
           amount={accountQuery.data ? formatAccountMoney(pendingAmount, "vi") : null}
           colors={colors}
           count={pendingCount}
-          description="Thường xác nhận 7–14 ngày sau khi giao"
+          description="Về ví 7–14 ngày sau khi giao"
           icon={<Clock3 color="#d97706" size={19} />}
           label="Chờ xác nhận"
           loading={accountQuery.isPending}
@@ -152,7 +147,7 @@ function OrdersContent() {
           amount={accountQuery.data ? formatAccountMoney(approvedAmount, "vi") : null}
           colors={colors}
           count={approvedCount}
-          description="Quyền lợi đơn đã được xác nhận"
+          description="Đã cộng vào ví của bạn"
           icon={<CircleCheck color="#16a34a" size={19} />}
           label="Đã xác nhận"
           loading={accountQuery.isPending}

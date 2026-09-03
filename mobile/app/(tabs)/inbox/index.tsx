@@ -4,7 +4,6 @@ import { Bell } from "lucide-react-native";
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { CompactBlueHero } from "@/components/CompactBlueHero";
 import { FormErrorSummary } from "@/components/FormErrorSummary";
@@ -26,10 +25,6 @@ function formatNotificationDate(value: string | null): string {
 }
 
 export default function InboxRoute() {
-  return <IosPayoutRouteGuard><InboxContent /></IosPayoutRouteGuard>;
-}
-
-function InboxContent() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const vi = getDeviceLocale() === "vi";
@@ -86,7 +81,7 @@ function InboxContent() {
     <View style={styles.screen}>
       <FlatList
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.lg }]}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         data={notifications}
         keyExtractor={(item) => String(item.id)}
         ListEmptyComponent={

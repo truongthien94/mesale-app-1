@@ -1,7 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { ErrorState, LoadingState } from "@/components/AsyncState";
 import { Card, PageFrame, QueryFailure, SectionTitle, StatusBadge } from "@/features/wallet/components";
 import { formatDate, formatVnd } from "@/features/wallet/format";
@@ -9,10 +8,6 @@ import { useOrder } from "@/features/wallet/api";
 import { colors, spacing, theme } from "@/theme/tokens";
 
 export default function OrderDetailScreen() {
-  return <IosPayoutRouteGuard><OrderDetailContent /></IosPayoutRouteGuard>;
-}
-
-function OrderDetailContent() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = Number(params.id);
   const insets = useSafeAreaInsets();
@@ -45,9 +40,9 @@ function OrderDetailContent() {
           <SectionTitle title="Giá trị đơn hàng" />
           <View style={styles.rows}>
             <DetailRow label="Giá sản phẩm" value={formatVnd(order.original_price)} />
-            <DetailRow label="Giá trị đối soát từ sàn" value={formatVnd(order.commission_amount)} />
+            <DetailRow label="Hoa hồng từ sàn" value={formatVnd(order.commission_amount)} />
             <DetailRow label="Tỷ lệ hoàn tiền" value={`${order.cashback_rate}%`} />
-            <DetailRow emphasize label="Quyền lợi hoàn tiền" value={formatVnd(order.cashback_amount)} />
+            <DetailRow emphasize label="Bạn nhận" value={formatVnd(order.cashback_amount)} />
           </View>
         </Card>
 

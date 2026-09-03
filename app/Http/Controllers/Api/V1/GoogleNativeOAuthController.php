@@ -188,37 +188,27 @@ class GoogleNativeOAuthController extends ApiController
             $request->ip()
         );
 
-        $userResource = [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'avatar' => $user->avatar,
-            'status' => $user->status,
-            'email_verified' => ! is_null($user->email_verified_at),
-            'created_at' => optional($user->created_at)->toIso8601String(),
-        ];
-
-        if ($this->iosPayoutFeaturesEnabled($request)) {
-            $userResource = [
-                ...$userResource,
+        return $this->ok([
+            'access_token' => $plainToken,
+            'token' => $plainToken,
+            'token_type' => 'Bearer',
+            'expires_at' => optional($apiToken->expires_at)->toIso8601String(),
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'avatar' => $user->avatar,
                 'balance' => (int) round((float) $user->balance),
                 'total_cashback' => (int) round((float) $user->total_cashback),
                 'total_referral_earned' => (int) round((float) $user->total_referral_earned),
                 'total_withdrawn' => (int) round((float) $user->total_withdrawn),
                 'referral_code' => $user->referral_code,
                 ...$this->referralOnboarding->apiFields($user),
-            ];
-        } else {
-            $userResource['referral_prompt_pending'] = false;
-        }
-
-        return $this->ok([
-            'access_token' => $plainToken,
-            'token' => $plainToken,
-            'token_type' => 'Bearer',
-            'expires_at' => optional($apiToken->expires_at)->toIso8601String(),
-            'user' => $userResource,
+                'status' => $user->status,
+                'email_verified' => ! is_null($user->email_verified_at),
+                'created_at' => optional($user->created_at)->toIso8601String(),
+            ],
         ], __('Đăng nhập thành công!'));
     }
 

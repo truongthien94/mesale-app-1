@@ -61,11 +61,15 @@ test("avatar hooks use one authenticated path and invalidate the account query p
   const api = read("../src/features/account/api.ts");
 
   assert.match(contracts, /avatar: "account\/avatar"/);
-  assert.match(api, /formData\.append\("avatar"/);
+  assert.match(api, /import \{ File \} from "expo-file-system"/);
+  assert.match(api, /const file = new File\(avatar\.uri\)/);
+  assert.match(api, /if \(!file\.exists\) throw new Error\("Không thể đọc tệp ảnh đã xử lý\."\)/);
+  assert.match(api, /formData\.append\("avatar", file, avatar\.name\)/);
   assert.match(api, /type AvatarMutationResult = \{[\s\S]*avatar: string \| null;[\s\S]*avatar_url\?: string \| null/);
   assert.match(api, /requestEnvelope<AvatarMutationResult>\(accountPaths\.avatar,[\s\S]*method: "POST"/);
   assert.match(api, /requestEnvelope<AvatarMutationResult>\(accountPaths\.avatar, \{ method: "DELETE" \}\)/);
   assert.equal((api.match(/invalidateQueries\(\{ queryKey: \["account"\] \}\)/g) ?? []).length, 2);
+  assert.doesNotMatch(api, /uri: avatar\.uri/);
   assert.doesNotMatch(api, /Content-Type|multipart\/form-data/);
 });
 

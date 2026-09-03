@@ -15,8 +15,7 @@ import {
 } from "@/api/auth";
 import { parseUser, type AuthenticatedAuthResult, type LoginResult } from "@/api/authContract";
 import { clearAppQueryCache } from "@/api/queryClient";
-import { applyPayoutFeaturePolicy, clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
+import { clearSession, clearSessionIfTokenMatches, loadAuthState, onSessionInvalidated, saveAuthState, type Session } from "@/auth/session";
 import { signInWithAppleNative, signInWithGoogleNative } from "@/features/auth/nativeOAuth";
 import { accountDetailQueryOptions } from "@/features/account/query";
 
@@ -44,9 +43,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const payoutFeaturesEnabledRef = useRef(payoutFeaturesEnabled);
-  payoutFeaturesEnabledRef.current = payoutFeaturesEnabled;
   const [isLoading, setLoading] = useState(true);
   const [pendingAuth, setPendingAuth] = useState<AuthContinuation | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -60,7 +56,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async function restoreSession() {
       let hasStoredPreview = false;
       try {
-        const saved = await loadAuthState(payoutFeaturesEnabledRef.current);
+        const saved = await loadAuthState();
         if (!saved) return;
 
         if (!isActive || authRevision.current !== restoreRevision) return;
@@ -71,11 +67,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           setLoading(false);
         }
 
-        const restoredUser = applyPayoutFeaturePolicy(
-          parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 })),
-          payoutFeaturesEnabledRef.current
-        );
-        if (!restoredUser) return;
+        const restoredUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
         if (!isActive || authRevision.current !== restoreRevision) return;
         if (saved.userPreview && restoredUser.id !== saved.userPreview.id) {
           const cleared = await clearSessionIfTokenMatches(saved.session.accessToken);
@@ -86,7 +78,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           }
           return;
         }
-        await saveAuthState(saved.session, restoredUser, payoutFeaturesEnabledRef.current);
+        await saveAuthState(saved.session, restoredUser);
         if (!isActive || authRevision.current !== restoreRevision) {
           await clearSessionIfTokenMatches(saved.session.accessToken);
           return;
@@ -117,24 +109,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setLoading(false);
   }), [queryClient]);
 
-  useEffect(() => {
-    if (payoutFeaturesEnabled || !session || !user) return;
-    void saveAuthState(session, user, false);
-  }, [payoutFeaturesEnabled, session, user]);
-
   const acceptAuthenticated = useCallback(async (result: AuthenticatedAuthResult, revision: number) => {
     if (authRevision.current !== revision) return;
-    const acceptedUser = applyPayoutFeaturePolicy(result.user, payoutFeaturesEnabledRef.current);
-    if (!acceptedUser) return;
     clearAppQueryCache(queryClient);
-    await saveAuthState(result.session, acceptedUser, payoutFeaturesEnabledRef.current);
+    await saveAuthState(result.session, result.user);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(result.session.accessToken);
       return;
     }
     setPendingAuth(null);
     setSession(result.session);
-    setUser(acceptedUser);
+    setUser(result.user);
     setLoading(false);
   }, [queryClient]);
 
@@ -210,11 +195,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const activeSession = session;
     const activeUserId = user?.id;
     if (!activeSession) return;
-    const refreshedUser = applyPayoutFeaturePolicy(
-      parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 })),
-      payoutFeaturesEnabledRef.current
-    );
-    if (!refreshedUser) return;
+    const refreshedUser = parseUser(await queryClient.fetchQuery({ ...accountDetailQueryOptions(), staleTime: 0 }));
     if (authRevision.current !== revision) return;
     if (activeUserId !== undefined && refreshedUser.id !== activeUserId) {
       if (await clearSessionIfTokenMatches(activeSession.accessToken)) {
@@ -226,7 +207,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
       return;
     }
-    await saveAuthState(activeSession, refreshedUser, payoutFeaturesEnabledRef.current);
+    await saveAuthState(activeSession, refreshedUser);
     if (authRevision.current !== revision) {
       await clearSessionIfTokenMatches(activeSession.accessToken);
       return;
@@ -242,7 +223,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
     try {
       if (settledUser && session) {
-        await saveAuthState(session, settledUser, payoutFeaturesEnabledRef.current);
+        await saveAuthState(session, settledUser);
         if (authRevision.current !== revision) return;
       }
       await refreshUser();

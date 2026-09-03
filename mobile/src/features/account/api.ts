@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { File } from "expo-file-system";
 import { request, requestEnvelope } from "@/api/client";
 import { accountPaths, normalizePreferences, sessionRevokePath } from "@/features/account/contracts";
 import { accountDetailKey, accountDetailQueryOptions } from "@/features/account/query";
@@ -44,12 +45,11 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (avatar: AvatarUpload) => {
+      const file = new File(avatar.uri);
+      if (!file.exists) throw new Error("Không thể đọc tệp ảnh đã xử lý.");
+
       const formData = new FormData();
-      formData.append("avatar", {
-        uri: avatar.uri,
-        name: avatar.name,
-        type: avatar.type
-      } as unknown as Blob);
+      formData.append("avatar", file, avatar.name);
 
       return requestEnvelope<AvatarMutationResult>(accountPaths.avatar, {
         method: "POST",

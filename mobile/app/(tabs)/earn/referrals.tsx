@@ -24,7 +24,6 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { EmptyState, ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { referralsQueryOptions, type ReferralCommission, type ReferralMember } from "@/features/earn/api";
 import { ListFooterLoading, StatusBadge, formatDate, formatMoney } from "@/features/earn/ui";
 import { getDeviceLocale } from "@/i18n";
@@ -61,10 +60,6 @@ function ReferralChip({ label, selected, onPress }: { label: string; selected: b
 }
 
 export default function ReferralsScreen() {
-  return <IosPayoutRouteGuard><ReferralsContent /></IosPayoutRouteGuard>;
-}
-
-function ReferralsContent() {
   const insets = useSafeAreaInsets();
   const { colors, scheme } = useTheme();
   const vi = getDeviceLocale() === "vi";

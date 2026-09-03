@@ -26,14 +26,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useAuth } from "@/auth/AuthProvider";
 import { resolveAuthGate } from "@/auth/routing";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { getDeviceLocale, t } from "@/i18n";
 import {
   isAppleNativeSignInAvailable,
   oauthUiStateFromReason,
 } from "@/features/auth/nativeOAuth";
 import type { NativeOAuthProvider } from "@/features/auth/nativeOAuthContract";
-import { legalUrlsForPayoutFeatures } from "@/features/legal/urls";
+import { LEGAL_URLS } from "@/features/legal/urls";
 import { useTheme } from "@/theme/ThemeProvider";
 
 const BRAND_BLUE = "#1684e8";
@@ -42,8 +41,6 @@ const BRAND_ORANGE = "#f97316";
 
 export default function LoginScreen() {
   const locale = getDeviceLocale();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const legalUrls = legalUrlsForPayoutFeatures(payoutFeaturesEnabled);
   const { colors, radius, spacing, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const {
@@ -175,9 +172,7 @@ export default function LoginScreen() {
                 <Text style={styles.brandOrange}>Mê</Text> Sale
               </Text>
               <Text style={styles.brandTagline}>
-                {payoutFeaturesEnabled
-                  ? "Hệ thống mua sắm hoàn tiền Shopee - TikTok"
-                  : "Khám phá sản phẩm và ưu đãi Shopee - TikTok Shop"}
+                Hệ thống mua sắm hoàn tiền Shopee - Tiktok
               </Text>
             </View>
           </View>
@@ -438,21 +433,19 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={[styles.disclosure, { color: colors.mutedText }]}>
-            {payoutFeaturesEnabled
-              ? "Mê Sale là ứng dụng hoàn tiền độc lập."
-              : "Mê Sale là ứng dụng hỗ trợ khám phá sản phẩm và ưu đãi mua sắm."}
+            Mê Sale là ứng dụng hoàn tiền độc lập.
           </Text>
           <View style={styles.legalRow}>
             <LegalLink
               label="Chính sách bảo mật"
-              onPress={() => void openLegal(legalUrls.privacy)}
+              onPress={() => void openLegal(LEGAL_URLS.privacy)}
             />
             <Text style={[styles.legalSeparator, { color: colors.mutedText }]}>
               ·
             </Text>
             <LegalLink
               label="Điều khoản sử dụng"
-              onPress={() => void openLegal(legalUrls.terms)}
+              onPress={() => void openLegal(LEGAL_URLS.terms)}
             />
           </View>
         </View>

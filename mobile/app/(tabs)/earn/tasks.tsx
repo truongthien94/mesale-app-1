@@ -26,7 +26,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/api/client";
 import { ErrorState, LoadingState, OfflineState } from "@/components/AsyncState";
 import { CompactBlueHero } from "@/components/CompactBlueHero";
-import { IosPayoutRouteGuard } from "@/components/IosPayoutRouteGuard";
 import { fetchTasks, claimTask, submitTask, syncTask, type EarnTask } from "@/features/earn/api";
 import { invalidateRewardCaches } from "@/features/earn/cache";
 import { canClaimTask, canSubmitCustomTask } from "@/features/earn/contracts";
@@ -269,10 +268,6 @@ function OtherTaskCard({
 }
 
 export default function TasksScreen() {
-  return <IosPayoutRouteGuard><TasksContent /></IosPayoutRouteGuard>;
-}
-
-function TasksContent() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { colors, scheme } = useTheme();

@@ -94,8 +94,7 @@ test("keeps account categories collapsed on the hub and preserves the existing c
   const financeSource = fs.readFileSync(accountFinancePath, "utf8");
   const settingsSource = fs.readFileSync(accountSettingsPath, "utf8");
 
-  assert.match(hubSource, /<AccountPayoutSection accountWallet=\{account\.wallet \?\? null\}/);
-  assert.match(hubSource, /function AccountPayoutSection/);
+  assert.match(hubSource, /<CompactBlueHero[\s\S]*subtitle="Số dư khả dụng"[\s\S]*title=\{formatKnownMoney\(account\.wallet\?\.balance\)\}/);
 
   for (const route of ["information", "finance", "settings"]) {
     assert.match(hubSource, new RegExp(`account/${route}`));
@@ -261,18 +260,18 @@ test("broadcasts expired and malformed stored sessions once and clears authentic
   let invalidations = 0;
   sessionModule.onSessionInvalidated(() => { invalidations += 1; });
 
-  assert.equal(await sessionModule.loadAuthState(true), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.equal(storedItems.has("mesale.session.v1"), false);
   assert.deepEqual(JSON.parse(storedItems.get("mesale.auth.v2")), { version: 2, auth: null });
   assert.equal(invalidations, 1);
-  assert.equal(await sessionModule.loadAuthState(true), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.equal(invalidations, 1);
 
   storedItems.set("mesale.auth.v2", "{malformed-json");
-  assert.equal(await sessionModule.loadAuthState(true), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.deepEqual(JSON.parse(storedItems.get("mesale.auth.v2")), { version: 2, auth: null });
   assert.equal(invalidations, 2);
-  assert.equal(await sessionModule.loadAuthState(true), null);
+  assert.equal(await sessionModule.loadAuthState(), null);
   assert.equal(invalidations, 2);
 
   const providerSource = fs.readFileSync(authProviderPath, "utf8");
@@ -298,10 +297,9 @@ test("keeps 401 and explicit logout invalidation single-owner", async () => {
 
   await sessionModule.saveAuthState(
     { accessToken: "active-token", tokenType: "Bearer" },
-    { id: 42, name: "Mobile User", referralPromptPending: true },
-    true
+    { id: 42, name: "Mobile User", referralPromptPending: true }
   );
-  const storedAuth = await sessionModule.loadAuthState(true);
+  const storedAuth = await sessionModule.loadAuthState();
   assert.equal(storedAuth.session.accessToken, "active-token");
   assert.equal(storedAuth.userPreview.id, 42);
   assert.equal(storedAuth.userPreview.referralPromptPending, true);
@@ -328,6 +326,6 @@ test("legacy sessions bootstrap once while v2 previews unblock restore without s
   assert.match(providerSource, /if \(saved\.userPreview\) \{[\s\S]*setUser\(saved\.userPreview\)[\s\S]*setLoading\(false\)/);
   assert.match(providerSource, /fetchQuery\(\{ \.\.\.accountDetailQueryOptions\(\), staleTime: 0 \}\)/);
   assert.match(providerSource, /restoredUser\.id !== saved\.userPreview\.id/);
-  assert.match(providerSource, /saveAuthState\(saved\.session, restoredUser, payoutFeaturesEnabledRef\.current\)/);
+  assert.match(providerSource, /saveAuthState\(saved\.session, restoredUser\)/);
   assert.doesNotMatch(providerSource, /setQueryData|initialData|placeholderData/);
 });

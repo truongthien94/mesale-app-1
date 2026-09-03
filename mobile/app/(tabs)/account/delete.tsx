@@ -4,7 +4,6 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useDeleteAccount } from "@/features/account/api";
 import { AccountButton, AccountCard, AccountField, AccountFormScreen, AccountHeader, AccountMutationError, AccountNotice, accountStyles } from "@/features/account/components";
 import { isAppleNativeSignInAvailable, oauthUiStateFromReason, requestAppleNativeCredential } from "@/features/auth/nativeOAuth";
@@ -18,7 +17,6 @@ const providerCodes = new Set([
 
 export default function DeleteAccountScreen() {
   const router = useRouter();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
   const locale = getDeviceLocale();
   const { completeAccountDeletion } = useAuth();
   const mutation = useDeleteAccount();
@@ -78,11 +76,7 @@ export default function DeleteAccountScreen() {
     <AccountFormScreen>
       <AccountHeader title="Xóa tài khoản" subtitle="Thao tác này xóa hoặc vô hiệu hóa cùng tài khoản đang dùng trên website, không phải một bản dữ liệu mobile riêng." />
       <AccountCard tone="danger">
-        <AccountNotice tone="danger">
-          {payoutFeaturesEnabled
-            ? "Hành động không thể hoàn tác. Lịch sử hoàn tiền, hoa hồng, thông báo và phiên đăng nhập gắn với tài khoản có thể bị xóa vĩnh viễn. Hãy kiểm tra số dư và yêu cầu rút tiền trước khi tiếp tục."
-            : "Hành động không thể hoàn tác. Hồ sơ, tùy chọn, sản phẩm đã lưu, thông báo và các phiên đăng nhập gắn với tài khoản có thể bị xóa vĩnh viễn."}
-        </AccountNotice>
+        <AccountNotice tone="danger">Hành động không thể hoàn tác. Lịch sử hoàn tiền, hoa hồng, thông báo và phiên đăng nhập gắn với tài khoản có thể bị xóa vĩnh viễn. Hãy kiểm tra số dư và yêu cầu rút tiền trước khi tiếp tục.</AccountNotice>
         <AccountField autoCapitalize="none" label="Mật khẩu hiện tại (nếu có)" onChangeText={setPassword} placeholder="Tài khoản chỉ dùng Google/Apple có thể để trống" secureTextEntry value={password} />
         <AccountField autoCapitalize="characters" label="Nhập XÓA để xác nhận" onChangeText={setConfirmation} value={confirmation} />
         {providerReauthRequired ? (

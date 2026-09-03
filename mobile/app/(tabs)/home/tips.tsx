@@ -17,7 +17,6 @@ import {
   View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useIosPayoutFeaturesEnabled } from "@/config/features";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { Theme } from "@/theme/tokens";
 
@@ -118,39 +117,6 @@ const CASHBACK_TIPS: CashbackTip[] = [
   }
 ];
 
-const SHOPPING_TIPS: CashbackTip[] = [
-  {
-    id: 1,
-    title: "Kiểm tra đúng gian hàng trước khi mua",
-    description: ["Ưu tiên gian hàng chính hãng hoặc gian hàng có lịch sử đánh giá rõ ràng, mô tả sản phẩm đầy đủ và chính sách đổi trả minh bạch."],
-    solution: "Đối chiếu tên shop, số lượt bán, đánh giá gần đây và thông tin bảo hành trước khi đặt hàng."
-  },
-  {
-    id: 2,
-    title: "Đọc kỹ điều kiện mã giảm giá",
-    description: ["Mỗi mã có thể giới hạn ngành hàng, giá trị đơn tối thiểu, phương thức thanh toán, khung giờ hoặc số lượt sử dụng."],
-    solution: "Mở phần điều kiện của mã và kiểm tra sản phẩm trong giỏ có đáp ứng đầy đủ hay không."
-  },
-  {
-    id: 3,
-    title: "So sánh tổng chi phí thay vì chỉ nhìn giá",
-    description: ["Giá niêm yết thấp chưa chắc là lựa chọn tiết kiệm nhất nếu phí vận chuyển, phụ phí hoặc thời gian giao hàng cao hơn."],
-    solution: "So sánh giá sau mã, phí vận chuyển và thời gian nhận hàng giữa các gian hàng."
-  },
-  {
-    id: 4,
-    title: "Không chia sẻ mã OTP hoặc mật khẩu",
-    description: ["Sàn thương mại điện tử và Mê Sale không yêu cầu bạn gửi mật khẩu hoặc mã OTP qua tin nhắn để nhận ưu đãi."],
-    solution: "Chỉ đăng nhập trên ứng dụng hoặc website chính thức và liên hệ hỗ trợ nếu gặp yêu cầu đáng ngờ."
-  },
-  {
-    id: 5,
-    title: "Kiểm tra lại giỏ hàng trước khi thanh toán",
-    description: ["Số lượng, phân loại, địa chỉ nhận hàng và mã giảm giá có thể thay đổi trong quá trình mua sắm."],
-    solution: "Xác nhận lại toàn bộ thông tin đơn hàng trên sàn trước khi bấm đặt hàng."
-  }
-];
-
 function goBack() {
   if (router.canGoBack()) router.back();
   else router.replace("/(tabs)/home");
@@ -233,8 +199,6 @@ function TipCard({ expanded, onToggle, tip }: { expanded: boolean; onToggle: () 
 export default function TipsScreen() {
   const insets = useSafeAreaInsets();
   const { colors, scheme } = useTheme();
-  const payoutFeaturesEnabled = useIosPayoutFeaturesEnabled();
-  const tips = payoutFeaturesEnabled ? CASHBACK_TIPS : SHOPPING_TIPS;
   const [expandedIds, setExpandedIds] = useState<Set<number>>(() => new Set([1]));
 
   function toggleTip(id: number) {
@@ -259,27 +223,23 @@ export default function TipsScreen() {
 
       <FlatList
         contentContainerStyle={{ paddingBottom: insets.bottom + 28, paddingHorizontal: 14, paddingTop: 14 }}
-        data={tips}
+        data={CASHBACK_TIPS}
         extraData={expandedIds}
         keyExtractor={(item) => String(item.id)}
         ListFooterComponent={(
           <View style={[styles.footerCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.footerTitle, { color: colors.text }]}>📌 Lưu ý từ Mê Sale</Text>
-            <Text style={[styles.footerCopy, { color: colors.mutedText }]}>{payoutFeaturesEnabled
-              ? "Việc ghi nhận đơn hàng phụ thuộc hoàn toàn vào hệ thống của sàn (Shopee, TikTok Shop). Mê Sale cập nhật ví sau khi nhận và xử lý dữ liệu từ sàn — bạn không cần bấm xác nhận thủ công trong app, nên Mê Sale không thể “thêm” đơn mà sàn không ghi nhận."
-              : "Giá, mã giảm giá và điều kiện mua hàng do từng sàn và gian hàng cập nhật. Hãy kiểm tra thông tin cuối cùng trên sàn trước khi đặt hàng."}</Text>
+            <Text style={[styles.footerCopy, { color: colors.mutedText }]}>Việc ghi nhận đơn hàng phụ thuộc hoàn toàn vào hệ thống của sàn (Shopee, TikTok Shop). Mê Sale cập nhật ví sau khi nhận và xử lý dữ liệu từ sàn — bạn không cần bấm xác nhận thủ công trong app, nên Mê Sale không thể “thêm” đơn mà sàn không ghi nhận.</Text>
           </View>
         )}
         ListHeaderComponent={(
           <View style={styles.introStack}>
             <LinearGradient colors={["#37a7f6", "#1976df"]} end={{ x: 1, y: 1 }} start={{ x: 0, y: 0 }} style={styles.hero}>
               <AlertTriangle color="#854d0e" fill="#facc15" size={46} strokeWidth={2.3} />
-              <Text style={styles.heroTitle}>{payoutFeaturesEnabled ? "9 trường hợp đơn KHÔNG được ghi nhận hoàn tiền" : "5 mẹo mua sắm trực tuyến an toàn"}</Text>
+              <Text style={styles.heroTitle}>9 trường hợp đơn KHÔNG được ghi nhận hoàn tiền</Text>
               <Text style={styles.heroSubtitle}>Áp dụng cho tất cả các sàn: Shopee · TikTok Shop</Text>
             </LinearGradient>
-            <Text style={[styles.introCopy, { color: colors.mutedText }]}>{payoutFeaturesEnabled
-              ? "Đa số đơn “mất hoàn tiền” rơi vào đúng 9 tình huống dưới đây — bấm từng mục để xem chi tiết và cách tránh:"
-              : "Tham khảo các lưu ý dưới đây trước khi mở sàn và hoàn tất đơn hàng:"}</Text>
+            <Text style={[styles.introCopy, { color: colors.mutedText }]}>Đa số đơn “mất hoàn tiền” rơi vào đúng 9 tình huống dưới đây — bấm từng mục để xem chi tiết và cách tránh:</Text>
           </View>
         )}
         renderItem={({ item }) => (

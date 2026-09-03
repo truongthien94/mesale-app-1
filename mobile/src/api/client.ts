@@ -1,5 +1,3 @@
-import Constants from "expo-constants";
-import { Platform } from "react-native";
 import { clearSessionIfTokenMatches, loadSession, notifySessionInvalidated } from "@/auth/session";
 import {
   isFailureEnvelope,
@@ -97,9 +95,6 @@ export async function requestEnvelope<T>(path: string, options: RequestOptions =
   try {
     const session = authenticated ? await loadSession() : null;
     const headers = new Headers(fetchOptions.headers);
-    headers.set("X-Mesale-App-Platform", Platform.OS);
-    const appVersion = Constants.expoConfig?.version?.trim();
-    if (appVersion) headers.set("X-Mesale-App-Version", appVersion);
     const isFormDataBody = typeof FormData !== "undefined" && body instanceof FormData;
     headers.set("Accept", "application/json");
     if (body !== undefined && !isFormDataBody) headers.set("Content-Type", "application/json");
