@@ -3,7 +3,7 @@
     "name": "Mê Sale",
     "slug": "mesale-mobile",
     "icon": "./assets/mesale-logo.png",
-    "version": "1.0.2",
+    "version": "0.1.5",
     "orientation": "portrait",
     "scheme": "mesale",
     "userInterfaceStyle": "automatic",
@@ -139,7 +139,7 @@
     },
     "android": {
       "package": "vn.mesale.app",
-      "versionCode": 4,
+      "versionCode": 5,
       "intentFilters": [
         {
           "action": "VIEW",
