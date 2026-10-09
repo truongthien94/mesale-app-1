@@ -73,6 +73,26 @@ test("Android production build succeeds without the iOS URL scheme", () => {
   assert.equal(hasGooglePlugin, false);
 });
 
+test("Android release optimization is registered without an iOS URL scheme", () => {
+  const result = evaluate({ EAS_BUILD_PROFILE: "production", EAS_BUILD_PLATFORM: "android" });
+  assert.equal(
+    result.plugins.filter((plugin) => plugin === "./plugins/withAndroidReleaseOptimization").length,
+    1
+  );
+});
+
+test("Android release optimization remains registered when native Google Sign-In is configured", () => {
+  const result = evaluate({
+    EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME: VALID_SCHEME,
+    EAS_BUILD_PROFILE: "production",
+    EAS_BUILD_PLATFORM: "android"
+  });
+  assert.equal(
+    result.plugins.filter((plugin) => plugin === "./plugins/withAndroidReleaseOptimization").length,
+    1
+  );
+});
+
 test("iOS production build still requires the iOS URL scheme", () => {
   assert.throws(
     () => evaluate({ EAS_BUILD_PROFILE: "production", EAS_BUILD_PLATFORM: "ios" }),

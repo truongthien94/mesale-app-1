@@ -4,6 +4,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 // credentials from Gradle properties/env at build time, so it is safe to apply
 // on every platform (it no-ops on non-Android native projects).
 const ANDROID_RELEASE_SIGNING_PLUGIN = "./plugins/withAndroidReleaseSigning";
+const ANDROID_RELEASE_OPTIMIZATION_PLUGIN = "./plugins/withAndroidReleaseOptimization";
 const IOS_VERSION_SETTINGS_PLUGIN = "./plugins/withIosVersionSettings";
 
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -26,7 +27,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       plugins: [
         ...(baseConfig.plugins ?? []),
         IOS_VERSION_SETTINGS_PLUGIN,
-        ANDROID_RELEASE_SIGNING_PLUGIN
+        ANDROID_RELEASE_SIGNING_PLUGIN,
+        ANDROID_RELEASE_OPTIMIZATION_PLUGIN
       ]
     };
   }
@@ -40,7 +42,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(baseConfig.plugins ?? []),
       ["@react-native-google-signin/google-signin", { iosUrlScheme }],
       IOS_VERSION_SETTINGS_PLUGIN,
-      ANDROID_RELEASE_SIGNING_PLUGIN
+      ANDROID_RELEASE_SIGNING_PLUGIN,
+      ANDROID_RELEASE_OPTIMIZATION_PLUGIN
     ]
   };
 };
